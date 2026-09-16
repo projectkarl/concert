@@ -13,7 +13,7 @@
   <title>NEUL — Stay Close to What You Love</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700;800;900&family=Noto+Sans+KR:wght@400;500;600;700;800;900&family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
@@ -33,16 +33,11 @@
       </nav>
       <div class="top-actions">
         <button class="round-icon" id="searchFocusBtn" aria-label="搜尋">⌕</button>
-        <button class="round-icon" id="themeBtn" aria-label="切換顯示模式">☾</button>
-        <button class="install-pill" id="installAppBtn" type="button" aria-label="安裝 NEUL 到主畫面">APP</button>
+        <button class="round-icon settings-icon" id="settingsBtn" type="button" aria-label="設定">⚙</button>
         <a class="pill-light" href="#myList">MY LIST</a>
       </div>
     </header>
 
-    <aside class="side-head">
-      <a class="brand-lockup compact" href="#top"><span class="wordmark">NEUL <span class="wordmark-kr">늘</span></span><span class="brand-tagline">Stay Close to What You Love.</span></a>
-      <button class="menu-icon" id="mobileMenuBtn" aria-label="開啟選單">☰</button>
-    </aside>
 
     <main class="hero-panel">
       <div class="hero-art" aria-hidden="true"></div>
@@ -154,7 +149,6 @@
         <h2 id="venueTitle">台北大巨蛋</h2>
         <p>探索場館 · 選擇座位 · 預覽視角</p>
         <button class="pink-pill" id="open3dBtn">進入3D場館 →</button>
-        <button class="outline-mini venue-demo-btn" id="ive2026DemoBtn">IVE 2026 · 9月場</button>
       </div>
       <div class="venue-render-wrap">
         <canvas id="venueOverviewCanvas" class="venue-render" aria-label="目前選擇場館的 3D 區域模型"></canvas>
@@ -180,7 +174,6 @@
         <div class="view-mode-tabs" id="postureTabs"><button class="active" data-posture="seated">坐著</button><button data-posture="standing">站著</button></div>
         <label>視野模式</label>
         <div class="view-mode-tabs lens-tabs" id="lensTabs"><button class="active" data-lens="eye">肉眼</button><button data-lens="phone1">1×</button><button data-lens="phone2">2×</button><button data-lens="phone5">5×</button></div>
-        <a class="real-view-link" id="realViewLink" href="https://twconcertview.com/venue/taipei-dome/" target="_blank" rel="noopener noreferrer">查看外部真實實拍 ↗</a>
         <div class="venue-confidence" id="venueConfidence">官方配置已核對 · 區域幾何模擬</div>
         <button class="view-button" id="seatPreviewBtn">查看視角 →</button>
       </div>
@@ -221,6 +214,34 @@
   </nav>
 
 
+  <div class="settings-backdrop" id="settingsBackdrop" hidden></div>
+  <section class="settings-sheet" id="settingsSheet" hidden aria-modal="true" role="dialog" aria-labelledby="settingsTitle">
+    <button class="settings-close" id="settingsClose" type="button" aria-label="關閉設定">×</button>
+    <span class="eyebrow">SETTINGS</span>
+    <h2 id="settingsTitle">設定</h2>
+    <div class="settings-group">
+      <div class="settings-group-head"><b>語言</b><span>切換介面顯示語言</span></div>
+      <div class="language-choice" role="group" aria-label="語言">
+        <button type="button" data-lang="zh-Hant">繁中</button>
+        <button type="button" data-lang="en">EN</button>
+        <button type="button" data-lang="ja">日本語</button>
+        <button type="button" data-lang="ko">한국어</button>
+      </div>
+    </div>
+    <div class="settings-group">
+      <div class="settings-group-head"><b>外觀</b><span>圖片與 3D 維持原始色彩</span></div>
+      <div class="theme-choice" role="group" aria-label="外觀模式">
+        <button id="themeDarkBtn" type="button" data-theme="dark">深色</button>
+        <button id="themeLightBtn" type="button" data-theme="light">亮色</button>
+      </div>
+    </div>
+    <div class="settings-group">
+      <div class="settings-group-head"><b>加入主畫面</b><span>以 PWA 方式開啟 NEUL</span></div>
+      <button class="settings-install" id="installAppBtn" type="button">安裝 / 加入主畫面</button>
+    </div>
+    <p class="settings-note">提醒功能維持獨立入口，可從頁面右上方的提醒按鈕開啟。</p>
+  </section>
+
   <div class="install-backdrop" id="installBackdrop" hidden></div>
   <section class="install-sheet" id="installSheet" hidden aria-modal="true" role="dialog" aria-labelledby="installTitle">
     <div class="install-sheet-handle" aria-hidden="true"></div>
@@ -230,6 +251,7 @@
     <div class="install-sheet-body" id="installBody"></div>
   </section>
 
+  <script src="/i18n.js"></script>
   <script type="module" src="/app.js"></script>
   <script type="module" src="/pwa.js"></script>
   <script type="module" src="/enhancements.js"></script>

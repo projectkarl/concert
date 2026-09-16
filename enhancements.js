@@ -27,7 +27,7 @@ function addSkeleton(){
 }
 function addNotificationButton(){
   const actions=$('.top-actions'); if(!actions||$('#notifyBtn'))return;
-  const b=document.createElement('button');b.className='round-icon notify-btn';b.id='notifyBtn';b.setAttribute('aria-label','提醒中心');b.innerHTML='♢<span class="notify-badge" id="notifyBadge" hidden>0</span>';actions.insertBefore(b,$('#installAppBtn'));
+  const b=document.createElement('button');b.className='round-icon notify-btn';b.id='notifyBtn';b.setAttribute('aria-label','提醒中心');b.innerHTML='♢<span class="notify-badge" id="notifyBadge" hidden>0</span>';actions.insertBefore(b,$('#settingsBtn'));
   b.addEventListener('click',openNotificationCenter); updateBadge();
 }
 async function updateBadge(){
@@ -62,7 +62,7 @@ async function syncPushPreferences(){
 
 async function openNotificationCenter(){
   ensureShells();const reminders=await idbGet('prefs','reminders',[]);const next=reminders.filter(r=>!r.done&&new Date(r.at)>new Date()).sort((a,b)=>new Date(a.at)-new Date(b.at)).slice(0,8);
-  $('#utilityContent').innerHTML=`<span class="eyebrow">NEUL ALERTS</span><h2>提醒中心</h2><p class="modal-lead">PWA 背景提醒以重大更新與每日摘要為主；售票分鐘級提醒建議加入手機行事曆。</p><button class="pink-pill modal-primary" id="enablePushBtn">開啟通知</button><div class="modal-status" id="pushStatus"></div><section class="modal-section"><h3>我的提醒</h3>${next.length?next.map(r=>`<div class="reminder-row"><b>${esc(r.title)}</b><span>${new Date(r.at).toLocaleString('zh-TW',{timeZone:'Asia/Taipei'})}</span></div>`).join(''):'<p class="muted">目前沒有待提醒項目。</p>'}</section>`;
+  $('#utilityContent').innerHTML=`<span class="eyebrow">NEUL ALERTS</span><h2>提醒中心</h2><p class="modal-lead">PWA 背景提醒以重大更新與每日摘要為主；售票分鐘級提醒建議加入手機行事曆。</p><button class="pink-pill modal-primary" id="enablePushBtn">開啟通知</button><div class="modal-status" id="pushStatus"></div><section class="modal-section"><h3>我的提醒</h3>${next.length?next.map(r=>`<div class="reminder-row"><b>${esc(r.title)}</b><span>${new Date(r.at).toLocaleString(window.NEUL_I18N?.locale?.() || 'zh-TW',{timeZone:'Asia/Taipei'})}</span></div>`).join(''):'<p class="muted">目前沒有待提醒項目。</p>'}</section>`;
   openModal('#utilityModal');$('#enablePushBtn').onclick=async()=>{const s=$('#pushStatus');s.textContent='設定中…';const out=await enablePush();s.textContent=out.message;};
 }
 
@@ -86,10 +86,10 @@ async function enhanceDetail(){
   $('#dayModeBtn',root)?.addEventListener('click',()=>openDayMode(e));
   $('#appleCalBtn',root)?.addEventListener('click',()=>addCalendar(e));
   $('#remind30Btn',root)?.addEventListener('click',async ev=>{const ok=await addReminder(e,30);ev.currentTarget.textContent=ok?'✓ 已建立提醒':'目前無可提醒時間';});
-  const changes=await eventChanges(e.id);const body=$('.change-log-body',root);if(body)body.innerHTML=changes.length?changes.map(c=>`<div class="change-row"><span>${fieldName(c.field)}</span><b>${esc(shortValue(c.from))} → ${esc(shortValue(c.to))}</b><small>${new Date(c.at).toLocaleString('zh-TW',{timeZone:'Asia/Taipei'})}</small></div>`).join(''):`<p class="muted">目前沒有偵測到已核對欄位的變更。</p>`;
+  const changes=await eventChanges(e.id);const body=$('.change-log-body',root);if(body)body.innerHTML=changes.length?changes.map(c=>`<div class="change-row"><span>${fieldName(c.field)}</span><b>${esc(shortValue(c.from))} → ${esc(shortValue(c.to))}</b><small>${new Date(c.at).toLocaleString(window.NEUL_I18N?.locale?.() || 'zh-TW',{timeZone:'Asia/Taipei'})}</small></div>`).join(''):`<p class="muted">目前沒有偵測到已核對欄位的變更。</p>`;
 }
 function fieldName(f){return({start:'演出時間',end:'結束／加場',venue:'場館',ticketStatus:'售票狀態',generalSale:'正式售票',price:'票價'})[f]||f;}
-function shortValue(v){if(!v)return'未提供';if(/^20\d\d-/.test(String(v))){try{return new Date(v).toLocaleString('zh-TW',{timeZone:'Asia/Taipei'});}catch{}}return String(v).slice(0,80);}
+function shortValue(v){if(!v)return'未提供';if(/^20\d\d-/.test(String(v))){try{return new Date(v).toLocaleString(window.NEUL_I18N?.locale?.() || 'zh-TW',{timeZone:'Asia/Taipei'});}catch{}}return String(v).slice(0,80);}
 function isTodayEvent(e){const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Taipei'}).format(new Date());return eventTime(e).some(d=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Taipei'}).format(d)===today);}
 function openDayMode(e){
   ensureShells();const next=app.nextAction(e);const sessions=e.sessions||[];const timeline=e.ticketTimeline||[];$('#neulDayContent').innerHTML=`<span class="eyebrow">CONCERT DAY</span><h2>${esc(e.artist)}</h2><p class="day-title">${esc(e.title)}</p><div class="day-next"><span>NEXT</span><b>${esc(next.value)}</b></div><div class="day-grid"><div><span>VENUE</span><b>${esc(e.venue)}</b></div><div><span>TIME</span><b>${esc(app.fmtDate(e.start,e.end))}${e.end?' · 多場次':' · '+esc(app.fmtEventTime(e))}</b></div></div>${sessions.length?`<section class="modal-section"><h3>場次</h3>${sessions.map(s=>`<div class="day-row"><b>${esc(s.date)} ${esc(s.time)}</b><span>${esc(s.note||'')}</span></div>`).join('')}</section>`:''}<section class="modal-section"><h3>今天需要確認</h3>${timeline.slice(-4).map(x=>`<div class="day-row"><b>${esc(x.label)}</b><span>${esc(x.time)}</span></div>`).join('')||'<p class="muted">目前沒有額外時程。</p>'}</section><div class="day-actions"><a href="${app.safeUrl(e.sourceUrl)}" target="_blank" rel="noopener noreferrer" class="pink-pill">查看官方最新公告</a>${e.venueModelId?'<button class="outline-mini" id="dayVenueBtn">打開 3D 場館</button>':''}</div><p class="day-disclaimer">現場 Gate、VIP Check-in、Soundcheck、禁帶物等只在官方已有資料時顯示；未公告項目不自行推測。</p>`;

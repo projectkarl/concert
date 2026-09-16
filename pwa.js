@@ -1,4 +1,8 @@
 const installBtn = document.getElementById("installAppBtn");
+const settingsBtn = document.getElementById("settingsBtn");
+const settingsSheet = document.getElementById("settingsSheet");
+const settingsBackdrop = document.getElementById("settingsBackdrop");
+const settingsClose = document.getElementById("settingsClose");
 const sheet = document.getElementById("installSheet");
 const sheetBackdrop = document.getElementById("installBackdrop");
 const sheetClose = document.getElementById("installClose");
@@ -15,10 +19,29 @@ function setInstalledUI() {
   document.documentElement.classList.toggle("pwa-standalone", isStandalone());
   if (installBtn) {
     installBtn.hidden = isStandalone();
-    installBtn.textContent = isStandalone() ? "已安裝" : "APP";
+    installBtn.textContent = isStandalone() ? "已安裝" : "安裝 / 加入主畫面";
   }
   if (status) status.textContent = isStandalone() ? "已從主畫面啟動" : "可加入主畫面";
 }
+
+
+function openSettings() {
+  if (!settingsSheet || !settingsBackdrop) return;
+  settingsSheet.hidden = false;
+  settingsBackdrop.hidden = false;
+  requestAnimationFrame(() => settingsSheet.classList.add("open"));
+  document.body.classList.add("sheet-open");
+}
+function closeSettings() {
+  if (!settingsSheet || !settingsBackdrop) return;
+  settingsSheet.classList.remove("open");
+  settingsBackdrop.hidden = true;
+  setTimeout(() => { settingsSheet.hidden = true; }, 200);
+  document.body.classList.remove("sheet-open");
+}
+settingsBtn?.addEventListener("click", openSettings);
+settingsClose?.addEventListener("click", closeSettings);
+settingsBackdrop?.addEventListener("click", closeSettings);
 
 function openInstallSheet(kind = "generic") {
   if (!sheet || !sheetBackdrop) return;
@@ -66,6 +89,7 @@ window.addEventListener("appinstalled", () => {
 
 installBtn?.addEventListener("click", async () => {
   if (isStandalone()) return;
+  closeSettings();
   if (deferredPrompt) {
     deferredPrompt.prompt();
     await deferredPrompt.userChoice.catch(() => null);
@@ -77,7 +101,7 @@ installBtn?.addEventListener("click", async () => {
 });
 sheetClose?.addEventListener("click", closeInstallSheet);
 sheetBackdrop?.addEventListener("click", closeInstallSheet);
-window.addEventListener("keydown", event => { if (event.key === "Escape") closeInstallSheet(); });
+window.addEventListener("keydown", event => { if (event.key === "Escape") { closeInstallSheet(); closeSettings(); } });
 
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   window.addEventListener("load", async () => {

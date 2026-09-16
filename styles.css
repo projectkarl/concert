@@ -122,7 +122,6 @@ a{color:inherit}
 .venue-intro h2{font-size:27px;margin:0 0 14px}
 .venue-intro p{font-size:10px;color:#ccd0d4;margin:0;line-height:1.55}
 .venue-intro .pink-pill{margin-top:28px}
-.venue-demo-btn{margin-top:10px;align-self:flex-start}
 .venue-render-wrap{grid-area:render;position:relative;min-height:275px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#080b0f url("/assets/venue-3d.webp") center/cover no-repeat}
 .venue-render{width:100%;height:100%;min-height:275px;display:block;filter:saturate(.9) contrast(1.04);opacity:.98;touch-action:none;contain:strict;transform:translateZ(0)}
 .venue-render-wrap:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#0d1014 0%,transparent 11%,transparent 88%,#0d1014 100%),linear-gradient(0deg,#0d1014 0%,transparent 18%,transparent 90%);z-index:2;pointer-events:none}
@@ -180,9 +179,9 @@ a{color:inherit}
 .viewer-help{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);font-size:9px;color:#c9ced3;border:1px solid #343a41;background:rgba(12,15,18,.75);padding:9px 13px;border-radius:999px;z-index:2;white-space:nowrap}
 .mobile-bottom{display:none}
 body.light-mode{--dark:#f6f3f1;--dark2:#f8f6f4;--panel:#fff;--ink:#181719;--line:#d6d0cc;--line2:#c9c2bd;--muted:#6e6c6d;--soft:#292728}
-body.light-mode .topbar,body.light-mode .side-head,body.light-mode .hero-panel,body.light-mode .upcoming-panel,body.light-mode .featured-card,body.light-mode .my-list-card,body.light-mode .venue-section,body.light-mode .footer{filter:invert(.92) hue-rotate(180deg)}
+body.light-mode .topbar,body.light-mode .side-head,body.light-mode .hero-panel,body.light-mode .upcoming-panel,body.light-mode .featured-card,body.light-mode .my-list-card,body.light-mode .venue-section,body.light-mode .footer{filter:none}
 @media (max-width:1160px){
-  .site-shell{grid-template-columns:minmax(0,1fr) 335px}
+  .site-shell{grid-template-columns:minmax(0,1fr) 405px}
   .desktop-nav{gap:22px;margin-left:30px}
   .hero-copy{width:55%;padding-left:40px}
   .hero-copy h1{font-size:72px}
@@ -431,3 +430,319 @@ button,input,select,textarea{font-family:var(--font-ui)}
 /* v0.22 · automatic event 3D */
 .detail-3d-status{display:grid;gap:4px;margin:14px 0;padding:11px 13px;border:1px solid rgba(180,199,214,.18);border-radius:10px;background:linear-gradient(135deg,rgba(17,23,29,.96),rgba(21,18,25,.96))}
 .detail-3d-status b{font-size:10px;letter-spacing:.08em;color:#f0dce9}.detail-3d-status span{font-size:9px;line-height:1.55;color:#99a3ad}
+
+/* v0.23 · desktop layout stabilization */
+@media (min-width:921px){
+  .site-shell{
+    grid-template-columns:minmax(0,1fr) 450px;
+    grid-template-areas:"top top" "hero upcoming" "lower lower" "brand brand" "venue venue" "footer footer";
+  }
+  .topbar{height:80px;border-right:0;min-width:0;}
+  .side-head{display:none!important;}
+  .hero-panel{height:594px;min-height:594px;align-self:start;}
+  .hero-search-wrap{bottom:23px;}
+  .upcoming-panel{height:594px;align-self:start;overflow:hidden;}
+  .upcoming-inner{height:100%;display:flex;flex-direction:column;padding:15px 22px 16px;}
+  .upcoming-inner h2{margin-bottom:9px;}
+  .region-tabs{margin-bottom:8px;}
+  .data-freshness{margin:4px 2px 6px;}
+  .event-result-meta{margin:-1px 2px 7px;}
+  .event-list{height:397px;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-right:3px;scrollbar-width:thin;}
+  .event-row{min-height:76px;padding:7px;grid-template-columns:55px minmax(0,1fr) auto;gap:10px;}
+  .event-poster{height:60px;}
+  .upcoming-inner>.text-link{margin-top:auto;padding-top:8px;}
+  .venue-section{grid-template-columns:230px minmax(0,1fr) 200px 360px;}
+  .venue-intro h2{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:30px;}
+  .venue-controls select{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+}
+@media (min-width:921px) and (max-width:1260px){
+  .site-shell{grid-template-columns:minmax(0,1fr) 405px;}
+  .desktop-nav{gap:22px;margin-left:30px;}
+  .venue-section{grid-template-columns:205px minmax(0,1fr) 185px 320px;}
+  .venue-intro h2{font-size:27px;}
+}
+
+/* v0.25 · Professional readability / typography scale audit */
+:root{
+  --text-caption:11px;
+  --text-meta:12px;
+  --text-body:13px;
+  --text-ui:13px;
+  --text-emphasis:14px;
+}
+
+/* Venue / 3D area: make the most important interaction block readable at a glance */
+.venue-section{min-height:410px}
+.venue-intro{padding-top:34px}
+.venue-intro h2{font-size:32px;line-height:1.08;margin-bottom:16px}
+.venue-intro p{font-size:13px;line-height:1.7;color:#cfd4d9}
+.venue-stage-tag{font-size:12px;padding:6px 10px}
+.selected-zone{font-size:12px;padding:6px 10px}
+.venue-render-wrap,.venue-render{min-height:330px}
+.venue-controls{gap:10px;padding-top:29px;padding-bottom:27px}
+.venue-controls label{font-size:13px;line-height:1.35;color:#e2e5e8}
+.floor-tabs button{height:34px;font-size:12px;font-weight:720}
+.venue-controls select{height:42px;font-size:13px;padding-inline:11px}
+.view-button{height:42px;font-size:13px;font-weight:800}
+.seat-preview-card{padding:20px 20px 22px}
+.preview-title{font-size:16px;line-height:1.3;margin-bottom:13px;font-weight:850;letter-spacing:-.035em}
+.preview-title button{font-size:20px}
+.seat-preview-img{height:205px}
+.seat-preview-card p{font-size:12px;line-height:1.65;color:#c1c7cd;margin:11px 0}
+.preview-tools{display:flex;flex-wrap:wrap;gap:8px 15px;font-size:11px;line-height:1.45;color:#e0e3e6;white-space:normal;overflow:visible}
+.venue-tip{font-size:11px;line-height:1.65;padding-top:11px;padding-bottom:18px;color:#c2c8ce}
+.venue-tip span{padding:4px 8px;font-size:11px}
+
+/* Calibration and seat controls */
+.seat-detail-grid{gap:10px}
+.seat-detail-grid label{gap:6px;font-size:12px;color:#d5dae0}
+.seat-detail-grid small{font-size:11px;line-height:1.4;color:#9ba4ad}
+.seat-detail-grid input,.seat-detail-grid select{height:42px;font-size:13px}
+.view-mode-tabs button{min-height:38px;font-size:12px}
+.viewer-lens-chip{font-size:11px;padding:9px 13px}
+.calibration-note{font-size:11px;line-height:1.65;padding:10px 11px}
+.external-source-note{font-size:11px;line-height:1.6}
+
+/* Event cards / upcoming */
+.data-freshness{font-size:11px;line-height:1.45}
+.data-freshness .freshness-cadence{font-size:10.5px;line-height:1.5}
+.event-info strong{font-size:15px;line-height:1.25}
+.event-info .title{font-size:12px;line-height:1.35}
+.event-info .date,.event-info .venue{font-size:12px;line-height:1.35}
+.event-tag{font-size:11px;padding:5px 9px}
+.search-scope-note{font-size:11px;line-height:1.6}
+.region{font-size:12px}
+.category{font-size:12px}
+.text-link{font-size:13px}
+
+/* Featured / list */
+.featured-side p,.featured-copy p{font-size:13px;line-height:1.65}
+.pink-mini,.outline-mini{font-size:12px;min-height:34px}
+.mini-tabs button{font-size:12px}
+.artist-bubble span{font-size:11px;line-height:1.35}
+.tiny-sign{font-size:10px}
+.carousel-mini{font-size:11px}
+
+/* Event detail drawer */
+.detail-kicker{font-size:11px}
+.detail-title{font-size:14px;line-height:1.65}
+.detail-meta span{font-size:11px;line-height:1.35}
+.detail-meta strong{font-size:13px;line-height:1.5}
+.timeline-item b{font-size:13px;line-height:1.4}
+.timeline-item span{font-size:11px;line-height:1.5}
+.detail-list{font-size:12px;line-height:1.8}
+.detail-source a{font-size:12px}
+.detail-check{font-size:11px;line-height:1.55}
+.detail-3d-status b{font-size:12px}
+.detail-3d-status span{font-size:11px;line-height:1.6}
+
+/* Viewer */
+.viewer-toolbar b{font-size:15px}
+.viewer-toolbar span{font-size:12px}
+.viewer-help{font-size:11px;line-height:1.4;padding:10px 14px}
+
+/* Compare / live mode / utility surfaces */
+.day-grid span{font-size:11px}.day-grid b{font-size:13px}.day-disclaimer{font-size:11px}
+.compare-label{font-size:12px}.compare-card dt{font-size:11px}.compare-card dd{font-size:12px}.compare-card p,.compare-foot{font-size:11px}
+.concert-day-banner span{font-size:10px}.concert-day-banner b{font-size:12px}.concert-day-banner i{font-size:11px}
+.my-event-chip b{font-size:12px}.my-event-chip span{font-size:11px}
+.quality-badge{font-size:10px}.search-seat-assist{font-size:11px}
+
+/* Brand / footer / supporting copy */
+.brand-story-copy p{font-size:14px;line-height:1.85}
+.brand-story-tags span{font-size:11px;line-height:1.45}
+.fan-project-note{font-size:13px!important;line-height:1.8!important}
+.footer{font-size:11px;line-height:1.65}
+.footer span:nth-child(2){font-size:10px}
+
+@media (min-width:921px){
+  .venue-section{grid-template-columns:240px minmax(0,1fr) 215px 390px}
+}
+@media (min-width:921px) and (max-width:1260px){
+  .venue-section{grid-template-columns:210px minmax(0,1fr) 195px 335px}
+  .preview-title{font-size:15px}
+  .seat-preview-card{padding-inline:16px}
+}
+@media (max-width:920px){
+  .venue-section{min-height:0}
+  .venue-intro h2{font-size:30px}
+  .venue-intro p{font-size:13px}
+  .venue-render-wrap,.venue-render{min-height:310px}
+  .seat-preview-img{height:230px}
+  .preview-title{font-size:17px}
+  .seat-preview-card p{font-size:13px}
+  .preview-tools{font-size:12px;gap:9px 16px}
+  .venue-controls label{font-size:13px}
+  .venue-controls select{font-size:14px}
+  .floor-tabs button{font-size:12px}
+}
+@media (max-width:560px){
+  .search-scope-note{font-size:10.5px}
+  .data-freshness,.data-freshness .freshness-cadence{font-size:10px}
+  .event-info strong{font-size:14px}
+  .event-info .title,.event-info .date,.event-info .venue{font-size:11px}
+  .event-tag{font-size:10px}
+  .venue-intro h2{font-size:28px}
+  .venue-intro p{font-size:12px}
+  .venue-render-wrap,.venue-render{min-height:275px}
+  .preview-title{font-size:16px}
+  .seat-preview-card{padding:18px}
+  .seat-preview-img{height:210px}
+  .seat-preview-card p{font-size:12px}
+  .preview-tools{font-size:11px}
+  .seat-detail-grid small{font-size:10.5px}
+  .viewer-lens-chip{font-size:10.5px}
+  .calibration-note{font-size:10.5px}
+  .detail-meta span,.timeline-item span,.detail-check{font-size:10.5px}
+  .detail-meta strong,.timeline-item b{font-size:12.5px}
+  .detail-list{font-size:11.5px}
+  .footer{font-size:10.5px}
+}
+
+/* v0.25 · minimum readable size for functional copy */
+.mobile-bottom a{font-size:11px}
+.event-result-meta{font-size:11px;line-height:1.5}
+.detail-next-action span{font-size:10.5px;line-height:1.4}
+.artist-profile-line span{font-size:10.5px}
+.artist-event-mini b,.artist-directory-row b{font-size:13px}
+.artist-event-mini small,.artist-directory-row small{font-size:11px;line-height:1.45}
+.artist-directory-code{font-size:10.5px}
+.detail-empty{font-size:12px}
+.venue-confidence,.seat-warning{font-size:11px;line-height:1.6;padding:10px 11px}
+.install-pill{font-size:11px}
+.pwa-mini-status{font-size:10.5px}
+.install-app-mark span{font-size:11px}
+.countdown-head p{font-size:11px;line-height:1.55}
+.countdown-eyebrow{font-size:10px}
+.flip-label{font-size:10px}
+.countdown-ended p{font-size:11px;line-height:1.65}
+.offline-chip{font-size:11px}
+.change-row span{font-size:10.5px}
+.change-row b{font-size:12px;line-height:1.5}
+.change-row small{font-size:10.5px}
+.modal-status{font-size:11px}
+.reminder-row b,.day-row b{font-size:12px}
+.reminder-row span,.day-row span{font-size:11px;line-height:1.45}
+.day-title{font-size:13px}
+.day-next span{font-size:10.5px}
+.view-submit-form label{font-size:11px}
+.rights-check{font-size:11px}
+.quality-badge{font-size:10px}
+.search-seat-assist{font-size:11px}
+.brand-tagline{font-size:10px}
+.brand-lockup.compact .brand-tagline{font-size:9.5px}
+
+@media(max-width:560px){
+  .mobile-bottom a{font-size:10.5px}
+  .countdown-head p{font-size:10.5px}
+  .flip-label{font-size:9.5px}
+  .venue-confidence,.seat-warning{font-size:10.5px}
+  .brand-tagline{font-size:9.5px}
+}
+
+
+/* v0.26 · real light theme + settings */
+.settings-icon{font-size:20px}
+.settings-backdrop{position:fixed;inset:0;z-index:139;background:rgba(3,5,8,.48);backdrop-filter:blur(5px)}
+.settings-backdrop[hidden],.settings-sheet[hidden]{display:none!important}
+.settings-sheet{position:fixed;z-index:140;right:22px;top:92px;width:min(390px,calc(100% - 28px));transform:translateY(-10px) scale(.985);opacity:0;transition:transform .2s ease,opacity .2s ease;background:#101419;color:#f6f3f5;border:1px solid #353c43;border-radius:18px;padding:26px;box-shadow:0 28px 75px rgba(0,0,0,.42)}
+.settings-sheet.open{transform:none;opacity:1}
+.settings-sheet h2{font:800 30px/1 var(--font-display);letter-spacing:-.06em;margin:8px 0 24px}
+.settings-close{position:absolute;right:16px;top:14px;width:36px;height:36px;border-radius:50%;border:1px solid #414850;background:#151a20;color:#fff;font-size:24px;display:grid;place-items:center}
+.settings-group{border-top:1px solid #2d343b;padding:18px 0}
+.settings-group-head{display:flex;justify-content:space-between;gap:16px;align-items:baseline;margin-bottom:12px}.settings-group-head b{font-size:13px}.settings-group-head span{font-size:10.5px;color:#929aa2;text-align:right}
+.theme-choice{display:grid;grid-template-columns:1fr 1fr;gap:8px}.theme-choice button,.settings-install{min-height:43px;border-radius:10px;border:1px solid #3b434b;background:#151a20;color:#e7eaed;font-size:12px;font-weight:760}.theme-choice button.active{background:#f2d7eb;color:#171318;border-color:#f2d7eb}.settings-install{width:100%;background:#171c22}.settings-install:hover,.theme-choice button:hover{border-color:#767f89}
+.settings-note{margin:14px 0 0;font-size:10.5px;line-height:1.6;color:#8e969f}
+
+/* Light theme is authored independently; media/3D are never inverted. */
+body.light-mode{--bg:#f2efeb;--ink:#17181b;--dark:#ffffff;--dark2:#f7f5f2;--panel:#ffffff;--line:#ded9d4;--line2:#cfc8c2;--muted:#6f6b69;--soft:#26272a;--shadow:0 18px 55px rgba(49,39,32,.11);background:#f2efeb;color:#17181b}
+body.light-mode .site-shell{background:#f2efeb;box-shadow:0 0 0 1px rgba(45,37,31,.07)}
+body.light-mode .topbar{background:rgba(255,255,255,.96);border-color:#e2ddd8;color:#16171a;box-shadow:0 5px 24px rgba(52,42,35,.045)}
+body.light-mode .wordmark{color:#151619}body.light-mode .wordmark-kr{color:#876d81}body.light-mode .brand-tagline{color:#77716f}
+body.light-mode .desktop-nav a{color:#383638}body.light-mode .desktop-nav a:hover{color:#865e7b}
+body.light-mode .round-icon{color:#262428}body.light-mode .round-icon:hover{background:#f0ece8}
+body.light-mode .pill-light{background:#18191c;color:#fff;box-shadow:none}
+body.light-mode .notify-badge{border-color:#fff}
+
+/* Hero stays photographic/dark in both modes. */
+body.light-mode .hero-panel{background:#0f1216;color:#fff;border-color:#dcd7d2}
+body.light-mode .hero-art{filter:saturate(.75) contrast(1.03) brightness(.78)}
+body.light-mode .hero-copy h1,body.light-mode .hero-copy p,body.light-mode .hero-script,body.light-mode .hero-note{color:inherit}
+body.light-mode .hero-search{background:rgba(8,11,14,.64);border-color:#c7c9cd}
+body.light-mode .hero-search input{color:#f2f3f4}body.light-mode .hero-search input::placeholder{color:#a9afb6}
+body.light-mode .category{background:rgba(10,12,15,.7);color:#e7e7e6;border-color:#555a62}body.light-mode .category:hover,body.light-mode .category.active{background:rgba(27,23,29,.88);color:#f8d9f3;border-color:#897083}
+
+body.light-mode .upcoming-panel{background:#fff;color:#1a1b1e;border-color:#ded9d4}
+body.light-mode .upcoming-inner h2{color:#16171a}body.light-mode .region{border-color:#d3cdc8;color:#5c5958}body.light-mode .region.active{background:#1c1d20;color:#fff;border-color:#1c1d20}
+body.light-mode .data-freshness,body.light-mode .event-result-meta{color:#797472}
+body.light-mode .event-row{background:linear-gradient(180deg,#fff,#faf8f6);border-color:#e3ded9;color:#18191c;box-shadow:0 4px 12px rgba(56,44,36,.025)}body.light-mode .event-row:hover{border-color:#aaa19a;background:#fff}
+body.light-mode .event-info .title{color:#66615f}body.light-mode .event-info .date,body.light-mode .event-info .venue{color:#2d2d30}body.light-mode .event-tag{color:#55514f;border-color:#cfc8c2}body.light-mode .event-arrow{color:#27272a}
+body.light-mode .empty-upcoming{border-color:#ddd7d2;color:#77716e}
+body.light-mode .event-skeleton{border-color:#e3ded9;background:#fbf9f7}body.light-mode .event-skeleton>span,body.light-mode .event-skeleton i{background:#ebe6e2}body.light-mode .event-skeleton:after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.82),transparent)}
+
+body.light-mode .lower-grid{background:#f2efeb}
+body.light-mode .featured-card,body.light-mode .my-list-card{background:#fff;color:#17181b;border-color:#e0dbd6}
+body.light-mode .featured-side{background:linear-gradient(145deg,#fff,#f7f3f0);border-color:#e0dbd6}body.light-mode .featured-side p{color:#716d6b}
+/* Featured photography remains dark/original. */
+body.light-mode .featured-main{color:#fff;background:#0b0e11}body.light-mode .featured-stage{filter:saturate(.74) brightness(.65)}body.light-mode .featured-copy,body.light-mode .featured-copy h3,body.light-mode .featured-copy p,body.light-mode .scribble{color:#fff}
+body.light-mode .my-list-card{background:linear-gradient(145deg,#fff,#faf7f4)}body.light-mode .mini-tabs button{border-color:#d7d0ca;color:#6a6563}body.light-mode .mini-tabs button.active{background:#251f25;color:#fff;border-color:#251f25}
+body.light-mode .artist-bubble span{color:#4f4c4d}body.light-mode .my-list-card blockquote{color:#725f6e}body.light-mode .pwa-mini-status{color:#76716f}
+
+body.light-mode .brand-story{background:linear-gradient(115deg,#f5f1ed 0%,#fff 58%,#eee4ec 100%)}
+
+body.light-mode .venue-section{background:#fff;color:#17181b;border-color:#ded9d4}
+body.light-mode .venue-intro p{color:#6a6664}
+body.light-mode .venue-render-wrap{background:#080b0f;border-color:#30363d}
+body.light-mode .venue-render-wrap:before{background:linear-gradient(90deg,#080b0f 0%,transparent 11%,transparent 88%,#080b0f 100%),linear-gradient(0deg,#080b0f 0%,transparent 18%,transparent 90%)}
+body.light-mode .venue-stage-tag{background:#171a1e;color:#fff}
+body.light-mode .venue-controls{border-color:#e1dcd7;background:#fbf9f7}
+body.light-mode .venue-controls label{color:#4e4b4a}
+body.light-mode .floor-tabs button,body.light-mode .view-mode-tabs button{background:#fff;color:#575352;border-color:#d5cfca}body.light-mode .floor-tabs button.active,body.light-mode .view-mode-tabs button.active{background:#221d22;color:#fff;border-color:#221d22}
+body.light-mode .venue-controls select,body.light-mode .seat-detail-grid input,body.light-mode .seat-detail-grid select{background:#fff;color:#1d1e21;border-color:#d2cbc5}
+body.light-mode .seat-detail-grid small{color:#8a8480}
+body.light-mode .venue-confidence,body.light-mode .calibration-note{background:#f5f1ee;border-color:#ded7d1;color:#716c69}body.light-mode .calibration-note b{color:#302d2f}
+body.light-mode .seat-preview-card{background:#fff;border-color:#e1dcd7;color:#17181b}body.light-mode .preview-title button{color:#17181b}
+/* Seat preview stays a dark stage simulation, not an inverted image. */
+body.light-mode .seat-preview-img{background:#10151a;border-color:#353c43}body.light-mode .seat-preview-img img{filter:saturate(.8) brightness(.95)}
+body.light-mode .seat-preview-card p,body.light-mode .preview-tools,body.light-mode .venue-tip{color:#696563}body.light-mode .venue-tip span{color:#383638;border-color:#aaa39e}
+
+body.light-mode .footer{background:#f8f5f2;color:#676260;border-color:#ddd7d2}
+body.light-mode .mobile-bottom{background:rgba(255,255,255,.95);border-color:#ded9d4}body.light-mode .mobile-bottom a{color:#6b6664}body.light-mode .mobile-bottom a span{color:#1b1b1e}
+
+/* Drawers and utility sheets get a real light skin; 3D viewer remains dark by design. */
+body.light-mode .detail-backdrop,body.light-mode .neul-modal{background:rgba(42,35,31,.36)}
+body.light-mode .detail-drawer{background:#fff;color:#1b1b1e;border-color:#ddd8d3;box-shadow:-20px 0 55px rgba(44,35,30,.16)}body.light-mode .drawer-close{background:#f7f4f1;color:#1a1a1d;border-color:#d8d1cb}
+body.light-mode .detail-title,body.light-mode .modal-lead,body.light-mode .detail-list{color:#5f5b59}body.light-mode .detail-meta{border-color:#dfd9d4}body.light-mode .detail-meta div,body.light-mode .detail-section,body.light-mode .detail-tools{border-color:#e2ddd8}body.light-mode .detail-meta span,body.light-mode .timeline-item span,body.light-mode .detail-check{color:#7d7774}
+body.light-mode .outline-mini{background:#fff;color:#242326;border-color:#bdb5af}body.light-mode .timeline-dot{background:#aaa29c}
+body.light-mode .neul-modal-card{background:#fff;color:#191a1d;border-color:#ddd7d2;box-shadow:0 35px 90px rgba(44,35,30,.18)}body.light-mode .neul-modal-close{background:#f5f1ee;color:#1a1b1e;border-color:#d3ccc6}body.light-mode .modal-section,body.light-mode .reminder-row,body.light-mode .day-row{border-color:#e3ded9}
+body.light-mode .reminder-row span,body.light-mode .day-row span,body.light-mode .muted{color:#77716e}
+body.light-mode .artist-event-mini,body.light-mode .artist-directory-row,body.light-mode .my-event-chip,body.light-mode .compare-card{background:#faf8f6;color:#1b1c1f;border-color:#ded8d3}body.light-mode .artist-event-mini small,body.light-mode .artist-directory-row small,body.light-mode .my-event-chip span,body.light-mode .compare-card p,body.light-mode .compare-foot{color:#77716e}
+body.light-mode .compare-card dl div{border-color:#e3ded9}body.light-mode .compare-card dt{color:#79736f}body.light-mode .seat-mini-map{background:#f2efec}
+
+body.light-mode .install-sheet,body.light-mode .settings-sheet{background:#fff;color:#1a1b1e;border-color:#d9d3cd;box-shadow:0 28px 75px rgba(45,35,29,.18)}body.light-mode .install-sheet-body,body.light-mode .settings-note{color:#716c69}body.light-mode .install-sheet-body b{color:#765b70}
+body.light-mode .settings-close,body.light-mode .install-close{background:#f5f1ee;color:#1a1b1e;border-color:#d2cbc5}
+body.light-mode .settings-group{border-color:#e4dfda}body.light-mode .settings-group-head span{color:#817b78}
+body.light-mode .theme-choice button,body.light-mode .settings-install{background:#faf8f6;color:#323033;border-color:#d4cdc7}body.light-mode .theme-choice button.active{background:#1d1d20;color:#fff;border-color:#1d1d20}
+
+/* Intentionally keep concert countdown and full 3D viewer dark for stage realism. */
+body.light-mode .concert-countdown{background:linear-gradient(145deg,#171a1f,#0e1013);color:#fff;border-color:#353b42}body.light-mode .countdown-head strong{color:#fff}body.light-mode .countdown-head p{color:#939aa1}
+body.light-mode .viewer-modal{background:#080a0d;color:#fff}body.light-mode .viewer-toolbar{background:rgba(8,10,13,.88);border-color:#30353b}body.light-mode .viewer-toolbar button{color:#fff}
+
+body.light-mode .offline-chip{background:#fff6fb;border-color:#dfbfd5;color:#6a465e}
+
+@media(max-width:920px){
+  .settings-sheet{top:auto;right:14px;left:14px;bottom:calc(76px + env(safe-area-inset-bottom));width:auto;transform:translateY(20px);border-radius:18px;padding:24px 20px}
+  .settings-sheet.open{transform:none}
+}
+
+/* v0.27 multilingual interface */
+.language-choice{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.language-choice button{min-height:43px;border-radius:10px;border:1px solid #3b434b;background:#151a20;color:#e7eaed;font-size:12px;font-weight:760;white-space:nowrap}
+.language-choice button:hover{border-color:#767f89}.language-choice button.active{background:#f2d7eb;color:#171318;border-color:#f2d7eb}
+body.light-mode .language-choice button{background:#faf8f6;color:#323033;border-color:#d4cdc7}body.light-mode .language-choice button.active{background:#1d1d20;color:#fff;border-color:#1d1d20}
+html[lang="ja"] body{font-family:"Noto Sans JP","Noto Sans TC",system-ui,sans-serif}
+html[lang="ko"] body{font-family:"Noto Sans KR","Noto Sans TC",system-ui,sans-serif}
+html[lang="en"] body{font-family:"Noto Sans KR","Noto Sans TC",system-ui,sans-serif}
+html[lang="en"] .desktop-nav{gap:24px}
+html[lang="ja"] .desktop-nav,html[lang="ko"] .desktop-nav{gap:19px}
+@media(max-width:520px){.language-choice{grid-template-columns:1fr 1fr}.language-choice button{font-size:13px}}

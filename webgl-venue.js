@@ -164,7 +164,7 @@ function buildCPUScene(config,quality){
   for(const r of layout.extraStageRects||[])solids.push(boxItem(r,'#14131a','#24172a',4.2));
   if(layout.foh)solids.push(boxItem(layout.foh,'#373d43','#101214',3.2));
   const m=stage.main;
-  const screenH=Math.max(26,m.width*.22),screenZ=m.z+m.depth/2+1,screenY=m.y+Math.max(16,m.width*.13);
+  const screenH=Math.max(26,m.width*.22),screenZ=m.z-m.depth/2+2,screenY=m.y+Math.max(16,m.width*.13);
   // Main LED wall + side IMAG screens. These are original geometry, not copied venue assets.
   solids.push(boxItem({x:m.x,y:screenY,z:screenZ,width:m.width*.72,depth:1.8},'#d8d4ff','#8068ff',screenH));
   solids.push(boxItem({x:m.x-m.width*.60,y:screenY-1,z:screenZ+1,width:m.width*.18,depth:1.6},'#d9d5ff','#5d7dff',screenH*.78));

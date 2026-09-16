@@ -27,8 +27,8 @@ const taipeiArena2 = [
   ...arenaColorSections('黃',2,174,126,18,[.45,2.69]),
   ...arenaColorSections('紫',2,174,126,18,[2.92,4.06]),
   ...arenaColorSections('藍',2,174,126,18,[4.32,5.10])
-];
-const taipeiArena3 = arcGroup(['黃3A','黃3B','黃3C','黃3D','黃3E','黃3F','黃3G','黃3H','黃3I','黃3J'], '3F', 210,154,54,.22,2.92);
+].map(s=>({...s,rowMin:1,rowMax:15,depthX:24,depthZ:18,rise:12,rowCurve:1.04}));
+const taipeiArena3 = arcGroup(['黃3A','黃3B','黃3C','黃3D','黃3E','黃3F','黃3G','黃3H','黃3I','黃3J'], '3F', 210,154,54,.22,2.92).map(s=>({...s,rowMin:1,rowMax:30,depthX:32,depthZ:25,rise:17,rowCurve:1.08}));
 const taipeiArenaSections = [...taipeiArena2, ...taipeiArena3];
 const taipeiArenaTiers = [
   {id:'2F', label:'二樓固定席', short:'2F', sections:taipeiArena2.map(x=>x.id)},
@@ -48,10 +48,12 @@ const ntsuUpper = [
   ...arcGroup(['橙4上','橙2上','橙1上','橙3上'], 'UPPER', 216,160,57,1.12,2.10),
   ...arcGroup(['藍1上','藍2上','藍3上','藍4上','藍5上'], 'UPPER', 216,160,57,2.32,3.62)
 ];
-const ntsuSections = [...ntsuMiddle,...ntsuUpper];
+const ntsuMiddleCal = ntsuMiddle.map(s=>({...s,rowMin:1,rowMax:15,rowDirection:'reverse',depthX:32,depthZ:24,rise:13,rowCurve:1.08}));
+const ntsuUpperCal = ntsuUpper.map(s=>({...s,rowMin:0,rowMax:15,depthX:38,depthZ:29,rise:18,rowCurve:1.10}));
+const ntsuSections = [...ntsuMiddleCal,...ntsuUpperCal];
 const ntsuTiers = [
-  {id:'MIDDLE',label:'中層固定席',short:'中層',sections:ntsuMiddle.map(x=>x.id)},
-  {id:'UPPER',label:'上層固定席',short:'上層',sections:ntsuUpper.map(x=>x.id)}
+  {id:'MIDDLE',label:'中層固定席',short:'中層',sections:ntsuMiddleCal.map(x=>x.id)},
+  {id:'UPPER',label:'上層固定席',short:'上層',sections:ntsuUpperCal.map(x=>x.id)}
 ];
 
 // PLAVE official tixCraft map: event-specific ticket blocks reconstructed from the published seating chart.
@@ -114,9 +116,9 @@ const ive2026PriceLabels = {
 };
 
 // Kaohsiung Arena official seat information: 2F 201-222, box level 401-410, upper 501-518.
-const kh2 = ring(Array.from({length:22},(_,i)=>pad(201+i)), '2F', 186,142,18,-Math.PI/2+.08);
-const kh4 = ring(Array.from({length:10},(_,i)=>pad(401+i)), '4F', 220,168,53,-Math.PI/2+.14);
-const kh5 = ring(Array.from({length:18},(_,i)=>pad(501+i)), '5F', 252,194,83,-Math.PI/2+.10);
+const kh2 = ring(Array.from({length:22},(_,i)=>pad(201+i)), '2F', 186,142,18,-Math.PI/2+.08).map(s=>({...s,rowMin:1,rowMax:32,depthX:30,depthZ:23,rise:15,rowCurve:1.06}));
+const kh4 = ring(Array.from({length:10},(_,i)=>pad(401+i)), '4F', 220,168,53,-Math.PI/2+.14).map(s=>({...s,rowMin:1,rowMax:2,depthX:6,depthZ:5,rise:3,rowCurve:1}));
+const kh5 = ring(Array.from({length:18},(_,i)=>pad(501+i)), '5F', 252,194,83,-Math.PI/2+.10).map(s=>({...s,rowMin:1,rowMax:20,depthX:26,depthZ:20,rise:15,rowCurve:1.05}));
 const kaohsiungSections = [...kh2,...kh4,...kh5];
 const kaohsiungTiers = [
   {id:'2F',label:'二樓看台',short:'2F',sections:kh2.map(x=>x.id)},
@@ -200,11 +202,11 @@ const kmcTiers=[
 ];
 
 // Kaohsiung National Stadium: region-level geometry only; exact ticket sections vary greatly.
-const ksEast=arcGroup(Array.from({length:8},(_,i)=>`東${i+1}`),'LOWER',226,157,12,-.10,1.18).map(s=>({...s,rowMin:1,rowMax:24}));
-const ksNorth=arcGroup(Array.from({length:8},(_,i)=>`北${i+1}`),'LOWER',232,161,12,1.30,2.62).map(s=>({...s,rowMin:1,rowMax:24}));
-const ksWest=arcGroup(Array.from({length:8},(_,i)=>`西${i+1}`),'LOWER',226,157,12,2.76,4.03).map(s=>({...s,rowMin:1,rowMax:24}));
-const ksUpper=arcGroup(Array.from({length:18},(_,i)=>`上${i+1}`),'UPPER',274,190,54,-.12,4.08).map(s=>({...s,rowMin:1,rowMax:30}));
-const ksField=[...Array.from({length:6},(_,i)=>block(`平面A${i+1}`,'FLOOR',-82+i*33,-2,28,92,'floor')),...Array.from({length:6},(_,i)=>block(`平面B${i+1}`,'FLOOR',-82+i*33,78,28,52,'floor'))].map(s=>({...s,rowMin:1,rowMax:40}));
+const ksEast=arcGroup(Array.from({length:8},(_,i)=>`東${i+1}`),'LOWER',226,157,12,-.10,1.18).map(s=>({...s,rowMin:1,rowMax:24,depthX:42,depthZ:30,rise:15,rowCurve:1.04}));
+const ksNorth=arcGroup(Array.from({length:8},(_,i)=>`北${i+1}`),'LOWER',232,161,12,1.30,2.62).map(s=>({...s,rowMin:1,rowMax:24,depthX:42,depthZ:30,rise:15,rowCurve:1.04}));
+const ksWest=arcGroup(Array.from({length:8},(_,i)=>`西${i+1}`),'LOWER',226,157,12,2.76,4.03).map(s=>({...s,rowMin:1,rowMax:24,depthX:42,depthZ:30,rise:15,rowCurve:1.04}));
+const ksUpper=arcGroup(Array.from({length:18},(_,i)=>`上${i+1}`),'UPPER',274,190,54,-.12,4.08).map(s=>({...s,rowMin:1,rowMax:30,depthX:50,depthZ:36,rise:20,rowCurve:1.05}));
+const ksField=[...Array.from({length:6},(_,i)=>block(`平面A${i+1}`,'FLOOR',-82+i*33,-2,28,92,'floor')),...Array.from({length:6},(_,i)=>block(`平面B${i+1}`,'FLOOR',-82+i*33,78,28,52,'floor'))].map(s=>({...s,rowMin:1,rowMax:80,depthZ:54,rise:2,rowCurve:1.02}));
 const ksSections=[...ksField,...ksEast,...ksNorth,...ksWest,...ksUpper];
 const ksTiers=[
   {id:'FLOOR',label:'平面活動區',short:'平面',sections:ksField.map(x=>x.id)},
@@ -213,8 +215,8 @@ const ksTiers=[
 ];
 
 // Taoyuan Arena: official circular fixed bowl + movable floor seating.
-const taoBowl=ring(Array.from({length:16},(_,i)=>`B${i+1}`),'BOWL',150,118,22,-Math.PI/2+.05).map(s=>({...s,rowMin:1,rowMax:16}));
-const taoFloor=[...Array.from({length:5},(_,i)=>block(`平面${String.fromCharCode(65+i)}`,'FLOOR',-64+i*32,16,28,76,'floor'))].map(s=>({...s,rowMin:1,rowMax:30}));
+const taoBowl=ring(Array.from({length:16},(_,i)=>`B${i+1}`),'BOWL',150,118,22,-Math.PI/2+.05).map(s=>({...s,rowMin:1,rowMax:16,depthX:22,depthZ:17,rise:11,rowCurve:1.04}));
+const taoFloor=[...Array.from({length:5},(_,i)=>block(`平面${String.fromCharCode(65+i)}`,'FLOOR',-64+i*32,16,28,76,'floor'))].map(s=>({...s,rowMin:1,rowMax:30,depthZ:28,rise:2,rowCurve:1.02}));
 const taoyuanSections=[...taoFloor,...taoBowl];
 const taoyuanTiers=[
   {id:'FLOOR',label:'活動座椅／平面區',short:'平面',sections:taoFloor.map(x=>x.id)},
@@ -222,12 +224,12 @@ const taoyuanTiers=[
 ];
 
 // NTU Sports Center: official building data confirms 3F–5F fixed seating and movable stands.
-const ntu3a=arcGroup(Array.from({length:6},(_,i)=>`3A${i+1}`),'3F',125,91,16,2.75,2.02).map(s=>({...s,rowMin:1,rowMax:18}));
-const ntu3b=arcGroup(Array.from({length:6},(_,i)=>`3B${i+1}`),'3F',125,91,16,1.88,1.15).map(s=>({...s,rowMin:1,rowMax:22}));
-const ntu3c=arcGroup(Array.from({length:6},(_,i)=>`3C${i+1}`),'3F',125,91,16,1.02,.29).map(s=>({...s,rowMin:1,rowMax:33}));
-const ntu4a=arcGroup(Array.from({length:8},(_,i)=>`4A${i+1}`),'4F+',160,118,49,2.76,1.53).map(s=>({...s,rowMin:1,rowMax:18}));
-const ntu4b=arcGroup(Array.from({length:8},(_,i)=>`4B${i+1}`),'4F+',160,118,49,1.38,.15).map(s=>({...s,rowMin:1,rowMax:18}));
-const ntuFloor=[block('平面A','FLOOR',-44,16,38,76,'floor'),block('平面B','FLOOR',0,16,38,76,'floor'),block('平面C','FLOOR',44,16,38,76,'floor')].map(s=>({...s,rowMin:1,rowMax:33}));
+const ntu3a=arcGroup(Array.from({length:6},(_,i)=>`3A${i+1}`),'3F',125,91,16,2.75,2.02).map(s=>({...s,rowMin:1,rowMax:18,depthX:24,depthZ:18,rise:12,rowCurve:1.05}));
+const ntu3b=arcGroup(Array.from({length:6},(_,i)=>`3B${i+1}`),'3F',125,91,16,1.88,1.15).map(s=>({...s,rowMin:1,rowMax:22,depthX:28,depthZ:21,rise:14,rowCurve:1.05}));
+const ntu3c=arcGroup(Array.from({length:6},(_,i)=>`3C${i+1}`),'3F',125,91,16,1.02,.29).map(s=>({...s,rowMin:1,rowMax:33,depthX:34,depthZ:25,rise:18,rowCurve:1.06}));
+const ntu4a=arcGroup(Array.from({length:8},(_,i)=>`4A${i+1}`),'4F+',160,118,49,2.76,1.53).map(s=>({...s,rowMin:1,rowMax:18,depthX:28,depthZ:22,rise:15,rowCurve:1.05}));
+const ntu4b=arcGroup(Array.from({length:8},(_,i)=>`4B${i+1}`),'4F+',160,118,49,1.38,.15).map(s=>({...s,rowMin:1,rowMax:18,depthX:28,depthZ:22,rise:15,rowCurve:1.05}));
+const ntuFloor=[block('平面A','FLOOR',-44,16,38,76,'floor'),block('平面B','FLOOR',0,16,38,76,'floor'),block('平面C','FLOOR',44,16,38,76,'floor')].map(s=>({...s,rowMin:1,rowMax:33,depthZ:32,rise:2,rowCurve:1.02}));
 const ntuSections=[...ntuFloor,...ntu3a,...ntu3b,...ntu3c,...ntu4a,...ntu4b];
 const ntuTiers=[
   {id:'FLOOR',label:'活動伸縮／平面區',short:'平面',sections:ntuFloor.map(x=>x.id)},
@@ -236,8 +238,8 @@ const ntuTiers=[
 ];
 
 // Tianmu Gymnasium: fixed bowl + event-dependent floor. Detailed zone geometry is calibration-grade, not official single-seat data.
-const tianmuStands=arcGroup(['L3','L2','L1','M1','M2','R1','R2','R3'],'BOWL',136,99,23,2.74,.40).map(s=>({...s,rowMin:1,rowMax:12}));
-const tianmuFloor=[block('平面A1','FLOOR',-46,18,38,82,'floor'),block('平面A2','FLOOR',0,18,38,82,'floor'),block('平面A3','FLOOR',46,18,38,82,'floor')].map(s=>({...s,rowMin:1,rowMax:30}));
+const tianmuStands=arcGroup(['L3','L2','L1','M1','M2','R1','R2','R3'],'BOWL',136,99,23,2.74,.40).map(s=>({...s,rowMin:1,rowMax:12,depthX:22,depthZ:17,rise:11,rowCurve:1.04}));
+const tianmuFloor=[block('平面A1','FLOOR',-46,18,38,82,'floor'),block('平面A2','FLOOR',0,18,38,82,'floor'),block('平面A3','FLOOR',46,18,38,82,'floor')].map(s=>({...s,rowMin:1,rowMax:30,depthZ:30,rise:2,rowCurve:1.02}));
 const tianmuSections=[...tianmuFloor,...tianmuStands];
 const tianmuTiers=[
   {id:'FLOOR',label:'活動平面區',short:'平面',sections:tianmuFloor.map(x=>x.id)},
@@ -467,16 +469,21 @@ export function getVenueSection(venueId,id,layoutId=null) {
 export function venueSectionPosition(venueId, section, row=10, seatNumber=null) {
   if (venueId==='taipei-dome' && section && section.shape!=='block') return domeSectionPosition(section,row,seatNumber);
   if (!section) return {x:0,y:0,z:0};
-  const rowMin=Number(section.rowMin||1), rowMax=Math.max(rowMin+1,Number(section.rowMax||30));
-  const depth=Math.min(1,Math.max(0,(Number(row||rowMin)-rowMin)/(rowMax-rowMin)));
+  const rowMin=Number(section.rowMin ?? 1), rowMax=Math.max(rowMin+1,Number(section.rowMax ?? 30));
+  const rowValue=Math.max(rowMin,Math.min(rowMax,Number(row ?? rowMin)));
+  let raw=(rowValue-rowMin)/(rowMax-rowMin);
+  if(section.rowDirection==='reverse') raw=1-raw;
+  const depth=Math.pow(Math.min(1,Math.max(0,raw)),Number(section.rowCurve||1));
   if (section.shape==='block' || Number.isFinite(section.x)) {
     const seatN=Number(seatNumber); const lateral=Number.isFinite(seatN)?Math.max(-.46,Math.min(.46,(seatN-20)/42)):0;
-    return {x:section.x+lateral*(section.width||38),y:(section.y ?? -18)+depth*5,z:section.z+depth*10};
+    const blockDepth=Number(section.depthZ ?? Math.max(10,(section.depth||24)*.72));
+    const rise=Number(section.rise ?? 5);
+    return {x:section.x+lateral*(section.width||38),y:(section.y ?? -18)+depth*rise,z:section.z+depth*blockDepth};
   }
-  const rx=section.radiusX+depth*Number(section.depthX ?? 20), rz=section.radiusZ+depth*Number(section.depthZ ?? 15);
+  const rx=section.radiusX+depth*Number(section.depthX ?? 26), rz=section.radiusZ+depth*Number(section.depthZ ?? 20);
   const seatN=Number(seatNumber); const lateral=Number.isFinite(seatN)?Math.max(-.42,Math.min(.42,(seatN-25)/60)):0;
   const a=section.angle+lateral*(section.span||.10);
-  return {x:Math.cos(a)*rx,y:section.y+depth*Number(section.rise ?? 10),z:Math.sin(a)*rz};
+  return {x:Math.cos(a)*rx,y:section.y+depth*Number(section.rise ?? 12),z:Math.sin(a)*rz};
 }
 export function sectionTicketLabel(layoutId, sectionId) {
   const layout=getVenueLayout(layoutId); const section=effectiveSections(layout.venueId,layoutId).find(s=>s.id===String(sectionId));
@@ -495,10 +502,20 @@ export function venueSectionWarning(venueId, sectionId, row, layoutId, viewer={}
   }
   if (layout.id==='ive-show-what-i-am-2026') {
     const price=sectionTicketLabel(layoutId,id); if (price) messages.push(`本場官方票區圖對應：${price}。`);
+    if (/^(紅2|紫2)/.test(id)) messages.push('官方 IVE 2026 票區圖顯示此區位於舞台側邊，不在主螢幕背面；3D 已改以側向觀看主舞台／延伸台交界校正。');
     if (id.startsWith('東') || id.startsWith('西')) messages.push('此區為官方後續開放的 3F 東／西側包廂席；官方票區圖標示 NT$4,800／人。');
     if (id.startsWith('黃3')) messages.push('3F 同一大區內可能依排數落在不同票價帶；本站不把整區簡化成單一票價。');
     messages.push('IVE 2026 台北場為官方票區圖重建；目前校正到舞台與票區相對位置，不宣稱單席精準視角。');
     return {level:'notice',messages};
+  }
+  if (venueId==='ntsu-arena') {
+    const sec=getVenueSection(venueId,id,layoutId);
+    if(sec?.rowDirection==='reverse') { messages.push('林口部分固定看台採倒序排號校正：較大的排號可能反而更靠前；本版已讓排數實際改變鏡頭前後距離。'); level='notice'; }
+    if(Number(row)===0 || Number(row)>=14) { messages.push('公開實拍顯示林口部分看台的 0 排／14–15 排常位於走道、欄杆或實際前排附近；實際開放方式依活動而異。'); if(level==='normal') level='notice'; }
+  }
+  if (venueId==='taipei-arena') {
+    if(/^黃3/.test(id) && Number(row)>=26){ messages.push('小巨蛋 3F 高排公開實拍顯示可能受到燈架、牆面或上方結構影響；本版已加大高排後退距離。'); level='notice'; }
+    if(/^(紅2|紫2)/.test(id)){ messages.push('側席鏡頭改以主舞台前緣／延伸台交界為觀看目標，不再對準 LED 背面。'); if(level==='normal') level='notice'; }
   }
   if (venueId==='taipei-music-center') {
     if (id.startsWith('1F')) { messages.push('北流 1F 沒有固定座位；此位置是平面區域示意，實際排／序號依主辦配置。'); level='notice'; }
@@ -512,6 +529,10 @@ export function venueSectionWarning(venueId, sectionId, row, layoutId, viewer={}
     if (id==='4F-B' && Number(row)>=35) { messages.push('4F-B 後半接近控台區；本版加入控台體積作為基準遮擋參考，實際位置仍以當場設備為準。'); level='notice'; }
     if (id==='4F-C' && Number(row)>=36) { messages.push('4F-C 36 排公開實拍顯示人物肉眼已偏小，通常會更多依賴大螢幕。'); level='notice'; }
     if (id.startsWith('5F') || id.startsWith('6F')) { messages.push('高樓層人物肉眼比例較小，較適合觀看整體舞台；6F 31 排已有公開實拍顯示臉部細節難辨識。'); level='notice'; }
+  }
+  if (venueId==='kaohsiung-arena') {
+    if(/^4/.test(id) && Number(row)<=1){ messages.push('高雄巨蛋 4F 前排公開實拍常見欄杆介入視線；本版以欄杆遮擋模型校正。'); level='notice'; }
+    if((id==='208' && Number(row)<=2) || id==='220'){ messages.push('公開實拍顯示此區可能受平面觀眾／喇叭塔或側屏影響；舞台延伸位置會顯著改變體感。'); level='notice'; }
   }
   if (venueId==='kaohsiung-music-center') {
     if (id==='2A2') { messages.push('公開實拍回報此區曾被票務標示為視線不良；上方設備可能遮到部分大螢幕，但若有延伸舞台，肉眼看人物仍可能很近。'); level='caution'; }

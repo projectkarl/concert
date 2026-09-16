@@ -6,6 +6,7 @@ import { saveFollowed, saveMode, recordEventChanges, saveOfflineSnapshot, loadFo
 
 const $ = (q, root = document) => root.querySelector(q);
 const $$ = (q, root = document) => [...root.querySelectorAll(q)];
+const uiLocale = () => window.NEUL_I18N?.locale?.() || 'zh-TW';
 const state = {
   events: seedEvents,
   artists: seedArtists.map(a => ({ ...a, upcomingEventCount: 0, nextEvent: null, eventIds: [] })),
@@ -19,7 +20,7 @@ const state = {
   region: "TW",
   city: "ALL",
   archiveMode: false,
-  visibleEventLimit: 6,
+  visibleEventLimit: 5,
   followed: new Set(JSON.parse(localStorage.getItem("neul-followed") || localStorage.getItem("stan-followed") || '["Stray Kids","aespa","PLAVE","NCT 127"]')),
   detailId: null,
   venueId: "taipei-dome",
@@ -38,17 +39,17 @@ const state = {
 const fmtDate = (iso, rangeEnd = null) => {
   if (!iso) return "日期待公布";
   const d = new Date(iso);
-  const parts = new Intl.DateTimeFormat("zh-TW", { year: "numeric", month: "2-digit", day: "2-digit", weekday: "short", timeZone: "Asia/Taipei" }).formatToParts(d);
+  const parts = new Intl.DateTimeFormat(uiLocale(), { year: "numeric", month: "2-digit", day: "2-digit", weekday: "short", timeZone: "Asia/Taipei" }).formatToParts(d);
   const get = t => parts.find(x => x.type === t)?.value || "";
   let out = `${get("year")}.${get("month")}.${get("day")} (${get("weekday").replace("週", "")})`;
   if (rangeEnd) {
     const e = new Date(rangeEnd);
-    const end = new Intl.DateTimeFormat("zh-TW", { month: "2-digit", day: "2-digit", timeZone: "Asia/Taipei" }).format(e).replace("/", ".");
+    const end = new Intl.DateTimeFormat(uiLocale(), { month: "2-digit", day: "2-digit", timeZone: "Asia/Taipei" }).format(e).replace("/", ".");
     out = `${get("year")}.${get("month")}.${get("day")}–${end}`;
   }
   return out;
 };
-const fmtTime = iso => iso ? new Intl.DateTimeFormat("zh-TW", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Taipei" }).format(new Date(iso)) : "";
+const fmtTime = iso => iso ? new Intl.DateTimeFormat(uiLocale(), { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Taipei" }).format(new Date(iso)) : "";
 const fmtEventTime = event => {
   if (!event?.start) return "";
   const m = String(event.start).match(/T(\d{2}):(\d{2})/);
@@ -199,7 +200,7 @@ function filteredEvents() {
     const startTs = new Date(e.end || e.start || 0).getTime();
     const past = e.historical || (Number.isFinite(startTs) && startTs < now - 6*3600000);
     const historyOk = state.archiveMode ? past : (q ? true : !past);
-    const dateText = e.start ? new Intl.DateTimeFormat("zh-TW",{year:"numeric",month:"2-digit",day:"2-digit",timeZone:"Asia/Taipei"}).format(new Date(e.start)) : "";
+    const dateText = e.start ? new Intl.DateTimeFormat(uiLocale(),{year:"numeric",month:"2-digit",day:"2-digit",timeZone:"Asia/Taipei"}).format(new Date(e.start)) : "";
     const hay = normalizeSearch(`${e.artist} ${e.title} ${e.venue} ${e.city} ${dateText} ${(e.tags || []).join(" ")}`);
     const queryOk = !qTokens.length || qTokens.every(t => hay.includes(t));
     return typeOk && regionOk && cityOk && historyOk && queryOk;
@@ -235,7 +236,7 @@ function renderEvents() {
     </button>`).join("");
   $$(".event-row", root).forEach(btn => btn.addEventListener("click", () => openDetail(btn.dataset.eventId)));
   if (more) {
-    more.hidden = list.length <= 6;
+    more.hidden = list.length <= 5;
     more.textContent = state.visibleEventLimit < list.length ? `查看更多活動（${list.length - visible.length}） →` : "收起活動 ↑";
   }
 }
@@ -347,7 +348,7 @@ function openArtistDetail(name) {
   const events = artistEvents(name);
   const next = events.find(e => e.start && new Date(e.start).getTime() >= Date.now() - 86400000) || events[0];
   const updated = profile.updatedAt || state.dataUpdatedAt;
-  const checked = updated ? new Intl.DateTimeFormat("zh-TW", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Taipei" }).format(new Date(updated)) : "依活動資料同步";
+  const checked = updated ? new Intl.DateTimeFormat(uiLocale(), { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Taipei" }).format(new Date(updated)) : "依活動資料同步";
   $("#detailContent").innerHTML = `
     <div class="detail-kicker">ARTIST WATCH · ${profile.verified ? "OFFICIAL SOURCE" : "EVENT-DERIVED"}</div>
     <h2>${escapeHtml(profile.name)}</h2>
@@ -605,7 +606,7 @@ function openDetail(id) {
   const e = state.events.find(x => x.id === id);
   if (!e) return;
   state.detailId = id;
-  const checked = new Intl.DateTimeFormat("zh-TW", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Taipei" }).format(new Date(e.checkedAt || Date.now()));
+  const checked = new Intl.DateTimeFormat(uiLocale(), { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Taipei" }).format(new Date(e.checkedAt || Date.now()));
   const action = nextAction(e);
   const activityLayoutId = eventVenueLayoutId(e);
   const activityLayout = activityLayoutId ? getVenueLayout(activityLayoutId) : null;
@@ -674,8 +675,8 @@ function updateFreshness() {
     el.title = "活動資料採 6 小時快取；快取到期後由下一次造訪觸發背景重新驗證，並另有每日排程同步。";
     return;
   }
-  const t = new Intl.DateTimeFormat("zh-TW", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Taipei" }).format(new Date(state.dataUpdatedAt));
-  const officialTime = state.officialUpdatedAt ? new Intl.DateTimeFormat("zh-TW", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Taipei" }).format(new Date(state.officialUpdatedAt)) : null;
+  const t = new Intl.DateTimeFormat(uiLocale(), { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Taipei" }).format(new Date(state.dataUpdatedAt));
+  const officialTime = state.officialUpdatedAt ? new Intl.DateTimeFormat(uiLocale(), { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Taipei" }).format(new Date(state.officialUpdatedAt)) : null;
   const headline = officialTime ? `官方資訊更新 ${officialTime}` : (state.autoUpdateEnabled ? `台灣活動同步 ${t}` : `已核對資料 · ${t}`);
   el.innerHTML = `${headline}${cadence}`;
   el.title = "活動資料採 6 小時快取；快取到期後由下一次造訪觸發背景重新驗證，並另有每日排程同步。詳細內容仍以官方最新公告為準。";
@@ -687,7 +688,7 @@ function updateSearchScope() {
   const starts = state.events.map(e => new Date(e.start || 0)).filter(d => Number.isFinite(d.getTime()) && d.getFullYear() >= 2000);
   if (!starts.length) return;
   const earliest = new Date(Math.min(...starts.map(d => d.getTime())));
-  const label = new Intl.DateTimeFormat("zh-TW", { year: "numeric", month: "2-digit", timeZone: TAIPEI_TZ }).format(earliest);
+  const label = new Intl.DateTimeFormat(uiLocale(), { year: "numeric", month: "2-digit", timeZone: TAIPEI_TZ }).format(earliest);
   el.textContent = `目前已收錄資料自 ${label} 起；更早場次持續補齊。搜尋會同時查近期與已收錄 Archive。`;
 }
 
@@ -723,26 +724,26 @@ async function loadEvents() {
 
 function runSearch() {
   state.query = $("#searchInput").value;
-  state.visibleEventLimit = 6;
+  state.visibleEventLimit = 5;
   renderEvents();
   $("#upcoming").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-$("#searchInput").addEventListener("input", e => { state.query = e.target.value; state.visibleEventLimit = 6; renderEvents(); });
+$("#searchInput").addEventListener("input", e => { state.query = e.target.value; state.visibleEventLimit = 5; renderEvents(); });
 $("#searchInput").addEventListener("keydown", e => { if (e.key === "Enter") runSearch(); });
 $("#searchSubmit").addEventListener("click", runSearch);
 $("#searchFocusBtn").addEventListener("click", () => { $("#searchInput").focus(); $("#top").scrollIntoView({ behavior: "smooth" }); });
 $$(".category").forEach(btn => btn.addEventListener("click", () => {
   $$(".category").forEach(x => x.classList.remove("active")); btn.classList.add("active");
-  state.type = btn.dataset.type; state.visibleEventLimit = 6; renderEvents();
+  state.type = btn.dataset.type; state.visibleEventLimit = 5; renderEvents();
 }));
 $$(".region").forEach(btn => btn.addEventListener("click", () => {
   $$(".region").forEach(x => x.classList.remove("active")); btn.classList.add("active");
-  state.city = btn.dataset.city || "ALL"; state.archiveMode = state.city === "ARCHIVE"; state.visibleEventLimit = 6; renderEvents();
+  state.city = btn.dataset.city || "ALL"; state.archiveMode = state.city === "ARCHIVE"; state.visibleEventLimit = 5; renderEvents();
 }));
 $("#viewMoreBtn").addEventListener("click", () => {
   const total = filteredEvents().length;
-  state.visibleEventLimit = state.visibleEventLimit < total ? total : 6;
+  state.visibleEventLimit = state.visibleEventLimit < total ? total : 5;
   renderEvents();
 });
 $("#featuredDetailBtn").addEventListener("click", () => openDetail(state.featuredId));
@@ -755,11 +756,19 @@ $("#detailClose").addEventListener("click", closeDetail);
 $("#detailBackdrop").addEventListener("click", closeDetail);
 document.addEventListener("keydown", e => { if (e.key === "Escape") { closeDetail(); closeViewer(); } });
 
-$("#themeBtn").addEventListener("click", () => {
-  document.body.classList.toggle("light-mode");
-  saveMode(document.body.classList.contains("light-mode") ? "light" : "dark");
-});
-if ((localStorage.getItem("neul-mode") || localStorage.getItem("stan-mode")) === "light") document.body.classList.add("light-mode");
+function applyTheme(mode, persist = true) {
+  const light = mode === "light";
+  document.body.classList.toggle("light-mode", light);
+  document.documentElement.style.colorScheme = light ? "light" : "dark";
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", light ? "#f5f2ef" : "#0b0d10");
+  document.querySelectorAll(".theme-choice button").forEach(btn => btn.classList.toggle("active", btn.dataset.theme === (light ? "light" : "dark")));
+  if (persist) saveMode(light ? "light" : "dark");
+}
+const savedTheme = localStorage.getItem("neul-mode") || localStorage.getItem("stan-mode") || "dark";
+applyTheme(savedTheme, false);
+$("#themeDarkBtn")?.addEventListener("click", () => applyTheme("dark"));
+$("#themeLightBtn")?.addEventListener("click", () => applyTheme("light"));
 
 const venueSelect = $("#venueSelect");
 const layoutSelect = $("#layoutSelect");
@@ -769,7 +778,6 @@ const seatNumberInput = $("#seatNumberInput");
 const viewerHeightSelect = $("#viewerHeightSelect");
 const postureTabs = $("#postureTabs");
 const lensTabs = $("#lensTabs");
-const realViewLink = $("#realViewLink");
 const previewCanvas = $("#seatPreviewCanvas");
 const overviewCanvas = $("#venueOverviewCanvas");
 let venueWebGL = null;
@@ -875,24 +883,6 @@ function updateSeatLabel() {
   $("#viewerSeatLabel").textContent = `${model.en} · ${tier.label} · ${sectionLabel} ${state.row}排${seatText}`;
   const lensLabel = ({eye:"肉眼",phone1:"1×",phone2:"2×",phone5:"5×"})[state.lens] || "肉眼";
   const chip=$("#viewerLensChip"); if(chip) chip.textContent=`${lensLabel} · ${state.viewerHeight}cm · ${state.posture==="standing"?"站著":"坐著"}`;
-  if(realViewLink){
-    const externalRealView = {
-      "taipei-music-center":"https://twconcertview.com/venue/taipei-music-center/",
-      "ticc":"https://twconcertview.com/venue/ticc-taipei/",
-      "kaohsiung-music-center":"https://twconcertview.com/venue/kaohsiung-music-center/",
-      "kaohsiung-stadium":"https://twconcertview.com/venue/kaohsiung-national-stadium/",
-      "taoyuan-arena":"https://twconcertview.com/venue/taoyuan-arena/",
-      "ntu-sports-center":"https://twconcertview.com/venue/ntu-sports-center/",
-      "tianmu-gymnasium":"https://twconcertview.com/venue/tianmu-gymnasium/"
-    };
-    if(state.venueId==="taipei-dome" && /^\d{3}$/.test(id)){
-      realViewLink.hidden=false;
-      realViewLink.href=`https://twconcertview.com/en/venue/taipei-dome/?zone=tpd-${encodeURIComponent(id)}`;
-    } else if(externalRealView[state.venueId]) {
-      realViewLink.hidden=false;
-      realViewLink.href=externalRealView[state.venueId];
-    } else realViewLink.hidden=true;
-  }
   const zone = $(".selected-zone");
   if (zone) zone.textContent = id;
   updateSeatWarning();
@@ -919,10 +909,6 @@ postureTabs?.addEventListener("click", e => { const b=e.target.closest("button[d
 lensTabs?.addEventListener("click", e => { const b=e.target.closest("button[data-lens]"); if(!b)return; state.lens=b.dataset.lens; $$("button",lensTabs).forEach(x=>x.classList.toggle("active",x===b)); updateSeatLabel(); requestVenueFrame(); });
 $("#seatPreviewBtn").addEventListener("click", () => { updateSeatLabel(); openViewer(true); });
 $("#open3dBtn").addEventListener("click", () => openViewer(false));
-$("#ive2026DemoBtn")?.addEventListener("click", () => {
-  setVenue("taipei-arena", "ive-show-what-i-am-2026");
-  $("#venue3d").scrollIntoView({ behavior: "smooth", block: "start" });
-});
 $("#expandPreviewBtn").addEventListener("click", () => openViewer(true));
 
 const viewer = $("#viewerModal");
@@ -937,8 +923,19 @@ function activeSeatTarget() {
   const stage = activeStage();
   const id = String(state.section);
   const layout = currentVenueLayout();
+  const section = activeSection();
   if (stage.bStage && layout.bStageFacingSections?.includes(id)) return [stage.bStage.x, stage.bStage.y + 8, stage.bStage.z];
-  return [stage.main.x, stage.main.y + 22, stage.main.z];
+  // Always aim at the audience-facing front edge of the stage instead of the LED/back-wall plane.
+  // Side seats therefore look across the performance area, never artificially at the back of a screen.
+  const m=stage.main;
+  const frontZ=m.z + Math.max(8,(m.depth||24)*.58);
+  const seat=venueSectionPosition(state.venueId, section, Number(state.row), state.seatNumber);
+  const sideSeat=Math.abs(seat.x-m.x) > Math.max(55,(m.width||80)*.52);
+  if (stage.runway && (sideSeat || /^(紅2|紫2)/.test(id))) {
+    const nearRunwayZ=Math.min(stage.runway.z2, Math.max(stage.runway.z1, frontZ + Math.abs(stage.runway.z2-stage.runway.z1)*.18));
+    return [stage.runway.x, m.y + 10, nearRunwayZ];
+  }
+  return [m.x, m.y + 16, frontZ];
 }
 function viewerEyeOffset() {
   const h = Math.max(140,Math.min(195,Number(state.viewerHeight)||160));
@@ -967,6 +964,21 @@ function activeOccluders(){
     if(frontRisk) rail();
     if((id==="108"||id==="111")&&row>=35) overhang();
     if(activeSection()?.tier==="FLOOR") crowd();
+    return out;
+  }
+  if(state.venueId==="ntsu-arena") {
+    if(row===0 || row>=14) rail(6,34,3.2);
+    return out;
+  }
+  if(state.venueId==="taipei-arena") {
+    if(/^黃3/.test(id) && row>=26) overhang(12,70,30);
+    if(row<=2) rail(6,32,3.0);
+    return out;
+  }
+  if(state.venueId==="kaohsiung-arena") {
+    if(/^4/.test(id) && row<=1) rail(6,34,3.4);
+    if(id==="208" && row<=2) crowd();
+    if(id==="220") overhead(18,18,9,8);
     return out;
   }
   if(state.venueId==="taipei-music-center") {
@@ -1161,6 +1173,21 @@ renderFollowing();
 renderFeatured();
 updateSeatLabel();
 initVenueWebGL();
+window.addEventListener("neul:languagechange", () => {
+  renderEvents();
+  renderFollowing();
+  renderFeatured();
+  updateFreshness();
+  updateSearchScope();
+  updateSeatLabel();
+  renderVenueIdentity();
+  renderVenueOptions();
+  renderLayoutOptions();
+  renderTierTabs();
+  refreshSectionOptions(false);
+  if (state.detailId && !$("#detailDrawer").getAttribute("aria-hidden")?.includes("true")) openDetail(state.detailId);
+});
+
 window.NEUL_APP = {
   state, openDetail, closeDetail, setVenue, renderEvents, renderFollowing, renderFeatured, updateFreshness,
   getEvent: id => state.events.find(e => e.id === id),

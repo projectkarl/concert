@@ -1,16 +1,43 @@
-# NEUL v0.22 · Automatic Event 3D
+# NEUL v0.27 — Multilingual UI
 
-NEUL 是台灣韓星／演唱會追星工具。本版暫停粉絲視角投稿，將重點轉到「新活動自動建立 3D」。
+NEUL is a Taiwan-focused concert companion for K-pop fans, with event discovery, countdowns, PWA reminders, venue 3D views and calibrated seat-view simulation.
 
-## 自動 3D
-- 新活動只要場館可辨識且已存在 NEUL 場館模型，就會在載入活動時建立「本場 3D 草稿」。
-- 若官方活動頁同步時偵測到官方座位／票區配置連結，本場草稿會標記為「官方座位配置來源已偵測」，並在下一次同步重新生成。
-- 已人工校正的活動專屬配置（如既有 IVE / PLAVE / Stray Kids）優先，不會被自動草稿覆蓋。
-- 活動詳情同時提供「查看本場 3D」與「一般場館 3D」，一般場館模型永遠保留。
-- 自動版是場館幾何＋活動舞台規則的保守草稿，不宣稱已逐像素解析官方座位圖；官方票區仍是最終依據。
+## v0.27 changes
 
-## 投稿
-本版不提供粉絲照片投稿、投稿 API 或審核入口。
+- Added four interface languages: Traditional Chinese, English, Japanese and Korean.
+- Language switch is located in Settings and changes immediately without reloading.
+- Language preference is saved locally and restored on the next visit.
+- Date / weekday formatting follows the selected interface locale while continuing to use Asia/Taipei for event times.
+- Navigation, search, event filters, Upcoming, Featured, My List, venue controls, seat preview, event drawer, countdown labels, reminders, seat comparison, day mode, settings and disclaimers are translated.
+- Artist names, official event titles, official venue / ticketing identifiers and source-provided content retain their official wording when appropriate, reducing the risk of mistranslating proper nouns.
+- Added Noto Sans JP to complement the existing Korean / Traditional Chinese font system.
+- PWA cache version upgraded to v0.27 and includes `/i18n.js` for offline interface language support.
 
-## 更新
-活動資料維持約 6 小時 CDN 快取＋每日排程同步。若官方來源出現新的座位配置連結，官方監測會把連結帶回活動資料，前端再更新對應本場 3D 草稿。
+## Languages
+
+- `zh-Hant` — 繁體中文
+- `en` — English
+- `ja` — 日本語
+- `ko` — 한국어
+
+The selected language is stored under `neul-language` in localStorage.
+
+## Existing functionality retained
+
+- Taiwan-only event discovery and archive
+- 11 venue models
+- Event Auto 3D + venue baseline 3D
+- WebGL2 + Canvas fallback
+- Seat row / seat-number / height / posture / lens simulation
+- Featured concert carousel
+- Flip countdown
+- PWA installation
+- Independent alerts center
+- Dark / light themes
+- IndexedDB persistence
+- Seat A/B comparison
+- Concert-day mode
+
+## Deploy
+
+Deploy the entire folder to Vercel. No additional translation API or paid service is required.

@@ -1,4 +1,4 @@
-const VERSION = "neul-v0.22.0";
+const VERSION = "neul-v0.27.0";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const APP_SHELL = [
@@ -6,6 +6,7 @@ const APP_SHELL = [
   "/index.html",
   "/styles.css",
   "/app.js",
+  "/i18n.js",
   "/pwa.js",
   "/webgl-venue.js",
   "/enhancements.js",
