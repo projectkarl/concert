@@ -1,0 +1,1093 @@
+import { seedEvents } from "./data/events.js";
+import { seedArtists } from "./data/artists.js";
+import { venueModels, venueLayouts, layoutsForVenue, getVenueModel, getVenueLayout, getVenueTier, getVenueSection, venueSectionPosition, venueSectionWarning, sectionTicketLabel, venueIdFromName, effectiveTiers, effectiveSections } from "./data/multi-venue-geometry.js";
+import { createVenueWebGL } from "./webgl-venue.js";
+import { saveFollowed, saveMode, recordEventChanges, saveOfflineSnapshot, loadFollowed } from "./storage.js";
+
+const $ = (q, root = document) => root.querySelector(q);
+const $$ = (q, root = document) => [...root.querySelectorAll(q)];
+const state = {
+  events: seedEvents,
+  artists: seedArtists.map(a => ({ ...a, upcomingEventCount: 0, nextEvent: null, eventIds: [] })),
+  dataUpdatedAt: null,
+  autoUpdateEnabled: true,
+  upstream: "curated-fallback",
+  officialUpdatedAt: null,
+  officialMonitorCount: 0,
+  query: "",
+  type: "ALL",
+  region: "TW",
+  city: "ALL",
+  archiveMode: false,
+  visibleEventLimit: 6,
+  followed: new Set(JSON.parse(localStorage.getItem("neul-followed") || localStorage.getItem("stan-followed") || '["Stray Kids","aespa","PLAVE","NCT 127"]')),
+  detailId: null,
+  venueId: "taipei-dome",
+  floor: "LOWER",
+  section: "106",
+  row: "18",
+  seatNumber: "",
+  viewerHeight: 160,
+  posture: "seated",
+  lens: "eye",
+  layoutId: "skz-run-it-2026",
+  featuredId: "skz-run-it-taipei-2026"
+};
+
+const fmtDate = (iso, rangeEnd = null) => {
+  if (!iso) return "日期待公布";
+  const d = new Date(iso);
+  const parts = new Intl.DateTimeFormat("zh-TW", { year: "numeric", month: "2-digit", day: "2-digit", weekday: "short", timeZone: "Asia/Taipei" }).formatToParts(d);
+  const get = t => parts.find(x => x.type === t)?.value || "";
+  let out = `${get("year")}.${get("month")}.${get("day")} (${get("weekday").replace("週", "")})`;
+  if (rangeEnd) {
+    const e = new Date(rangeEnd);
+    const end = new Intl.DateTimeFormat("zh-TW", { month: "2-digit", day: "2-digit", timeZone: "Asia/Taipei" }).format(e).replace("/", ".");
+    out = `${get("year")}.${get("month")}.${get("day")}–${end}`;
+  }
+  return out;
+};
+const fmtTime = iso => iso ? new Intl.DateTimeFormat("zh-TW", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Taipei" }).format(new Date(iso)) : "";
+const fmtEventTime = event => {
+  if (!event?.start) return "";
+  const m = String(event.start).match(/T(\d{2}):(\d{2})/);
+  if (m && m[1] === "00" && m[2] === "00" && event.timeConfirmed !== true) return "時間待公告";
+  return fmtTime(event.start);
+};
+const escapeHtml = (v = "") => String(v).replace(/[&<>'"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[c]));
+const safeUrl = v => { try { const u = new URL(v); return /^https?:$/.test(u.protocol) ? u.href : "#"; } catch { return "#"; } };
+const friendlySourceName = value => {
+  const v = String(value || "官方活動來源");
+  if (/official event source/i.test(v)) return "官方活動來源";
+  return v.replace(/\s*API\s*/gi, " ").trim();
+};
+
+const TAIPEI_TZ = "Asia/Taipei";
+const dayMs = 86400000;
+
+function relativeTime(iso) {
+  if (!iso) return "";
+  const ts = new Date(iso).getTime();
+  if (!Number.isFinite(ts)) return "";
+  const diff = ts - Date.now();
+  const abs = Math.abs(diff);
+  const future = diff >= 0;
+  if (abs < 3600000) {
+    const mins = Math.max(1, Math.round(abs / 60000));
+    return future ? `${mins} 分鐘後` : `${mins} 分鐘前`;
+  }
+  if (abs < dayMs) {
+    const hrs = Math.max(1, Math.round(abs / 3600000));
+    return future ? `${hrs} 小時後` : `${hrs} 小時前`;
+  }
+  const days = Math.max(1, Math.ceil(abs / dayMs));
+  return future ? `${days} 天後` : `${days} 天前`;
+}
+
+function eventBadge(event) {
+  if (event?.historical) return "歷史場次";
+  const now = Date.now();
+  const startTs = new Date(event.start || 0).getTime();
+  const saleTs = event.generalSale ? new Date(event.generalSale).getTime() : NaN;
+  if (Number.isFinite(startTs) && startTs >= now && startTs - now <= 7 * dayMs) return "本週登場";
+  if (Number.isFinite(saleTs) && saleTs > now) return `售票 ${relativeTime(event.generalSale)}`;
+  if (Number.isFinite(saleTs) && saleTs <= now && Number.isFinite(startTs) && startTs > now) return "已開賣";
+  return event.statusLabel || event.type || "活動";
+}
+
+function nextAction(event) {
+  if (event?.historical) return { label: "歷史案例", value: "活動已結束 · 保留作為座位配置與視角重建案例" };
+  const now = Date.now();
+  const startTs = new Date(event.start || 0).getTime();
+  const saleTs = event.generalSale ? new Date(event.generalSale).getTime() : NaN;
+  if (Number.isFinite(saleTs) && saleTs > now) {
+    return { label: "下一步：準備正式售票", value: `${fmtDate(event.generalSale)} ${fmtTime(event.generalSale)} · ${relativeTime(event.generalSale)}` };
+  }
+  if (Number.isFinite(startTs) && startTs > now) {
+    return { label: "下一步：確認演出資訊", value: `${fmtDate(event.start, event.end)}${event.end ? "" : ` ${fmtEventTime(event)}`} · ${relativeTime(event.start)}` };
+  }
+  return { label: "活動狀態", value: "請回官方來源確認最新公告" };
+}
+
+
+function rebuildArtistStats() {
+  const seedMap = new Map(seedArtists.map(a => [a.name.toLowerCase(), { ...a }]));
+  const oldMap = new Map(state.artists.map(a => [String(a.name).toLowerCase(), { ...a }]));
+  const map = new Map();
+  for (const event of state.events) {
+    const key = String(event.artist || "").toLowerCase();
+    if (!key) continue;
+    const base = map.get(key) || oldMap.get(key) || seedMap.get(key) || event.artistProfile || {
+      id: `auto-${key.replace(/[^a-z0-9]+/g, "-")}`,
+      name: event.artist,
+      shortName: event.shortArtist || event.artist.slice(0, 3).toUpperCase(),
+      type: "ARTIST",
+      market: "INTL",
+      sourceName: event.sourceName || "官方活動來源",
+      officialUrl: event.sourceUrl || null,
+      verified: Boolean(event.verified)
+    };
+    const current = map.get(key) || { ...base, upcomingEventCount: 0, nextEvent: null, eventIds: [] };
+    current.eventIds = [...new Set([...(current.eventIds || []), event.id])];
+    const future = event.start && new Date(event.start).getTime() >= Date.now() - 86400000;
+    if (future) current.upcomingEventCount = (current.upcomingEventCount || 0) + 1;
+    if (future && (!current.nextEvent || new Date(event.start) < new Date(current.nextEvent.start))) {
+      current.nextEvent = { id: event.id, title: event.title, start: event.start, end: event.end || null, venue: event.venue, city: event.city, statusLabel: event.statusLabel, sourceUrl: event.sourceUrl };
+    }
+    current.updatedAt = event.checkedAt || current.updatedAt || state.dataUpdatedAt;
+    map.set(key, current);
+  }
+  for (const [key, artist] of oldMap) if (!map.has(key)) map.set(key, artist);
+  state.artists = [...map.values()].sort((a, b) => {
+    if (a.nextEvent && b.nextEvent) return new Date(a.nextEvent.start) - new Date(b.nextEvent.start);
+    if (a.nextEvent) return -1;
+    if (b.nextEvent) return 1;
+    return a.name.localeCompare(b.name);
+  });
+}
+
+function applyOfficialResults(data) {
+  if (!Array.isArray(data?.results)) return;
+  let changed = false;
+  const byId = new Map(data.results.map(x => [x.eventId, x]));
+  state.events = state.events.map(event => {
+    const result = byId.get(event.id);
+    if (!result) return event;
+    const patch = result.check?.status === "live" ? (result.patch || {}) : {};
+    if (Object.keys(patch).length) changed = true;
+    return { ...event, ...patch, officialCheck: result.check, officialCheckedAt: result.checkedAt || null };
+  });
+  state.officialUpdatedAt = data.updatedAt || null;
+  state.officialMonitorCount = data.monitored || 0;
+  if (changed) rebuildArtistStats();
+}
+
+async function loadOfficialUpdates({ force = false } = {}) {
+  const cacheKey = "neul-official-check-at";
+  const last = Number(localStorage.getItem(cacheKey) || 0);
+  if (!force && last && Date.now() - last < 6 * 3600000) return;
+  try {
+    const res = await fetch("/api/official", { headers: { Accept: "application/json" } });
+    if (!res.ok) return;
+    const data = await res.json();
+    applyOfficialResults(data);
+    await recordEventChanges(state.events);
+    await saveOfflineSnapshot({ at: state.officialUpdatedAt || state.dataUpdatedAt || new Date().toISOString(), upstream: "official-monitor", count: state.events.length });
+    localStorage.setItem(cacheKey, String(Date.now()));
+    renderEvents();
+    renderFollowing();
+    renderFeatured();
+    updateFreshness();
+    window.dispatchEvent(new CustomEvent("neul:dataupdated", { detail: { events: state.events, updatedAt: state.officialUpdatedAt || state.dataUpdatedAt } }));
+    if (state.detailId) openDetail(state.detailId);
+  } catch {
+    // Existing verified data remains usable when an upstream source is unavailable.
+  }
+}
+
+function normalizeSearch(v="") { return String(v).toLowerCase().replace(/[臺台]/g,"台").replace(/[-_/]/g," ").replace(/\s+/g," ").trim(); }
+function filteredEvents() {
+  const q = normalizeSearch(state.query);
+  const now = Date.now();
+  const qTokens = q.split(" ").filter(Boolean);
+  return state.events.filter(e => {
+    const typeOk = state.type === "ALL" || e.type === state.type;
+    const regionOk = e.region === state.region;
+    const cityOk = state.city === "ALL" || state.city === "ARCHIVE" || String(e.city || "").toLowerCase() === state.city.toLowerCase();
+    const startTs = new Date(e.end || e.start || 0).getTime();
+    const past = e.historical || (Number.isFinite(startTs) && startTs < now - 6*3600000);
+    const historyOk = state.archiveMode ? past : (q ? true : !past);
+    const dateText = e.start ? new Intl.DateTimeFormat("zh-TW",{year:"numeric",month:"2-digit",day:"2-digit",timeZone:"Asia/Taipei"}).format(new Date(e.start)) : "";
+    const hay = normalizeSearch(`${e.artist} ${e.title} ${e.venue} ${e.city} ${dateText} ${(e.tags || []).join(" ")}`);
+    const queryOk = !qTokens.length || qTokens.every(t => hay.includes(t));
+    return typeOk && regionOk && cityOk && historyOk && queryOk;
+  }).sort((a, b) => state.archiveMode ? new Date(b.start || 0) - new Date(a.start || 0) : new Date(a.start || 0) - new Date(b.start || 0));
+}
+
+function posterCode(e) {
+  return (e.shortArtist || e.artist.slice(0, 3)).toUpperCase();
+}
+
+function renderEvents() {
+  const list = filteredEvents();
+  const root = $("#eventList");
+  const meta = $("#eventResultMeta");
+  const more = $("#viewMoreBtn");
+  if (meta) meta.textContent = list.length ? `${list.length} 場台灣活動` : "沒有符合條件的活動";
+  if (!list.length) {
+    root.innerHTML = `<div class="empty-upcoming">目前沒有符合條件的活動。<br>切回「台灣／全部活動」可查看已核對資料。</div>`;
+    if (more) more.hidden = true;
+    return;
+  }
+  const visible = list.slice(0, state.visibleEventLimit);
+  root.innerHTML = visible.map(e => `
+    <button class="event-row" data-event-id="${escapeHtml(e.id)}">
+      <span class="event-poster">${escapeHtml(posterCode(e))}</span>
+      <span class="event-info">
+        <strong>${escapeHtml(e.artist)}</strong>
+        <span class="title">${escapeHtml(e.title)}</span>
+        <span class="date">${fmtDate(e.start, e.end)}${e.end ? "" : ` · ${escapeHtml(fmtEventTime(e))}`}</span>
+        <span class="venue">${escapeHtml(e.venue)}</span>
+      </span>
+      <span class="event-arrow"><span class="event-tag">${escapeHtml(eventBadge(e))}</span><b>›</b></span>
+    </button>`).join("");
+  $$(".event-row", root).forEach(btn => btn.addEventListener("click", () => openDetail(btn.dataset.eventId)));
+  if (more) {
+    more.hidden = list.length <= 6;
+    more.textContent = state.visibleEventLimit < list.length ? `查看更多活動（${list.length - visible.length}） →` : "收起活動 ↑";
+  }
+}
+
+function artistFor(name) {
+  return state.artists.find(a => a.name.toLowerCase() === String(name).toLowerCase());
+}
+
+function renderFollowing() {
+  const root = $("#artistBubbles");
+  const artists = [...state.followed];
+  const visible = artists.length ? artists.slice(0, 5) : ["Stray Kids", "aespa", "PLAVE", "NCT 127"];
+  root.innerHTML = visible.map(name => {
+    const profile = artistFor(name);
+    const e = state.events.find(x => x.artist.toLowerCase() === name.toLowerCase());
+    const code = profile?.shortName || e?.shortArtist || name.split(/\s+/).map(s => s[0]).join("").slice(0, 3).toUpperCase();
+    const count = profile?.upcomingEventCount || 0;
+    return `<button class="artist-bubble" data-artist="${escapeHtml(name)}" aria-label="查看 ${escapeHtml(name)}">
+      <span class="artist-avatar">${escapeHtml(code)}</span><span>${escapeHtml(name)}</span>${count ? `<em>${count} EVENT${count > 1 ? "S" : ""}</em>` : ""}
+    </button>`;
+  }).join("");
+  $$(".artist-bubble", root).forEach(btn => btn.addEventListener("click", () => openArtistDetail(btn.dataset.artist)));
+  saveFollowed([...state.followed]);
+  const featureBtn = $(".follow-feature");
+  if (featureBtn) {
+    const featured = state.events.find(x => x.id === state.featuredId);
+    const artist = featured?.artist || featureBtn.dataset.artist || "Stray Kids";
+    featureBtn.dataset.artist = artist;
+    featureBtn.textContent = state.followed.has(artist) ? "✓ 已追蹤" : "加入追蹤";
+  }
+}
+
+function pickFeaturedEvent() {
+  const threshold = Date.now() - dayMs;
+  return [...state.events]
+    .filter(e => e.region === "TW" && e.start && new Date(e.start).getTime() >= threshold)
+    .sort((a, b) => new Date(a.start) - new Date(b.start))[0] || state.events[0] || null;
+}
+
+function renderFeatured() {
+  const event = pickFeaturedEvent();
+  if (!event) return;
+  state.featuredId = event.id;
+  const mark = $("#featuredArtistMark");
+  const title = $("#featuredTitle");
+  const meta = $("#featuredMeta");
+  const follow = $(".follow-feature");
+  if (mark) mark.textContent = event.shortArtist || event.artist;
+  if (title) title.innerHTML = escapeHtml(event.title).replace(/\s+(IN\s+TAIPEI|TAIPEI)$/i, "<br>$1");
+  if (meta) meta.innerHTML = `${escapeHtml(fmtDate(event.start, event.end))}${event.end ? "" : ` ${escapeHtml(fmtEventTime(event))}`}<br>${escapeHtml(event.venue)}`;
+  if (follow) {
+    follow.dataset.artist = event.artist;
+    follow.textContent = state.followed.has(event.artist) ? "✓ 已追蹤" : "加入追蹤";
+  }
+}
+
+function artistEvents(name) {
+  return state.events
+    .filter(e => e.artist.toLowerCase() === String(name).toLowerCase())
+    .sort((a, b) => new Date(a.start || 0) - new Date(b.start || 0));
+}
+
+function openArtistDetail(name) {
+  const profile = artistFor(name) || {
+    name,
+    shortName: name.slice(0, 3).toUpperCase(),
+    type: "ARTIST",
+    market: "INTL",
+    sourceName: "活動資料",
+    officialUrl: null,
+    verified: false
+  };
+  const events = artistEvents(name);
+  const next = events.find(e => e.start && new Date(e.start).getTime() >= Date.now() - 86400000) || events[0];
+  const updated = profile.updatedAt || state.dataUpdatedAt;
+  const checked = updated ? new Intl.DateTimeFormat("zh-TW", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Taipei" }).format(new Date(updated)) : "依活動資料同步";
+  $("#detailContent").innerHTML = `
+    <div class="detail-kicker">ARTIST WATCH · ${profile.verified ? "OFFICIAL SOURCE" : "EVENT-DERIVED"}</div>
+    <h2>${escapeHtml(profile.name)}</h2>
+    <div class="artist-profile-line"><span>${escapeHtml(profile.type || "ARTIST")}</span>${profile.market ? `<span>${escapeHtml(profile.market)}</span>` : ""}${profile.agency ? `<span>${escapeHtml(profile.agency)}</span>` : ""}</div>
+    <p class="detail-title">追蹤中的藝人頁會依目前已收錄的官方活動資料，自動更新下一場活動與活動數量。</p>
+    <div class="detail-meta">
+      <div><span>UPCOMING</span><strong>${profile.upcomingEventCount || events.length || 0} 場</strong></div>
+      <div><span>NEXT EVENT</span><strong>${next ? `${fmtDate(next.start, next.end)}<br>${escapeHtml(next.venue)}` : "目前沒有已收錄場次"}</strong></div>
+      <div><span>TYPE</span><strong>${escapeHtml(profile.type || "ARTIST")}</strong></div>
+      <div><span>SOURCE</span><strong>${escapeHtml(friendlySourceName(profile.sourceName))}</strong></div>
+    </div>
+    <section class="detail-section"><h3>近期活動</h3>
+      <div class="artist-event-stack">${events.length ? events.map(e => `
+        <button class="artist-event-mini" data-event-id="${escapeHtml(e.id)}">
+          <span><b>${escapeHtml(e.title)}</b><small>${fmtDate(e.start, e.end)} · ${escapeHtml(e.venue)}</small></span><i>→</i>
+        </button>`).join("") : `<div class="detail-empty">目前沒有已收錄的近期活動。</div>`}</div>
+    </section>
+    <div class="detail-source">
+      ${profile.officialUrl ? `<a href="${safeUrl(profile.officialUrl)}" target="_blank" rel="noopener noreferrer">官方頁面 ↗</a>` : ""}
+      <button class="pink-mini drawer-follow" data-artist="${escapeHtml(profile.name)}">${state.followed.has(profile.name) ? "✓ 已追蹤" : "+ 加入追蹤"}</button>
+    </div>
+    <div class="detail-check">活動狀態最後同步：${escapeHtml(checked)}。詳細資訊仍以官方最新公告為準。</div>`;
+  $("#detailBackdrop").hidden = false;
+  $("#detailDrawer").classList.add("open");
+  $("#detailDrawer").setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
+  $$(".artist-event-mini").forEach(btn => btn.addEventListener("click", () => openDetail(btn.dataset.eventId)));
+  const followBtn = $(".drawer-follow");
+  if (followBtn) followBtn.addEventListener("click", () => {
+    toggleFollow(profile.name);
+    followBtn.textContent = state.followed.has(profile.name) ? "✓ 已追蹤" : "+ 加入追蹤";
+  });
+}
+
+function openArtistDirectory() {
+  const list = [...state.artists].sort((a, b) => (b.upcomingEventCount || 0) - (a.upcomingEventCount || 0) || a.name.localeCompare(b.name));
+  $("#detailContent").innerHTML = `
+    <div class="detail-kicker">ARTIST WATCH</div>
+    <h2>Artists</h2>
+    <p class="detail-title">已收錄與官方活動來源帶入的藝人，會依近期活動持續更新。</p>
+    <div class="artist-directory">${list.map(a => `
+      <button class="artist-directory-row" data-artist="${escapeHtml(a.name)}">
+        <span class="artist-directory-code">${escapeHtml(a.shortName || a.name.slice(0, 3).toUpperCase())}</span>
+        <span><b>${escapeHtml(a.name)}</b><small>${a.upcomingEventCount || 0} upcoming · ${escapeHtml(friendlySourceName(a.sourceName))}</small></span>
+        <i>→</i>
+      </button>`).join("")}</div>`;
+  $("#detailBackdrop").hidden = false;
+  $("#detailDrawer").classList.add("open");
+  $("#detailDrawer").setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
+  $$(".artist-directory-row").forEach(btn => btn.addEventListener("click", () => openArtistDetail(btn.dataset.artist)));
+}
+
+
+let countdownTimer = null;
+const countdownFlipTimers = new WeakMap();
+
+function parseSessionDateTime(session, event) {
+  if (!session?.date) return null;
+  const date = String(session.date).trim().replace(/\//g, "-");
+  const time = String(session.time || "").match(/^(\d{1,2}):(\d{2})$/);
+  if (!time) return null;
+  const hh = String(time[1]).padStart(2, "0");
+  const mm = time[2];
+  const d = new Date(`${date}T${hh}:${mm}:00+08:00`);
+  return Number.isFinite(d.getTime()) ? d : null;
+}
+
+function parseTimelineDateTime(item, event) {
+  const text = String(item?.time || "");
+  const year = String(event?.start || "").slice(0, 4) || String(new Date().getFullYear());
+  const full = text.match(/(20\d{2})[\/.](\d{1,2})[\/.](\d{1,2})\s+(\d{1,2}):(\d{2})/);
+  const short = text.match(/(^|\s)(\d{1,2})[\/.](\d{1,2})\s+(\d{1,2}):(\d{2})/);
+  let parts = null;
+  if (full) parts = [full[1], full[2], full[3], full[4], full[5]];
+  else if (short) parts = [year, short[2], short[3], short[4], short[5]];
+  if (!parts) return null;
+  const [y,m,d,h,min] = parts.map((v,i) => i === 0 ? v : String(v).padStart(2, "0"));
+  const dt = new Date(`${y}-${m}-${d}T${h}:${min}:00+08:00`);
+  return Number.isFinite(dt.getTime()) ? dt : null;
+}
+
+function countdownTarget(event) {
+  const now = Date.now();
+  const futureSessions = (event?.sessions || [])
+    .map(session => ({ session, date: parseSessionDateTime(session, event) }))
+    .filter(x => x.date && x.date.getTime() > now)
+    .sort((a,b) => a.date - b.date);
+  if (futureSessions.length) {
+    const next = futureSessions[0];
+    return {
+      ts: next.date.getTime(),
+      label: `距離 ${next.session.date} ${next.session.time} 演出`,
+      note: next.session.note || "演出時間已確認",
+      kind: "show"
+    };
+  }
+
+  const startTs = new Date(event?.start || 0).getTime();
+  if (Number.isFinite(startTs) && startTs > now && event?.timeConfirmed !== false) {
+    return { ts: startTs, label: "距離演出", note: `${fmtDate(event.start)} ${fmtEventTime(event)}`, kind: "show" };
+  }
+
+  const saleTs = event?.generalSale ? new Date(event.generalSale).getTime() : NaN;
+  if (Number.isFinite(saleTs) && saleTs > now) {
+    return { ts: saleTs, label: "距離正式售票", note: `${fmtDate(event.generalSale)} ${fmtTime(event.generalSale)}`, kind: "sale" };
+  }
+
+  const futureTimeline = (event?.ticketTimeline || [])
+    .map(item => ({ item, date: parseTimelineDateTime(item, event) }))
+    .filter(x => x.date && x.date.getTime() > now)
+    .sort((a,b) => a.date - b.date);
+  if (futureTimeline.length) {
+    const next = futureTimeline[0];
+    return { ts: next.date.getTime(), label: `距離${next.item.label}`, note: next.item.time, kind: "sale" };
+  }
+
+  if (Number.isFinite(startTs) && startTs > now && event?.timeConfirmed === false) {
+    return { ts: startTs, label: "距離活動日期", note: "演出時間待官方公告，倒數以活動日期 00:00 為基準", kind: "date", approximate: true };
+  }
+
+  return null;
+}
+
+function countdownMarkup(event) {
+  const target = countdownTarget(event);
+  if (!target) {
+    return `<section class="concert-countdown countdown-ended" data-countdown-ended="true">
+      <div class="countdown-eyebrow">LIVE COUNTDOWN</div>
+      <div class="countdown-ended-title">演出已結束</div>
+      <p>此場次保留活動資訊、座位配置與 3D 視角作為歷史案例。</p>
+    </section>`;
+  }
+  return `<section class="concert-countdown" data-countdown-ts="${target.ts}" data-countdown-label="${escapeHtml(target.label)}">
+    <div class="countdown-head">
+      <div><span class="countdown-eyebrow">LIVE COUNTDOWN</span><strong>${escapeHtml(target.label)}</strong></div>
+      <p>${escapeHtml(target.note)}${target.approximate ? " · 時間待公告" : ""}</p>
+    </div>
+    <div class="flip-countdown" role="timer" aria-label="${escapeHtml(target.label)}">
+      ${[["days","日"],["hours","時"],["minutes","分"],["seconds","秒"]].map(([unit,label]) => `
+        <div class="flip-unit" data-unit="${unit}">
+          <div class="flip-card" aria-hidden="true">
+            <span class="flip-base">00</span>
+            <span class="flip-old">00</span>
+            <span class="flip-new">00</span>
+          </div>
+          <span class="flip-label">${label}</span>
+        </div>`).join("")}
+    </div>
+    <span class="countdown-a11y sr-only"></span>
+  </section>`;
+}
+
+function setFlipValue(unitEl, value, immediate = false) {
+  const card = unitEl?.querySelector(".flip-card");
+  if (!card) return;
+  const base = card.querySelector(".flip-base");
+  const oldEl = card.querySelector(".flip-old");
+  const newEl = card.querySelector(".flip-new");
+  const current = card.dataset.current;
+  if (current === value) return;
+  const pending = countdownFlipTimers.get(card);
+  if (pending) clearTimeout(pending);
+  if (immediate || current == null) {
+    base.textContent = value; oldEl.textContent = value; newEl.textContent = value;
+    card.dataset.current = value;
+    card.classList.remove("is-flipping");
+    return;
+  }
+  oldEl.textContent = current;
+  newEl.textContent = value;
+  base.textContent = value;
+  card.classList.remove("is-flipping");
+  void card.offsetWidth;
+  card.classList.add("is-flipping");
+  card.dataset.current = value;
+  const t = setTimeout(() => card.classList.remove("is-flipping"), 640);
+  countdownFlipTimers.set(card, t);
+}
+
+function updateCountdown() {
+  const root = $(".concert-countdown[data-countdown-ts]");
+  if (!root) return;
+  const target = Number(root.dataset.countdownTs);
+  const diff = Math.max(0, target - Date.now());
+  const totalSec = Math.floor(diff / 1000);
+  const days = Math.floor(totalSec / 86400);
+  const hours = Math.floor((totalSec % 86400) / 3600);
+  const minutes = Math.floor((totalSec % 3600) / 60);
+  const seconds = totalSec % 60;
+  const values = {
+    days: String(days).padStart(2, "0"),
+    hours: String(hours).padStart(2, "0"),
+    minutes: String(minutes).padStart(2, "0"),
+    seconds: String(seconds).padStart(2, "0")
+  };
+  for (const [unit, value] of Object.entries(values)) setFlipValue(root.querySelector(`[data-unit="${unit}"]`), value, !root.dataset.ready);
+  root.dataset.ready = "true";
+  const a11y = root.querySelector(".countdown-a11y");
+  if (a11y) a11y.textContent = `${root.dataset.countdownLabel || "倒數"}：${days} 日 ${hours} 時 ${minutes} 分 ${seconds} 秒`;
+  if (diff <= 0 && state.detailId) {
+    clearInterval(countdownTimer); countdownTimer = null;
+    setTimeout(() => openDetail(state.detailId), 40);
+  }
+}
+
+function startCountdown() {
+  if (countdownTimer) clearInterval(countdownTimer);
+  updateCountdown();
+  if ($(".concert-countdown[data-countdown-ts]")) countdownTimer = setInterval(updateCountdown, 1000);
+}
+
+function stopCountdown() {
+  if (countdownTimer) clearInterval(countdownTimer);
+  countdownTimer = null;
+}
+
+function toggleFollow(name) {
+  state.followed.has(name) ? state.followed.delete(name) : state.followed.add(name);
+  renderFollowing();
+  window.dispatchEvent(new CustomEvent("neul:followschanged", { detail: { artists: [...state.followed] } }));
+}
+
+function timelineHtml(items = []) {
+  return items.map(x => `<div class="timeline-item ${escapeHtml(x.state || "")}">
+    <span class="timeline-dot"></span><div><b>${escapeHtml(x.label)}</b><span>${escapeHtml(x.time)}</span></div>
+  </div>`).join("");
+}
+
+function detailList(title, arr = []) {
+  if (!arr.length) return "";
+  return `<section class="detail-section"><h3>${escapeHtml(title)}</h3><ul class="detail-list">${arr.map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul></section>`;
+}
+
+function eventVenueModelId(event) { return event?.venueModelId || venueIdFromName(event?.venue || ""); }
+function eventVenueLayoutId(event) {
+  const venueId = eventVenueModelId(event);
+  if (!venueId) return null;
+  return event?.venueLayoutId || getVenueModel(venueId).baseLayoutId;
+}
+
+function openDetail(id) {
+  const e = state.events.find(x => x.id === id);
+  if (!e) return;
+  state.detailId = id;
+  const checked = new Intl.DateTimeFormat("zh-TW", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Taipei" }).format(new Date(e.checkedAt || Date.now()));
+  const action = nextAction(e);
+  $("#detailContent").innerHTML = `
+    <div class="detail-kicker">${escapeHtml(e.statusLabel || e.type)} · ${e.historical ? "HISTORICAL VERIFIED" : (e.officialCheck?.status === "live" ? "OFFICIAL LIVE" : "OFFICIAL CHECKED")}</div>
+    <h2>${escapeHtml(e.artist)}</h2>
+    <div class="detail-title">${escapeHtml(e.title)}</div>
+    <p class="detail-title">${escapeHtml(e.summary || "")}</p>
+    ${countdownMarkup(e)}
+    <div class="detail-next-action"><span>${escapeHtml(action.label)}</span><strong>${escapeHtml(action.value)}</strong></div>
+    <div class="detail-meta">
+      <div><span>DATE / TIME</span><strong>${fmtDate(e.start, e.end)}<br>${e.end ? "多場次" : escapeHtml(fmtEventTime(e))}</strong></div>
+      <div><span>VENUE</span><strong>${escapeHtml(e.venue)}</strong></div>
+      <div><span>TICKETING</span><strong>${escapeHtml(e.ticketing || "TBA")}</strong></div>
+      <div><span>PRICE</span><strong>${escapeHtml(e.price || "TBA")}</strong></div>
+    </div>
+    ${e.sessions?.length ? `<section class="detail-section"><h3>場次</h3><div class="timeline">${e.sessions.map(s => `<div class="timeline-item"><span class="timeline-dot"></span><div><b>${escapeHtml(s.date)} · ${escapeHtml(s.time)}</b><span>${escapeHtml(s.note || "")}</span></div></div>`).join("")}</div></section>` : ""}
+    <section class="detail-section"><h3>售票時間軸</h3><div class="timeline">${timelineHtml(e.ticketTimeline || [])}</div></section>
+    ${detailList("粉絲福利", e.benefits)}
+    ${detailList("需要注意", e.notes)}
+    <div class="detail-source">
+      <a href="${safeUrl(e.sourceUrl)}" target="_blank" rel="noopener noreferrer">官方來源 ↗</a>
+      ${e.secondarySourceUrl ? `<a href="${safeUrl(e.secondarySourceUrl)}" target="_blank" rel="noopener noreferrer">補充公告 ↗</a>` : ""}
+      ${e.seatLayoutSourceUrl ? `<a href="${safeUrl(e.seatLayoutSourceUrl)}" target="_blank" rel="noopener noreferrer">官方座位配置 ↗</a>` : ""}
+      ${eventVenueModelId(e) ? `<button class="outline-mini detail-venue-btn" data-venue="${escapeHtml(eventVenueModelId(e))}" data-layout="${escapeHtml(eventVenueLayoutId(e))}">查看本場 3D 座位 →</button>` : ""}
+      <button class="pink-mini drawer-follow" data-artist="${escapeHtml(e.artist)}">${state.followed.has(e.artist) ? "✓ 已追蹤" : "+ 加入追蹤"}</button>
+    </div>
+    <div class="detail-check">${e.officialCheck?.status === "live" ? "官方頁面已連線 · " : e.officialCheck?.status === "review" ? "官方公告可能有變更 · " : "本站最後核對 · "}${escapeHtml(checked)}。詳細規則與臨時變更請回官方來源確認。</div>`;
+  $("#detailBackdrop").hidden = false;
+  $("#detailDrawer").classList.add("open");
+  $("#detailDrawer").setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
+  startCountdown();
+  const df = $(".drawer-follow");
+  if (df) df.addEventListener("click", () => { toggleFollow(e.artist); df.textContent = state.followed.has(e.artist) ? "✓ 已追蹤" : "+ 加入追蹤"; });
+  const venueBtn = $(".detail-venue-btn");
+  if (venueBtn) venueBtn.addEventListener("click", () => {
+    setVenue(venueBtn.dataset.venue || eventVenueModelId(e), venueBtn.dataset.layout || eventVenueLayoutId(e));
+    closeDetail();
+    $("#venue3d").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+}
+function closeDetail() {
+  stopCountdown();
+  $("#detailDrawer").classList.remove("open");
+  $("#detailDrawer").setAttribute("aria-hidden", "true");
+  $("#detailBackdrop").hidden = true;
+  document.body.style.overflow = "";
+}
+
+function updateFreshness() {
+  const el = $("#dataFreshness");
+  if (!el) return;
+  if (!state.dataUpdatedAt) {
+    el.textContent = "目前顯示已核對活動";
+    return;
+  }
+  const t = new Intl.DateTimeFormat("zh-TW", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Taipei" }).format(new Date(state.dataUpdatedAt));
+  const officialTime = state.officialUpdatedAt ? new Intl.DateTimeFormat("zh-TW", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Taipei" }).format(new Date(state.officialUpdatedAt)) : null;
+  el.textContent = officialTime ? `官方資訊更新 ${officialTime}` : (state.autoUpdateEnabled ? `台灣活動同步 ${t}` : `已核對資料 · ${t}`);
+  el.title = "活動資訊會依可用官方來源持續核對；詳細內容仍以官方最新公告為準。";
+}
+
+async function loadEvents() {
+  try {
+    const res = await fetch("/api/events", { headers: { Accept: "application/json" } });
+    if (!res.ok) throw new Error("events unavailable");
+    const data = await res.json();
+    if (Array.isArray(data.events) && data.events.length) state.events = data.events;
+    if (Array.isArray(data.artists) && data.artists.length) state.artists = data.artists;
+    state.dataUpdatedAt = data.updatedAt || null;
+    state.autoUpdateEnabled = data.autoUpdateEnabled !== false;
+    state.upstream = data.upstream || "curated-fallback";
+  } catch {
+    state.events = seedEvents;
+    state.artists = seedArtists.map(a => ({ ...a, upcomingEventCount: seedEvents.filter(e => e.artist.toLowerCase() === a.name.toLowerCase()).length, nextEvent: null, eventIds: [] }));
+    state.dataUpdatedAt = null;
+    state.autoUpdateEnabled = false;
+    state.upstream = "curated-fallback";
+  }
+  await recordEventChanges(state.events);
+  await saveOfflineSnapshot({ at: state.dataUpdatedAt || new Date().toISOString(), upstream: state.upstream, count: state.events.length });
+  rebuildArtistStats();
+  renderEvents();
+  renderFollowing();
+  renderFeatured();
+  updateFreshness();
+  window.dispatchEvent(new CustomEvent("neul:dataupdated", { detail: { events: state.events, updatedAt: state.dataUpdatedAt } }));
+  const idle = window.requestIdleCallback || (fn => setTimeout(fn, 900));
+  idle(() => loadOfficialUpdates());
+}
+
+function runSearch() {
+  state.query = $("#searchInput").value;
+  state.visibleEventLimit = 6;
+  renderEvents();
+  $("#upcoming").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+$("#searchInput").addEventListener("input", e => { state.query = e.target.value; state.visibleEventLimit = 6; renderEvents(); });
+$("#searchInput").addEventListener("keydown", e => { if (e.key === "Enter") runSearch(); });
+$("#searchSubmit").addEventListener("click", runSearch);
+$("#searchFocusBtn").addEventListener("click", () => { $("#searchInput").focus(); $("#top").scrollIntoView({ behavior: "smooth" }); });
+$$(".category").forEach(btn => btn.addEventListener("click", () => {
+  $$(".category").forEach(x => x.classList.remove("active")); btn.classList.add("active");
+  state.type = btn.dataset.type; state.visibleEventLimit = 6; renderEvents();
+}));
+$$(".region").forEach(btn => btn.addEventListener("click", () => {
+  $$(".region").forEach(x => x.classList.remove("active")); btn.classList.add("active");
+  state.city = btn.dataset.city || "ALL"; state.archiveMode = state.city === "ARCHIVE"; state.visibleEventLimit = 6; renderEvents();
+}));
+$("#viewMoreBtn").addEventListener("click", () => {
+  const total = filteredEvents().length;
+  state.visibleEventLimit = state.visibleEventLimit < total ? total : 6;
+  renderEvents();
+});
+$("#featuredDetailBtn").addEventListener("click", () => openDetail(state.featuredId));
+$("#featuredSourceBtn").addEventListener("click", () => { const e = state.events.find(x => x.id === state.featuredId) || seedEvents[0]; window.open(safeUrl(e.sourceUrl), "_blank", "noopener,noreferrer"); });
+$(".follow-feature").addEventListener("click", e => toggleFollow(e.currentTarget.dataset.artist || "Stray Kids"));
+$("#clearFollowingBtn").addEventListener("click", openArtistDirectory);
+$("#detailClose").addEventListener("click", closeDetail);
+$("#detailBackdrop").addEventListener("click", closeDetail);
+document.addEventListener("keydown", e => { if (e.key === "Escape") { closeDetail(); closeViewer(); } });
+
+$("#themeBtn").addEventListener("click", () => {
+  document.body.classList.toggle("light-mode");
+  saveMode(document.body.classList.contains("light-mode") ? "light" : "dark");
+});
+if ((localStorage.getItem("neul-mode") || localStorage.getItem("stan-mode")) === "light") document.body.classList.add("light-mode");
+
+const venueSelect = $("#venueSelect");
+const layoutSelect = $("#layoutSelect");
+const sectionSelect = $("#sectionSelect");
+const rowSelect = $("#rowSelect");
+const seatNumberInput = $("#seatNumberInput");
+const viewerHeightSelect = $("#viewerHeightSelect");
+const postureTabs = $("#postureTabs");
+const lensTabs = $("#lensTabs");
+const realViewLink = $("#realViewLink");
+const previewCanvas = $("#seatPreviewCanvas");
+const overviewCanvas = $("#venueOverviewCanvas");
+let venueWebGL = null;
+let webglStatus = "loading";
+
+function activeVenueModel() { return getVenueModel(state.venueId); }
+function currentVenueLayout() { return getVenueLayout(state.layoutId); }
+function tierById(id) { return getVenueTier(state.venueId, id, state.layoutId); }
+function availableVenueTiers() {
+  const model = activeVenueModel();
+  const tiers = effectiveTiers(state.venueId, state.layoutId);
+  if (state.venueId === "taipei-dome" && state.layoutId === "taipei-dome-base") return tiers.filter(t => t.id !== "FLOOR");
+  return tiers;
+}
+function renderVenueIdentity() {
+  const model = activeVenueModel();
+  const title = $("#venueTitle");
+  if (title) title.textContent = model.name;
+  if (overviewCanvas) overviewCanvas.setAttribute("aria-label", `${model.name} 3D 區域模型`);
+  const canvasLabel = $("#venueCanvas");
+  if (canvasLabel) canvasLabel.setAttribute("aria-label", `${model.name}互動 3D 場館`);
+  const tip = $(".venue-tip");
+  if (tip) tip.title = `${model.sourceName}：${model.sourceUrl}`;
+}
+function renderVenueOptions() {
+  if (!venueSelect) return;
+  venueSelect.innerHTML = Object.values(venueModels).map(v => `<option value="${escapeHtml(v.id)}" ${v.id===state.venueId?"selected":""}>${escapeHtml(v.name)}</option>`).join("");
+}
+function renderLayoutOptions() {
+  const options = layoutsForVenue(state.venueId);
+  if (!options.some(x => x.id === state.layoutId)) state.layoutId = activeVenueModel().baseLayoutId;
+  layoutSelect.innerHTML = options.map(x => `<option value="${escapeHtml(x.id)}" ${x.id===state.layoutId?"selected":""}>${escapeHtml(x.label)}</option>`).join("");
+}
+function setVenue(venueId, layoutId = null) {
+  const model = getVenueModel(venueId);
+  state.venueId = model.id;
+  const candidate = layoutId ? getVenueLayout(layoutId) : null;
+  state.layoutId = candidate?.venueId === model.id ? candidate.id : model.baseLayoutId;
+  const activeLayout = getVenueLayout(state.layoutId);
+  state.floor = activeLayout.defaultTier || model.defaultTier;
+  state.section = activeLayout.defaultSection || model.defaultSection;
+  state.row = String(activeLayout.defaultRow || model.defaultRow || 10);
+  if (venueSelect) venueSelect.value = state.venueId;
+  renderVenueIdentity();
+  renderLayoutOptions();
+  renderTierTabs();
+  refreshSectionOptions(true);
+}
+function renderTierTabs() {
+  const tabs = $("#floorTabs");
+  const tiers = availableVenueTiers();
+  if (!tiers.some(t => t.id === state.floor)) state.floor = tiers[0].id;
+  tabs.innerHTML = tiers.map(t => `<button class="${t.id === state.floor ? "active" : ""}" data-floor="${escapeHtml(t.id)}" title="${escapeHtml(t.label)}">${escapeHtml(t.short)}</button>`).join("");
+  $$("button", tabs).forEach(btn => btn.addEventListener("click", () => {
+    state.floor = btn.dataset.floor;
+    renderTierTabs();
+    refreshSectionOptions(true);
+  }));
+}
+function refreshRowOptions() {
+  const section = getVenueSection(state.venueId, state.section, state.layoutId);
+  const minRow = Math.max(1, Number(section?.rowMin || 1));
+  const maxRow = Math.max(minRow, Number(section?.rowMax || (section?.tier === "LOWER" ? 38 : 30)));
+  const current = Math.max(minRow, Math.min(maxRow, Number(state.row) || minRow));
+  state.row = String(current);
+  rowSelect.innerHTML = Array.from({length:maxRow-minRow+1},(_,i)=>minRow+i).map(n=>`<option value="${n}" ${n===current?"selected":""}>${n}</option>`).join("");
+}
+function refreshSectionOptions(forceDefault = false) {
+  const tier = tierById(state.floor);
+  if (forceDefault || !tier.sections.includes(String(state.section))) state.section = tier.sections[Math.floor(tier.sections.length / 2)] || tier.sections[0];
+  sectionSelect.innerHTML = tier.sections.map(id => {
+    const sec=getVenueSection(state.venueId,id,state.layoutId);
+    const label=sec?.label || id;
+    return `<option value="${escapeHtml(id)}" ${id === String(state.section) ? "selected" : ""}>${escapeHtml(label)}</option>`;
+  }).join("");
+  refreshRowOptions();
+  updateSeatLabel();
+}
+function updateSeatWarning() {
+  const box = $("#seatWarning");
+  const confidence = $("#venueConfidence");
+  const model = activeVenueModel();
+  const layout = currentVenueLayout();
+  const warning = venueSectionWarning(state.venueId, state.section, state.row, state.layoutId, {heightCm:state.viewerHeight,posture:state.posture,seatNumber:state.seatNumber,lens:state.lens});
+  confidence.textContent = layout.historical
+    ? "歷史官方票區圖重建 · 區域位置校正 · 單席視角未宣稱精準"
+    : layout.eventId
+      ? "官方本場配置已核對 · 區域位置重建 · 排數／座號仍為校正估算"
+      : `${model.confidence} · 舞台依目前公開資料呈現`;
+  if (!warning.messages.length) { box.hidden = true; return; }
+  box.hidden = false;
+  box.className = `seat-warning ${warning.level}`;
+  box.innerHTML = warning.messages.map(m => `<span>${escapeHtml(m)}</span>`).join("");
+}
+function updateSeatLabel() {
+  const tier = tierById(state.floor);
+  const id = String(state.section);
+  const sectionObj = getVenueSection(state.venueId,id,state.layoutId);
+  const sectionLabel = sectionObj?.label || id;
+  const model = activeVenueModel();
+  const seatText = state.seatNumber ? ` ${state.seatNumber}號` : "";
+  $("#previewSeatLabel").textContent = `${tier.label} · ${sectionLabel} ${state.row}排${seatText}`;
+  $("#viewerSeatLabel").textContent = `${model.en} · ${tier.label} · ${sectionLabel} ${state.row}排${seatText}`;
+  const lensLabel = ({eye:"肉眼",phone1:"1×",phone2:"2×",phone5:"5×"})[state.lens] || "肉眼";
+  const chip=$("#viewerLensChip"); if(chip) chip.textContent=`${lensLabel} · ${state.viewerHeight}cm · ${state.posture==="standing"?"站著":"坐著"}`;
+  if(realViewLink){
+    const externalRealView = {
+      "taipei-music-center":"https://twconcertview.com/venue/taipei-music-center/",
+      "ticc":"https://twconcertview.com/venue/ticc-taipei/",
+      "kaohsiung-music-center":"https://twconcertview.com/venue/kaohsiung-music-center/",
+      "kaohsiung-stadium":"https://twconcertview.com/venue/kaohsiung-national-stadium/",
+      "taoyuan-arena":"https://twconcertview.com/venue/taoyuan-arena/",
+      "ntu-sports-center":"https://twconcertview.com/venue/ntu-sports-center/",
+      "tianmu-gymnasium":"https://twconcertview.com/venue/tianmu-gymnasium/"
+    };
+    if(state.venueId==="taipei-dome" && /^\d{3}$/.test(id)){
+      realViewLink.hidden=false;
+      realViewLink.href=`https://twconcertview.com/en/venue/taipei-dome/?zone=tpd-${encodeURIComponent(id)}`;
+    } else if(externalRealView[state.venueId]) {
+      realViewLink.hidden=false;
+      realViewLink.href=externalRealView[state.venueId];
+    } else realViewLink.hidden=true;
+  }
+  const zone = $(".selected-zone");
+  if (zone) zone.textContent = id;
+  updateSeatWarning();
+  drawSeatPreview();
+  drawVenueOverview();
+}
+
+venueSelect?.addEventListener("change", e => setVenue(e.target.value));
+layoutSelect.addEventListener("change", e => {
+  state.layoutId = e.target.value;
+  const layout = currentVenueLayout();
+  if (state.venueId === "taipei-dome" && state.layoutId === "taipei-dome-base" && state.floor === "FLOOR") state.floor = "LOWER";
+  if (layout.defaultTier) state.floor = layout.defaultTier;
+  if (layout.defaultSection) state.section = layout.defaultSection;
+  if (layout.defaultRow) state.row = String(layout.defaultRow);
+  renderTierTabs();
+  refreshSectionOptions(false);
+});
+sectionSelect.addEventListener("change", e => { state.section = e.target.value; refreshRowOptions(); updateSeatLabel(); });
+rowSelect.addEventListener("change", e => { state.row = e.target.value; updateSeatLabel(); });
+seatNumberInput?.addEventListener("input", e => { state.seatNumber = String(e.target.value || ""); updateSeatLabel(); });
+viewerHeightSelect?.addEventListener("change", e => { state.viewerHeight = Number(e.target.value)||160; updateSeatLabel(); });
+postureTabs?.addEventListener("click", e => { const b=e.target.closest("button[data-posture]"); if(!b)return; state.posture=b.dataset.posture; $$("button",postureTabs).forEach(x=>x.classList.toggle("active",x===b)); updateSeatLabel(); });
+lensTabs?.addEventListener("click", e => { const b=e.target.closest("button[data-lens]"); if(!b)return; state.lens=b.dataset.lens; $$("button",lensTabs).forEach(x=>x.classList.toggle("active",x===b)); updateSeatLabel(); requestVenueFrame(); });
+$("#seatPreviewBtn").addEventListener("click", () => { updateSeatLabel(); openViewer(true); });
+$("#open3dBtn").addEventListener("click", () => openViewer(false));
+$("#ive2026DemoBtn")?.addEventListener("click", () => {
+  setVenue("taipei-arena", "ive-show-what-i-am-2026");
+  $("#venue3d").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+$("#expandPreviewBtn").addEventListener("click", () => openViewer(true));
+
+const viewer = $("#viewerModal");
+const canvas = $("#venueCanvas");
+let yaw = -.45, pitch = .72, zoom = 1, dragging = false, px = 0, py = 0, seatMode = false, raf = 0;
+const activePointers = new Map();
+let pinchDistance = 0;
+
+function activeSection() { return getVenueSection(state.venueId, state.section, state.layoutId); }
+function activeStage() { return currentVenueLayout().stage || activeVenueModel().stage; }
+function activeSeatTarget() {
+  const stage = activeStage();
+  const id = String(state.section);
+  const layout = currentVenueLayout();
+  if (stage.bStage && layout.bStageFacingSections?.includes(id)) return [stage.bStage.x, stage.bStage.y + 8, stage.bStage.z];
+  return [stage.main.x, stage.main.y + 22, stage.main.z];
+}
+function viewerEyeOffset() {
+  const h = Math.max(140,Math.min(195,Number(state.viewerHeight)||160));
+  return (state.posture === "standing" ? 10.2 : 6.8) + (h-160)*.035;
+}
+function lensFov() { return ({eye:55,phone1:64,phone2:34,phone5:16})[state.lens] || 55; }
+function seatCameraPosition() {
+  const p = venueSectionPosition(state.venueId, activeSection(), Number(state.row), state.seatNumber);
+  return [p.x, p.y + viewerEyeOffset(), p.z];
+}
+function activeOccluders(){
+  const id=String(state.section), row=Number(state.row), p=seatCameraPosition(), t=activeSeatTarget();
+  let dx=t[0]-p[0], dz=t[2]-p[2], len=Math.hypot(dx,dz)||1; dx/=len; dz/=len;
+  const rx=-dz, rz=dx, ry=Math.atan2(dx,dz);
+  const out=[];
+  const rail=(distance=7,width=38,height=3.8)=>out.push({kind:"rail",x:p[0]+dx*distance,y:p[1]-2.7,z:p[2]+dz*distance,width,depth:1.2,height,ry,color:"#59616a"});
+  const overhang=(distance=13,width=78,depth=36)=>out.push({kind:"overhang",x:p[0]+dx*distance,y:p[1]+15,z:p[2]+dz*distance,width,depth,height:4.2,ry,color:"#242b31"});
+  const overhead=(distance=16,width=22,depth=9,height=7)=>out.push({kind:"equipment",x:p[0]+dx*distance,y:p[1]+13,z:p[2]+dz*distance,width,depth,height,ry,color:"#20262c"});
+  const crowd=()=>{
+    const baseY=(activeSection()?.y??-20), frontH=9.0;
+    [-3.2,3.2,0].forEach((off,i)=>out.push({kind:"crowd",x:p[0]+dx*(8+i*2)+rx*off,y:baseY+frontH/2,z:p[2]+dz*(8+i*2)+rz*off,width:2.5,depth:2.5,height:frontH,ry:0,color:"#171a1f"}));
+  };
+
+  if(state.venueId==="taipei-dome") {
+    const frontRisk=(row<=3)||((id==="107"&&row<=8)||(id==="122"&&row<=9)||(id==="222"&&row<=2)||(id==="301"&&row<=2));
+    if(frontRisk) rail();
+    if((id==="108"||id==="111")&&row>=35) overhang();
+    if(activeSection()?.tier==="FLOOR") crowd();
+    return out;
+  }
+  if(state.venueId==="taipei-music-center") {
+    if(id.startsWith("3") && row<=3) rail(6,34,3.0);
+    if(id.startsWith("1F")) crowd();
+    return out;
+  }
+  if(state.venueId==="kaohsiung-music-center") {
+    if(id==="2A2") { rail(6,30,3.2); overhead(18,24,10,8); }
+    if((id==="2B1" && row<=1) || id==="2E1" || id==="2E2" || id==="2C1-1") rail(6,30,3.4);
+    if(id==="2C3") rail(7,34,3.0);
+    return out;
+  }
+  if(state.venueId==="tianmu-gymnasium") {
+    if(/^[LR]/.test(id) && row<=3) rail(6,34,3.5);
+    if(id.startsWith("平面")) crowd();
+    return out;
+  }
+  if(state.venueId==="ticc") {
+    if(/BOX/.test(id) && row<=3) rail(5,24,3.2);
+    if(id==="2F-A" && row<=1) crowd();
+  }
+  if(["taoyuan-arena","ntu-sports-center","kaohsiung-stadium"].includes(state.venueId) && id.startsWith("平面")) crowd();
+  return out;
+}
+
+function openViewer(seat = false) {
+  seatMode = seat;
+  if (seat) { yaw = 0; pitch = 0; zoom = 1.08; } else { yaw = -.45; pitch = .72; zoom = 1; }
+  updateSeatLabel();
+  $("#viewerHelp").textContent = seat
+    ? "拖曳左右觀看 · 可切肉眼／手機倍率 · 欄杆／屋簷為校正遮擋模型"
+    : "拖曳旋轉場館 · 滾輪／雙指縮放 · 選取區域會高亮";
+  viewer.hidden = false; document.body.style.overflow = "hidden";
+  requestVenueFrame();
+}
+function closeViewer() { viewer.hidden = true; document.body.style.overflow = ""; if (raf) { cancelAnimationFrame(raf); raf = 0; } }
+$("#viewerClose").addEventListener("click", closeViewer);
+
+canvas.addEventListener("pointerdown", e => {
+  activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  dragging = activePointers.size === 1;
+  px = e.clientX; py = e.clientY;
+  canvas.setPointerCapture?.(e.pointerId);
+});
+canvas.addEventListener("pointermove", e => {
+  if (!activePointers.has(e.pointerId)) return;
+  activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  const points = [...activePointers.values()];
+  if (points.length >= 2) {
+    const d = Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+    if (pinchDistance) zoom = Math.max(.55, Math.min(1.9, zoom + (d - pinchDistance) * .004));
+    pinchDistance = d; dragging = false; requestVenueFrame(); return;
+  }
+  pinchDistance = 0;
+  if (!dragging) { dragging = true; px = e.clientX; py = e.clientY; return; }
+  if (seatMode) {
+    yaw = Math.max(-1.55, Math.min(1.55, yaw + (e.clientX - px) * .006));
+    pitch = Math.max(-.72, Math.min(.72, pitch - (e.clientY - py) * .005));
+    requestVenueFrame();
+  } else {
+    yaw += (e.clientX - px) * .007;
+    pitch = Math.max(.13, Math.min(1.32, pitch + (e.clientY - py) * .006));
+    requestVenueFrame();
+  }
+  px = e.clientX; py = e.clientY;
+});
+function releasePointer(e) { activePointers.delete(e.pointerId); pinchDistance = 0; dragging = false; }
+canvas.addEventListener("pointerup", releasePointer);
+canvas.addEventListener("pointercancel", releasePointer);
+canvas.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") releasePointer(e); });
+canvas.addEventListener("wheel", e => { e.preventDefault(); zoom = Math.max(.55, Math.min(1.9, zoom - e.deltaY * .001)); requestVenueFrame(); }, { passive: false });
+
+function vecNorm(v) { const l = Math.hypot(v[0],v[1],v[2]) || 1; return [v[0]/l,v[1]/l,v[2]/l]; }
+function vecCross(a,b) { return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]]; }
+function vecDot(a,b) { return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; }
+function rotateDirection(base, yawOffset, pitchOffset) {
+  const baseYaw = Math.atan2(base[0], base[2]);
+  const basePitch = Math.asin(Math.max(-1, Math.min(1, base[1])));
+  const ay = baseYaw + yawOffset, ap = basePitch + pitchOffset;
+  return [Math.sin(ay)*Math.cos(ap), Math.sin(ap), Math.cos(ay)*Math.cos(ap)];
+}
+function makeSeatProjector(cw, ch, localYaw = yaw, localPitch = pitch, localZoom = zoom) {
+  const cam = seatCameraPosition(), target = activeSeatTarget();
+  const base = vecNorm([target[0]-cam[0], target[1]-cam[1], target[2]-cam[2]]), forward = vecNorm(rotateDirection(base, localYaw, localPitch));
+  let right = vecNorm(vecCross(forward, [0,1,0])); if (Math.hypot(...right) < .1) right = [1,0,0];
+  const up = vecNorm(vecCross(right, forward)), fov=Math.max(12,Math.min(82,lensFov()/Math.max(.55,localZoom))), focal=(ch/2)/Math.tan((fov*Math.PI/180)/2);
+  return p => { const rel=[p[0]-cam[0],p[1]-cam[1],p[2]-cam[2]], z=vecDot(rel,forward); if(z<=2)return null; const x=vecDot(rel,right), y=vecDot(rel,up), f=focal/z; return [cw/2+x*f,ch*.56-y*f,z]; };
+}
+function makeOrbitProjector(cw, ch, localYaw = yaw, localPitch = pitch, localZoom = zoom) {
+  return p => { let [x,y,z]=p; const cy=Math.cos(localYaw),sy=Math.sin(localYaw),cp=Math.cos(localPitch),sp=Math.sin(localPitch); const x1=x*cy-z*sy,z1=x*sy+z*cy,y1=y*cp-z1*sp,z2=y*sp+z1*cp,denom=z2+760; if(denom<=10)return null; const f=520*localZoom/denom; return [cw/2+x1*f,ch*.55-y1*f,denom]; };
+}
+function sectionPoly(section) {
+  if (section.tier === "FLOOR" || section.shape === "block" || Number.isFinite(section.x)) {
+    const w=section.width || 38,d=section.depth || 32,y=section.y ?? -20; return [[section.x-w/2,y,section.z-d/2],[section.x+w/2,y,section.z-d/2],[section.x+w/2,y,section.z+d/2],[section.x-w/2,y,section.z+d/2]];
+  }
+  const half=section.span || .11, outerX=section.radiusX+22,outerZ=section.radiusZ+17,innerX=section.radiusX-5,innerZ=section.radiusZ-4,y0=section.y,y1=section.y+11;
+  return [[Math.cos(section.angle-half)*innerX,y0,Math.sin(section.angle-half)*innerZ],[Math.cos(section.angle+half)*innerX,y0,Math.sin(section.angle+half)*innerZ],[Math.cos(section.angle+half)*outerX,y1,Math.sin(section.angle+half)*outerZ],[Math.cos(section.angle-half)*outerX,y1,Math.sin(section.angle-half)*outerZ]];
+}
+function circlePoly(x,y,z,r,n=18){return Array.from({length:n},(_,i)=>{const a=i/n*Math.PI*2;return[x+Math.cos(a)*r,y,z+Math.sin(a)*r];});}
+
+function renderVenueScene(targetCanvas, opts = {}) {
+  const context=targetCanvas.getContext("2d"), rect=targetCanvas.getBoundingClientRect(), dpr=Math.min(devicePixelRatio||1,2), w=Math.max(1,Math.floor(rect.width*dpr)), h=Math.max(1,Math.floor(rect.height*dpr));
+  if(targetCanvas.width!==w||targetCanvas.height!==h){targetCanvas.width=w;targetCanvas.height=h;} context.setTransform(dpr,0,0,dpr,0,0);
+  const cw=rect.width,ch=rect.height,model=activeVenueModel(),layout=currentVenueLayout(),grad=context.createLinearGradient(0,0,0,ch); grad.addColorStop(0,"#111821");grad.addColorStop(.6,"#080c10");grad.addColorStop(1,"#050709");context.fillStyle=grad;context.fillRect(0,0,cw,ch);
+  const viewSeat=opts.seatMode??seatMode, project=viewSeat?makeSeatProjector(cw,ch,opts.yaw??yaw,opts.pitch??pitch,opts.zoom??zoom):makeOrbitProjector(cw,ch,opts.yaw??yaw,opts.pitch??pitch,opts.zoom??zoom);
+  const poly=(points,fill,stroke="#343942",width=1)=>{const pp=points.map(project).filter(Boolean);if(pp.length!==points.length)return;context.beginPath();pp.forEach((q,i)=>i?context.lineTo(q[0],q[1]):context.moveTo(q[0],q[1]));context.closePath();context.fillStyle=fill;context.fill();context.strokeStyle=stroke;context.lineWidth=width;context.stroke();};
+  const line=(points,stroke,width=1)=>{const pp=points.map(project).filter(Boolean);if(pp.length<2)return;context.beginPath();pp.forEach((q,i)=>i?context.lineTo(q[0],q[1]):context.moveTo(q[0],q[1]));context.strokeStyle=stroke;context.lineWidth=width;context.stroke();};
+  poly([[-model.field.x,-25,-model.field.z],[model.field.x,-25,-model.field.z],[model.field.x,-25,model.field.z],[-model.field.x,-25,model.field.z]],"#171d22","#26303a");
+  const selectedId=String(state.section), allowedTiers=availableVenueTiers(), palette=["#27313b","#313945","#3b3340","#2f3740","#333b45","#303943"];
+  for(const tier of allowedTiers) for(const id of tier.sections){const sec=getVenueSection(state.venueId,id,state.layoutId);if(!sec)continue;const selected=id===selectedId,restricted=layout.restrictedViewSections?.includes(id),floorFacing=layout.bStageFacingSections?.includes(id);let fill=(sec.tier==="FLOOR"||sec.shape==="block")?"#252a31":palette[Math.max(0,allowedTiers.findIndex(t=>t.id===sec.tier))%palette.length];if(layout.id==="plave-keep-it-manic-2026"){const groupFill={vip6300:"#4a262d","5300":"#24433d","3800":"#47442a","2900":"#253b29"};fill=groupFill[sec.group]||fill;}if(layout.id==="ive-show-what-i-am-2026"){const groupFill={vip7800:"#b44785","5800":"#426b86","4800":"#9b5c62","3800":"#3f827f",side2f:"#52657d","3fRange":"#66507c",box4800:"#76545d"};fill=groupFill[sec.group]||fill;}if(restricted)fill="#5a4334";if(floorFacing&&!restricted)fill="#343042";if(selected)fill="#c47ae3";poly(sectionPoly(sec),fill,selected?"#f4daf2":restricted?"#c29a69":"#4a5661",selected?1.8:.8);}
+  const stage=activeStage(),m=stage.main;
+  poly([[m.x-m.width/2,m.y,m.z-m.depth/2],[m.x+m.width/2,m.y,m.z-m.depth/2],[m.x+m.width/2,m.y,m.z+m.depth/2],[m.x-m.width/2,m.y,m.z+m.depth/2]],"#090b0f","#d2b4cd",1.2);
+  if(Array.isArray(layout.extraStageRects)) for(const r of layout.extraStageRects){poly([[r.x-r.width/2,r.y,r.z-r.depth/2],[r.x+r.width/2,r.y,r.z-r.depth/2],[r.x+r.width/2,r.y,r.z+r.depth/2],[r.x-r.width/2,r.y,r.z+r.depth/2]],"#11131a","#a78da2",1.05);}
+  if(stage.runway){const r=stage.runway;poly([[r.x-r.width/2,r.y,r.z1],[r.x+r.width/2,r.y,r.z1],[r.x+r.width/2,r.y,r.z2],[r.x-r.width/2,r.y,r.z2]],"#11131a","#9f879d");}
+  if(stage.bStage)poly(circlePoly(stage.bStage.x,stage.bStage.y,stage.bStage.z,stage.bStage.radius),"#14151c","#b49bb0",1.1);
+  if(layout.foh){const f=layout.foh;poly([[f.x-f.width/2,f.y,f.z-f.depth/2],[f.x+f.width/2,f.y,f.z-f.depth/2],[f.x+f.width/2,f.y,f.z+f.depth/2],[f.x-f.width/2,f.y,f.z+f.depth/2]],"#34383d","#858b91",1);}
+  if(state.layoutId==="skz-run-it-2026"){poly([[-28,-19,72],[-5,-19,72],[-5,-19,92],[-28,-19,92]],"#3b3e42","#72777d");poly([[5,-19,72],[28,-19,72],[28,-19,92],[5,-19,92]],"#3b3e42","#72777d");}
+  if(!viewSeat){for(let r=0;r<3;r++){const pts=Array.from({length:43},(_,i)=>{const a=Math.PI*1.03+(Math.PI*.94)*i/42;return[Math.cos(a)*(model.field.x*2.0+r*10),95+r*20,Math.sin(a)*(model.field.z*2.0+r*8)];});line(pts,`rgba(210,218,226,${.16-r*.035})`,1);}}
+  const stageCenter=project([m.x,m.y+18,m.z]); if(stageCenter){const beams=[[-model.field.x*.7,90,-10],[model.field.x*.7,90,-10],[-model.field.x*.45,72,model.field.z*.55],[model.field.x*.45,72,model.field.z*.55]].map(project).filter(Boolean);beams.forEach(q=>{context.beginPath();context.moveTo(stageCenter[0],stageCenter[1]);context.lineTo(q[0],q[1]);context.strokeStyle="rgba(246,218,242,.10)";context.stroke();});}
+  function label(world,text,sub=false){const q=project(world);if(!q)return;context.font=`${sub?600:800} ${sub?9:10}px system-ui,sans-serif`;context.fillStyle=sub?"rgba(224,228,232,.72)":"rgba(255,255,255,.9)";context.textAlign="center";context.fillText(text,q[0],q[1]);}
+  label([m.x,m.y+5,m.z],layout.stage?.bStage?"MAIN STAGE":"STAGE"); if(stage.bStage)label([stage.bStage.x,stage.bStage.y+5,stage.bStage.z],"B STAGE",true); if(layout.foh)label([layout.foh.x,layout.foh.y+5,layout.foh.z],"FOH",true);
+  if(!viewSeat){const p=venueSectionPosition(state.venueId,activeSection(),Number(state.row),state.seatNumber);label([p.x,p.y+18,p.z],`${selectedId} · ${state.row}排${state.seatNumber?` · ${state.seatNumber}號`:""}`);} context.textAlign="left";
+  if(viewSeat){
+    const occ=activeOccluders();
+    if(occ.some(o=>o.kind==="overhang")){context.fillStyle="rgba(18,22,27,.92)";context.fillRect(0,0,cw,ch*.16);context.fillStyle="rgba(230,220,229,.62)";context.font="700 8px system-ui";context.fillText("OVERHANG · 校正遮擋",14,ch*.16-8);}
+    if(occ.some(o=>o.kind==="rail")){context.fillStyle="rgba(95,103,112,.78)";context.fillRect(0,ch*.69,cw,8);}
+    const targetText=stage.bStage&&layout.bStageFacingSections?.includes(selectedId)?"B-STAGE ORIENTATION":"STAGE ORIENTATION";context.fillStyle="rgba(245,221,241,.72)";context.font="700 9px system-ui,sans-serif";context.fillText(targetText,14,ch-16);
+  }
+}
+function venueWebGLConfig(){
+  return {
+    venueId: state.venueId,
+    layoutId: state.layoutId,
+    model: activeVenueModel(),
+    layout: currentVenueLayout(),
+    tiers: availableVenueTiers(),
+    sections: effectiveSections(state.venueId, state.layoutId),
+    selectedId: String(state.section),
+    row: Number(state.row),
+    seatNumber: state.seatNumber,
+    seatPosition: seatCameraPosition(),
+    target: activeSeatTarget(),
+    viewFov: lensFov(),
+    viewerHeight: state.viewerHeight,
+    posture: state.posture,
+    occluders: activeOccluders()
+  };
+}
+function drawSeatPreview(){
+  if(!previewCanvas||previewCanvas.clientWidth<4)return;
+  if(webglStatus === "loading") return;
+  if(venueWebGL){ venueWebGL.renderPreview(); return; }
+  renderVenueScene(previewCanvas,{seatMode:true,yaw:0,pitch:0,zoom:1.05});
+}
+function drawVenueOverview(){
+  if(!overviewCanvas||overviewCanvas.clientWidth<4)return;
+  if(webglStatus === "loading") return;
+  if(venueWebGL){ venueWebGL.renderOverview(); return; }
+  renderVenueScene(overviewCanvas,{seatMode:false,yaw:-.48,pitch:.72,zoom:1.05});
+}
+function requestVenueFrame(){ if(!raf) raf=requestAnimationFrame(drawVenue); }
+function drawVenue(){
+  raf=0;
+  if(viewer.hidden)return;
+  if(webglStatus === "loading") return;
+  if(venueWebGL){ venueWebGL.renderViewer({seatMode,yaw,pitch,zoom}); return; }
+  renderVenueScene(canvas);
+}
+async function initVenueWebGL(){
+  venueWebGL = await createVenueWebGL({
+    overviewCanvas, previewCanvas, viewerCanvas: canvas, getConfig: venueWebGLConfig,
+    onStatus: status => { webglStatus = status === "fallback" ? "fallback" : "ready"; }
+  });
+  if(!venueWebGL && webglStatus === "loading") webglStatus = "fallback";
+  drawVenueOverview(); drawSeatPreview(); if(!viewer.hidden) requestVenueFrame();
+}
+
+const deepLayoutId = new URLSearchParams(location.search).get("layout");
+if (deepLayoutId) {
+  const deepLayout = getVenueLayout(deepLayoutId);
+  if (deepLayout?.id === deepLayoutId) { state.venueId = deepLayout.venueId; state.layoutId = deepLayout.id; }
+}
+renderVenueOptions();
+setVenue(state.venueId, state.layoutId);
+
+loadFollowed().then(names => { if (Array.isArray(names) && names.length) { state.followed = new Set(names); renderFollowing(); } });
+loadEvents();
+renderFollowing();
+renderFeatured();
+updateSeatLabel();
+initVenueWebGL();
+window.NEUL_APP = {
+  state, openDetail, closeDetail, setVenue, renderEvents, renderFollowing, renderFeatured, updateFreshness,
+  getEvent: id => state.events.find(e => e.id === id),
+  activeVenueModel, currentVenueLayout, activeSection, activeStage, seatCameraPosition, activeSeatTarget,
+  getVenueModel, getVenueLayout, getVenueSection, venueSectionPosition, venueSectionWarning, sectionTicketLabel,
+  fmtDate, fmtTime, fmtEventTime, safeUrl, escapeHtml, nextAction, drawSeatPreview, drawVenueOverview, updateSeatLabel
+};
+window.dispatchEvent(new CustomEvent("neul:ready", { detail: window.NEUL_APP }));
+window.addEventListener("resize", () => { drawVenueOverview(); drawSeatPreview(); if(!viewer.hidden) requestVenueFrame(); });

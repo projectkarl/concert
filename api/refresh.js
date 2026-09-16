@@ -1,0 +1,29 @@
+export default async function handler(req, res) {
+  if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+    return res.status(401).json({ ok: false });
+  }
+  try {
+    const host = req.headers.host;
+    const proto = host?.includes("localhost") ? "http" : "https";
+    const headers = { Accept: "application/json" };
+    const [eventsResponse, officialResponse] = await Promise.all([
+      fetch(`${proto}://${host}/api/events?warm=${Date.now()}`, { headers, signal: AbortSignal.timeout(9000) }),
+      fetch(`${proto}://${host}/api/official?warm=${Date.now()}`, { headers, signal: AbortSignal.timeout(12000) })
+    ]);
+    if (!eventsResponse.ok) throw new Error(`events warm ${eventsResponse.status}`);
+    const eventsBody = await eventsResponse.json();
+    const officialBody = officialResponse.ok ? await officialResponse.json() : null;
+    return res.status(200).json({
+      ok: true,
+      warmedEvents: eventsBody.count,
+      warmedArtists: eventsBody.artistCount,
+      upstream: eventsBody.upstream,
+      autoUpdateEnabled: eventsBody.autoUpdateEnabled,
+      discoveredEvents: eventsBody.discovery?.discoveredCount || 0,
+      officialMonitor: officialBody ? { monitored: officialBody.monitored, live: officialBody.live, review: officialBody.review, unreachable: officialBody.unreachable } : { available: false },
+      at: new Date().toISOString()
+    });
+  } catch (error) {
+    return res.status(500).json({ ok: false, error: error.message });
+  }
+}
