@@ -1,11 +1,12 @@
 import fs from "node:fs";
 import { extractLiveNationEventUrls, parseLiveNationDiscoveredEvent } from "../lib/live-nation-discovery.js";
+import { extractOfficialSeatLayoutUrl } from "../lib/official-monitor.js";
 import { parseKaohsiungArenaCalendar } from "../lib/kaohsiung-arena-discovery.js";
 import { seedEvents } from "../data/events.js";
-import { venueModels, venueLayouts, getVenueSection, venueSectionWarning, venueSectionPosition, venueIdFromName } from "../data/multi-venue-geometry.js";
+import { venueModels, venueLayouts, getVenueSection, venueSectionWarning, venueSectionPosition, venueIdFromName, ensureAutoEventLayout, getVenueLayout } from "../data/multi-venue-geometry.js";
 
 const required = [
-  "index.html","styles.css","app.js","enhancements.js","storage.js","pwa.js","sw.js","manifest.webmanifest","webgl-venue.js","THIRD_PARTY_NOTICES.md","vercel.json","api/events.js","api/official.js","api/refresh.js","api/push-config.js","api/push-subscribe.js","api/push-digest.js","api/submissions.js",
+  "index.html","styles.css","app.js","enhancements.js","storage.js","pwa.js","sw.js","manifest.webmanifest","webgl-venue.js","THIRD_PARTY_NOTICES.md","vercel.json","api/events.js","api/official.js","api/refresh.js","api/push-config.js","api/push-subscribe.js","api/push-digest.js",
   "data/events.js","data/artists.js","data/venues.js","data/discovery.js","data/taipei-dome-geometry.js","data/multi-venue-geometry.js",
   "lib/official-monitor.js","lib/live-nation-discovery.js","lib/kaohsiung-arena-discovery.js",
   "assets/hero-crowd.webp","assets/feature-stage.webp","assets/venue-3d.webp","assets/seat-view.webp",
@@ -14,7 +15,7 @@ const required = [
 let ok = true;
 for (const f of required) if (!fs.existsSync(new URL(`../${f}`, import.meta.url))) { console.error("missing", f); ok = false; }
 const html = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
-for (const id of ["eventList","eventResultMeta","dataFreshness","venueCanvas","seatPreviewCanvas","venueOverviewCanvas","venueSelect","layoutSelect","detailDrawer","sectionSelect","rowSelect","seatNumberInput","viewerHeightSelect","postureTabs","lensTabs","realViewLink","featuredArtistMark","featuredTitle","featuredMeta","venueTitle"]) {
+for (const id of ["eventList","eventResultMeta","dataFreshness","venueCanvas","seatPreviewCanvas","venueOverviewCanvas","venueSelect","layoutSelect","detailDrawer","sectionSelect","rowSelect","seatNumberInput","viewerHeightSelect","postureTabs","lensTabs","realViewLink","featuredArtistMark","featuredTitle","featuredMeta","featuredCount","featuredPrevBtn","featuredNextBtn","venueTitle"]) {
   if (!html.includes(`id="${id}"`)) { console.error("missing id", id); ok = false; }
 }
 const app = fs.readFileSync(new URL("../app.js", import.meta.url), "utf8");
@@ -33,8 +34,8 @@ if (!/countdownMarkup/.test(app) || !/startCountdown/.test(app) || !/flip-countd
 if (!html.includes('rel="manifest"') || !html.includes('apple-touch-icon') || !html.includes('id="installAppBtn"')) { console.error("PWA HTML hooks missing"); ok = false; }
 if (!/serviceWorker\.register/.test(pwa) || !/beforeinstallprompt/.test(pwa) || !/navigator\.standalone/.test(pwa)) { console.error("PWA install flow incomplete"); ok = false; }
 if (!/APP_SHELL/.test(sw) || !/skipWaiting/.test(sw) || !/clients\.claim/.test(sw) || !/\/api\//.test(sw) || !/notificationclick/.test(sw) || !/addEventListener\("push"/.test(sw)) { console.error("service worker strategy incomplete"); ok = false; }
-if (!/indexedDB/.test(storage) || !/recordEventChanges/.test(storage) || !/saveSubmissionDraft/.test(storage)) { console.error("IndexedDB persistence incomplete"); ok = false; }
-for (const feature of ["openDayMode","openSeatCompare","addCalendar","enablePush","openSubmission","advancedSearchAssist","maybeDayModeBanner"]) { if (!enhancements.includes(feature)) { console.error("missing enhancement", feature); ok = false; } }
+if (!/indexedDB/.test(storage) || !/recordEventChanges/.test(storage)) { console.error("IndexedDB persistence incomplete"); ok = false; }
+for (const feature of ["openDayMode","openSeatCompare","addCalendar","enablePush","advancedSearchAssist","maybeDayModeBanner"]) { if (!enhancements.includes(feature)) { console.error("missing enhancement", feature); ok = false; } }
 if (!/data-city=\"ARCHIVE\"/.test(enhancements) || !/seat-compare-tools/.test(enhancements)) { console.error("archive or seat compare UI missing"); ok = false; }
 if (manifest.display !== "standalone" || manifest.scope !== "/" || !Array.isArray(manifest.icons) || manifest.icons.length < 3) { console.error("manifest incomplete"); ok = false; }
 
@@ -131,5 +132,33 @@ if (!overhang.messages.some(x=>x.includes("屋簷"))) { console.error("Taipei Do
 if (!/phone5/.test(app) || !/viewerHeight/.test(app) || !/activeOccluders/.test(app) || !/viewFov/.test(webgl)) { console.error("v0.16 calibrated viewer controls incomplete"); ok=false; }
 if (/直線距離/.test(enhancements) || /約 \${Math\.round\(m\.distance\)} m/.test(enhancements)) { console.error("unscaled model distance still mislabeled as meters"); ok=false; }
 
+
+const septemberArchive = seedEvents.filter(e => e.historical === true && String(e.start || "").startsWith("2026-09") && new Date(e.start).getTime() < new Date("2026-09-17T00:00:00+08:00").getTime());
+if (septemberArchive.length < 14) { console.error("September ended-event archive test set incomplete", septemberArchive.length); ok = false; }
+if (!/function featuredEvents\(\)/.test(app) || !/function stepFeatured\(delta\)/.test(app) || !/featuredPrevBtn/.test(app) || !/featuredNextBtn/.test(app)) { console.error("Featured Concert carousel controls missing"); ok = false; }
+if (!/\.wordmark\{font-size:29px\}/.test(fs.readFileSync(new URL("../styles.css", import.meta.url), "utf8"))) { console.error("v0.20 logo readability scale missing"); ok = false; }
+
+// v0.21 transparency / submission / live-atmosphere checks
+const indexHtml = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
+const css = fs.readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+if (!/searchScopeNote/.test(indexHtml) || !/2026\/09/.test(indexHtml) || !/updateSearchScope/.test(app)) { console.error("search scope hint missing"); ok=false; }
+if (!/約每 6 小時/.test(app) || !/每日排程同步/.test(app)) { console.error("update cadence label missing"); ok=false; }
+if (!/diamondEgg/.test(indexHtml) || !/fanProjectNote/.test(indexHtml) || !/wireDiamondEgg/.test(enhancements)) { console.error("About diamond easter egg missing"); ok=false; }
+if (!/喜歡追星的人/.test(indexHtml)) { console.error("fan-made project disclosure missing"); ok=false; }
+if (!/search-scope-note/.test(css)) { console.error("search scope UI style missing"); ok=false; }
+if (!/Main LED wall/.test(webgl) || !/audience light points/.test(webgl) || !/Soft spotlight beams/.test(webgl)) { console.error("WebGL concert atmosphere pass missing"); ok=false; }
+
+// v0.22 automatic activity 3D
+const autoId=ensureAutoEventLayout({id:'test-auto-event',artist:'TEST STAR',title:'TEST CONCERT',type:'CONCERT',venue:'臺北小巨蛋 Taipei Arena',sourceUrl:'https://example.com/event'});
+const autoLayout=getVenueLayout(autoId);
+if (!autoLayout?.autoGenerated || autoLayout.venueId!=='taipei-arena' || !autoLayout.stage?.main) { console.error('automatic activity 3D generation failed',autoLayout); ok=false; }
+const autoMapId=ensureAutoEventLayout({id:'test-auto-map',artist:'MAP STAR',title:'MAP CONCERT',type:'CONCERT',venue:'高雄巨蛋 Kaohsiung Arena',seatLayoutSourceUrl:'https://tixcraft.com/activity/detail/test',sourceUrl:'https://example.com/event'});
+const autoMap=getVenueLayout(autoMapId);
+if (!autoMap?.seatMapDetected || autoMap.generationConfidence!=='seat-map-linked-draft') { console.error('seat-map-linked auto 3D state failed',autoMap); ok=false; }
+if (!/一般場館 3D/.test(app) || !/AUTO 3D/.test(app)) { console.error('activity/base 3D dual UI missing'); ok=false; }
+const mockSeat=extractOfficialSeatLayoutUrl('<a href="https://static.tixcraft.com/images/activity/field/test.jpg">官方座位配置圖</a>','https://www.livenation.com.tw/en/event/test');
+if (!mockSeat || !mockSeat.includes('static.tixcraft.com')) { console.error('official seat-layout URL discovery failed',mockSeat); ok=false; }
+if (/投稿視角|viewSubmitForm|api\/submissions/.test(enhancements)) { console.error('fan submission UI should be removed'); ok=false; }
+
 if (!ok) process.exit(1);
-console.log(`NEUL v0.19 checks passed · Taiwan-only · ${seedEvents.length} seed events · ${Object.keys(venueModels).length} venue models · WebGL + Canvas fallback · PWA + IndexedDB · day mode · archive · calendar/reminders · seat compare · fan-view submission · Web Push foundation · Taipei Dome Calibration 2.0 · TICC / TMC / KMC precision pass`);
+console.log(`NEUL v0.22 checks passed · Taiwan-only · ${seedEvents.length} seed events · ${Object.keys(venueModels).length} venue models · WebGL + Canvas fallback · PWA + IndexedDB · day mode · archive · calendar/reminders · seat compare · Web Push foundation · Taipei Dome Calibration 2.0 · TICC / TMC / KMC precision pass`);

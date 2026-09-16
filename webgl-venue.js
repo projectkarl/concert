@@ -163,7 +163,26 @@ function buildCPUScene(config,quality){
   if(stage.bStage){const r=stage.bStage.radius;const pts=[];const n=40;for(let i=0;i<n;i++){const a=i/n*Math.PI*2,b=(i+1)/n*Math.PI*2;const y=stage.bStage.y;pts.push([[stage.bStage.x,y+4,stage.bStage.z],[stage.bStage.x+Math.cos(a)*r,y+4,stage.bStage.z+Math.sin(a)*r],[stage.bStage.x+Math.cos(b)*r,y+4,stage.bStage.z+Math.sin(b)*r]]);}solids.push({mesh:meshFromFaces(pts),model:mat4Identity(),color:'#18131c',emissive:'#28142f'});}
   for(const r of layout.extraStageRects||[])solids.push(boxItem(r,'#14131a','#24172a',4.2));
   if(layout.foh)solids.push(boxItem(layout.foh,'#373d43','#101214',3.2));
-  const m=stage.main;solids.push(boxItem({x:m.x,y:m.y+Math.max(16,m.width*.13),z:m.z+m.depth/2+1,width:m.width*.72,depth:2},'#d9c5df','#7f4d98',Math.max(26,m.width*.22)));
+  const m=stage.main;
+  const screenH=Math.max(26,m.width*.22),screenZ=m.z+m.depth/2+1,screenY=m.y+Math.max(16,m.width*.13);
+  // Main LED wall + side IMAG screens. These are original geometry, not copied venue assets.
+  solids.push(boxItem({x:m.x,y:screenY,z:screenZ,width:m.width*.72,depth:1.8},'#d8d4ff','#8068ff',screenH));
+  solids.push(boxItem({x:m.x-m.width*.60,y:screenY-1,z:screenZ+1,width:m.width*.18,depth:1.6},'#d9d5ff','#5d7dff',screenH*.78));
+  solids.push(boxItem({x:m.x+m.width*.60,y:screenY-1,z:screenZ+1,width:m.width*.18,depth:1.6},'#f1d9ff','#8b58c9',screenH*.78));
+  // Truss and hanging speaker arrays make the venue feel more like a live concert without pretending to be an exact rig.
+  const trussY=m.y+screenH+18;
+  solids.push(boxItem({x:m.x,y:trussY,z:m.z,width:m.width*1.24,depth:2.4},'#29313a','#111923',2.4));
+  solids.push(boxItem({x:m.x-m.width*.62,y:m.y+screenH*.55,z:m.z,width:2.2,depth:2.2},'#252d35','#090c12',screenH+28));
+  solids.push(boxItem({x:m.x+m.width*.62,y:m.y+screenH*.55,z:m.z,width:2.2,depth:2.2},'#252d35','#090c12',screenH+28));
+  solids.push(boxItem({x:m.x-m.width*.76,y:m.y+screenH*.48,z:m.z+3,width:4.8,depth:5.5},'#10151b','#050608',screenH*.72));
+  solids.push(boxItem({x:m.x+m.width*.76,y:m.y+screenH*.48,z:m.z+3,width:4.8,depth:5.5},'#10151b','#050608',screenH*.72));
+  for(let i=0;i<9;i++){const u=i/8,px=m.x-m.width*.42+u*m.width*.84;solids.push(boxItem({x:px,y:m.y+5,z:m.z+m.depth*.42,width:1.1,depth:1.1},'#fff1ff',i%2?'#7c63ff':'#d85bff',1.4));}
+  // Deterministic audience light points. Kept sparse so low-end phones remain smooth.
+  const glowCount=quality==='high'?42:20;
+  for(let i=0;i<glowCount;i++){const a=(i*2.3999632297)% (Math.PI*2), ring=.22+(i%11)/13, gx=Math.cos(a)*model.field.x*1.45*ring, gz=Math.sin(a)*model.field.z*1.5*ring;if(Math.abs(gx-m.x)<m.width*.7 && Math.abs(gz-m.z)<m.depth*1.8)continue;const gy=-18+(i%4)*.35;solids.push(boxItem({x:gx,y:gy,z:gz,width:.42,depth:.42},'#f5e8ff',i%3===0?'#6c76ff':i%3===1?'#d158e7':'#53a6ff',1.7));}
+  // Soft spotlight beams are rendered as translucent lines to suggest concert atmosphere.
+  const beamOrigins=[m.x-m.width*.35,m.x-m.width*.12,m.x+m.width*.12,m.x+m.width*.35];
+  beamOrigins.forEach((bx,i)=>{const tx=(i-1.5)*model.field.x*.32,tz=model.field.z*(.35+(i%2)*.25);lines.push({vertices:new Float32Array([bx,trussY,m.z+2,tx,6,tz]),color:i%2?[.58,.48,1,.20]:[1,.48,.88,.18]});});
   const maxY=Math.max(...sections.map(s=>(s.y||0)+18),85),rx=model.field.x*2.05,rz=model.field.z*2.05;
   for(let i=0;i<3;i++)lines.push({vertices:ringLine(rx+i*14,rz+i*11,maxY+20+i*12),color:[.45,.52,.6,.38]});
   for(let i=0;i<16;i++){const a=i/16*Math.PI*2;solids.push(boxItem({x:Math.cos(a)*rx*.99,y:-18,z:Math.sin(a)*rz*.99,width:2.5,depth:2.5},'#26303a','#05070a',maxY+65));}
@@ -178,7 +197,7 @@ class Renderer{
     this.canvas=canvas;this.quality=quality;this.gl=canvas.getContext('webgl2',{antialias:quality==='high',alpha:false,powerPreference:'high-performance',depth:true,stencil:false});
     if(!this.gl)throw new Error('WebGL2 unavailable');const gl=this.gl;
     this.prog=program(gl,VERT,FRAG);this.instProg=program(gl,INST_VERT,INST_FRAG);this.lineProg=program(gl,LINE_VERT,LINE_FRAG);this.key='';this.cpu=null;this.gpu=[];this.lineGpu=[];this.seatGpu=null;
-    gl.enable(gl.DEPTH_TEST);gl.enable(gl.CULL_FACE);gl.cullFace(gl.BACK);gl.clearColor(.02,.028,.04,1);
+    gl.enable(gl.DEPTH_TEST);gl.enable(gl.CULL_FACE);gl.cullFace(gl.BACK);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.clearColor(.012,.018,.03,1);
   }
   disposeScene(){const gl=this.gl;for(const x of this.gpu){gl.deleteBuffer(x.p);gl.deleteBuffer(x.n);gl.deleteVertexArray(x.vao);}for(const x of this.lineGpu){gl.deleteBuffer(x.b);gl.deleteVertexArray(x.vao);}if(this.seatGpu){for(const b of Object.values(this.seatGpu.buffers))gl.deleteBuffer(b);gl.deleteVertexArray(this.seatGpu.vao);}this.gpu=[];this.lineGpu=[];this.seatGpu=null;}
   uploadMesh(mesh){const gl=this.gl,vao=gl.createVertexArray();gl.bindVertexArray(vao);const p=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,p);gl.bufferData(gl.ARRAY_BUFFER,mesh.positions,gl.STATIC_DRAW);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.FLOAT,false,0,0);const n=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,n);gl.bufferData(gl.ARRAY_BUFFER,mesh.normals,gl.STATIC_DRAW);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,3,gl.FLOAT,false,0,0);gl.bindVertexArray(null);return{vao,p,n,count:mesh.count};}

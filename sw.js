@@ -1,4 +1,4 @@
-const VERSION = "neul-v0.19.0";
+const VERSION = "neul-v0.22.0";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const APP_SHELL = [

@@ -1,6 +1,6 @@
 import { seedEvents } from "./data/events.js";
 import { seedArtists } from "./data/artists.js";
-import { venueModels, venueLayouts, layoutsForVenue, getVenueModel, getVenueLayout, getVenueTier, getVenueSection, venueSectionPosition, venueSectionWarning, sectionTicketLabel, venueIdFromName, effectiveTiers, effectiveSections } from "./data/multi-venue-geometry.js";
+import { venueModels, venueLayouts, layoutsForVenue, getVenueModel, getVenueLayout, getVenueTier, getVenueSection, venueSectionPosition, venueSectionWarning, sectionTicketLabel, venueIdFromName, effectiveTiers, effectiveSections, ensureAutoEventLayout, baseLayoutIdForVenue } from "./data/multi-venue-geometry.js";
 import { createVenueWebGL } from "./webgl-venue.js";
 import { saveFollowed, saveMode, recordEventChanges, saveOfflineSnapshot, loadFollowed } from "./storage.js";
 
@@ -31,7 +31,8 @@ const state = {
   posture: "seated",
   lens: "eye",
   layoutId: "skz-run-it-2026",
-  featuredId: "skz-run-it-taipei-2026"
+  featuredId: "skz-run-it-taipei-2026",
+  featuredIndex: 0
 };
 
 const fmtDate = (iso, rangeEnd = null) => {
@@ -157,6 +158,7 @@ function applyOfficialResults(data) {
     if (Object.keys(patch).length) changed = true;
     return { ...event, ...patch, officialCheck: result.check, officialCheckedAt: result.checkedAt || null };
   });
+  if (changed) state.events = prepareEvents3D(state.events);
   state.officialUpdatedAt = data.updatedAt || null;
   state.officialMonitorCount = data.monitored || 0;
   if (changed) rebuildArtistStats();
@@ -266,11 +268,38 @@ function renderFollowing() {
   }
 }
 
-function pickFeaturedEvent() {
+function featuredEvents() {
   const threshold = Date.now() - dayMs;
   return [...state.events]
-    .filter(e => e.region === "TW" && e.start && new Date(e.start).getTime() >= threshold)
-    .sort((a, b) => new Date(a.start) - new Date(b.start))[0] || state.events[0] || null;
+    .filter(e => e.region === "TW" && !e.historical && e.start && new Date(e.start).getTime() >= threshold)
+    .sort((a, b) => new Date(a.start) - new Date(b.start))
+    .slice(0, 5);
+}
+
+function pickFeaturedEvent() {
+  const items = featuredEvents();
+  if (!items.length) return state.events.find(e => !e.historical) || state.events[0] || null;
+  let index = items.findIndex(e => e.id === state.featuredId);
+  if (index < 0) index = 0;
+  state.featuredIndex = index;
+  return items[index];
+}
+
+function stepFeatured(delta) {
+  const items = featuredEvents();
+  if (!items.length) return;
+  let index = items.findIndex(e => e.id === state.featuredId);
+  if (index < 0) index = 0;
+  index = (index + delta + items.length) % items.length;
+  state.featuredIndex = index;
+  state.featuredId = items[index].id;
+  renderFeatured();
+  const card = $(".featured-main");
+  if (card) {
+    card.classList.remove("is-changing");
+    void card.offsetWidth;
+    card.classList.add("is-changing");
+  }
 }
 
 function renderFeatured() {
@@ -288,6 +317,15 @@ function renderFeatured() {
     follow.dataset.artist = event.artist;
     follow.textContent = state.followed.has(event.artist) ? "✓ 已追蹤" : "加入追蹤";
   }
+  const items = featuredEvents();
+  const index = Math.max(0, items.findIndex(x => x.id === event.id));
+  const count = $("#featuredCount");
+  if (count) count.textContent = `${Math.min(index + 1, Math.max(items.length, 1))}/${Math.max(items.length, 1)}`;
+  const prev = $("#featuredPrevBtn");
+  const next = $("#featuredNextBtn");
+  const disabled = items.length <= 1;
+  if (prev) prev.disabled = disabled;
+  if (next) next.disabled = disabled;
 }
 
 function artistEvents(name) {
@@ -545,10 +583,22 @@ function detailList(title, arr = []) {
 }
 
 function eventVenueModelId(event) { return event?.venueModelId || venueIdFromName(event?.venue || ""); }
+function eventBaseLayoutId(event) {
+  const venueId = eventVenueModelId(event);
+  return venueId ? baseLayoutIdForVenue(venueId) : null;
+}
 function eventVenueLayoutId(event) {
   const venueId = eventVenueModelId(event);
   if (!venueId) return null;
-  return event?.venueLayoutId || getVenueModel(venueId).baseLayoutId;
+  return ensureAutoEventLayout({ ...event, venueModelId: venueId }) || event?.venueLayoutId || getVenueModel(venueId).baseLayoutId;
+}
+function prepareEvents3D(events = []) {
+  return events.map(event => {
+    const venueModelId = eventVenueModelId(event);
+    if (!venueModelId) return event;
+    const venueLayoutId = eventVenueLayoutId({ ...event, venueModelId });
+    return { ...event, venueModelId, venueLayoutId, baseVenueLayoutId: baseLayoutIdForVenue(venueModelId) };
+  });
 }
 
 function openDetail(id) {
@@ -557,6 +607,11 @@ function openDetail(id) {
   state.detailId = id;
   const checked = new Intl.DateTimeFormat("zh-TW", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Taipei" }).format(new Date(e.checkedAt || Date.now()));
   const action = nextAction(e);
+  const activityLayoutId = eventVenueLayoutId(e);
+  const activityLayout = activityLayoutId ? getVenueLayout(activityLayoutId) : null;
+  const activity3DStatus = activityLayout?.autoGenerated
+    ? (activityLayout.seatMapDetected ? "AUTO 3D · 已偵測官方座位配置來源" : "AUTO 3D · 依場館自動生成")
+    : (activityLayout?.eventId ? "CALIBRATED 3D · 本場專屬配置" : "");
   $("#detailContent").innerHTML = `
     <div class="detail-kicker">${escapeHtml(e.statusLabel || e.type)} · ${e.historical ? "HISTORICAL VERIFIED" : (e.officialCheck?.status === "live" ? "OFFICIAL LIVE" : "OFFICIAL CHECKED")}</div>
     <h2>${escapeHtml(e.artist)}</h2>
@@ -574,11 +629,12 @@ function openDetail(id) {
     <section class="detail-section"><h3>售票時間軸</h3><div class="timeline">${timelineHtml(e.ticketTimeline || [])}</div></section>
     ${detailList("粉絲福利", e.benefits)}
     ${detailList("需要注意", e.notes)}
+    ${activity3DStatus ? `<div class="detail-3d-status"><b>${escapeHtml(activity3DStatus)}</b><span>${activityLayout?.autoGenerated ? "活動新增／官方資料更新時會重新建立本場草稿；一般場館 3D 永遠保留。" : "此場已有活動專屬配置，可另切換一般場館 3D 查看固定位置。"}</span></div>` : ""}
     <div class="detail-source">
       <a href="${safeUrl(e.sourceUrl)}" target="_blank" rel="noopener noreferrer">官方來源 ↗</a>
       ${e.secondarySourceUrl ? `<a href="${safeUrl(e.secondarySourceUrl)}" target="_blank" rel="noopener noreferrer">補充公告 ↗</a>` : ""}
       ${e.seatLayoutSourceUrl ? `<a href="${safeUrl(e.seatLayoutSourceUrl)}" target="_blank" rel="noopener noreferrer">官方座位配置 ↗</a>` : ""}
-      ${eventVenueModelId(e) ? `<button class="outline-mini detail-venue-btn" data-venue="${escapeHtml(eventVenueModelId(e))}" data-layout="${escapeHtml(eventVenueLayoutId(e))}">查看本場 3D 座位 →</button>` : ""}
+      ${eventVenueModelId(e) ? `<button class="outline-mini detail-venue-btn" data-venue="${escapeHtml(eventVenueModelId(e))}" data-layout="${escapeHtml(eventVenueLayoutId(e))}">查看本場 3D →</button><button class="outline-mini detail-base-venue-btn" data-venue="${escapeHtml(eventVenueModelId(e))}" data-layout="${escapeHtml(eventBaseLayoutId(e))}">一般場館 3D →</button>` : ""}
       <button class="pink-mini drawer-follow" data-artist="${escapeHtml(e.artist)}">${state.followed.has(e.artist) ? "✓ 已追蹤" : "+ 加入追蹤"}</button>
     </div>
     <div class="detail-check">${e.officialCheck?.status === "live" ? "官方頁面已連線 · " : e.officialCheck?.status === "review" ? "官方公告可能有變更 · " : "本站最後核對 · "}${escapeHtml(checked)}。詳細規則與臨時變更請回官方來源確認。</div>`;
@@ -589,12 +645,17 @@ function openDetail(id) {
   startCountdown();
   const df = $(".drawer-follow");
   if (df) df.addEventListener("click", () => { toggleFollow(e.artist); df.textContent = state.followed.has(e.artist) ? "✓ 已追蹤" : "+ 加入追蹤"; });
-  const venueBtn = $(".detail-venue-btn");
-  if (venueBtn) venueBtn.addEventListener("click", () => {
-    setVenue(venueBtn.dataset.venue || eventVenueModelId(e), venueBtn.dataset.layout || eventVenueLayoutId(e));
-    closeDetail();
-    $("#venue3d").scrollIntoView({ behavior: "smooth", block: "start" });
-  });
+  const wireVenueJump = selector => {
+    const btn = $(selector);
+    if (!btn) return;
+    btn.addEventListener("click", () => {
+      setVenue(btn.dataset.venue || eventVenueModelId(e), btn.dataset.layout || eventVenueLayoutId(e));
+      closeDetail();
+      $("#venue3d").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+  wireVenueJump(".detail-venue-btn");
+  wireVenueJump(".detail-base-venue-btn");
 }
 function closeDetail() {
   stopCountdown();
@@ -607,14 +668,27 @@ function closeDetail() {
 function updateFreshness() {
   const el = $("#dataFreshness");
   if (!el) return;
+  const cadence = `<span class="freshness-cadence">約每 6 小時檢查可用官方來源 · 每日排程同步</span>`;
   if (!state.dataUpdatedAt) {
-    el.textContent = "目前顯示已核對活動";
+    el.innerHTML = `目前顯示已核對活動${cadence}`;
+    el.title = "活動資料採 6 小時快取；快取到期後由下一次造訪觸發背景重新驗證，並另有每日排程同步。";
     return;
   }
   const t = new Intl.DateTimeFormat("zh-TW", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Taipei" }).format(new Date(state.dataUpdatedAt));
   const officialTime = state.officialUpdatedAt ? new Intl.DateTimeFormat("zh-TW", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Taipei" }).format(new Date(state.officialUpdatedAt)) : null;
-  el.textContent = officialTime ? `官方資訊更新 ${officialTime}` : (state.autoUpdateEnabled ? `台灣活動同步 ${t}` : `已核對資料 · ${t}`);
-  el.title = "活動資訊會依可用官方來源持續核對；詳細內容仍以官方最新公告為準。";
+  const headline = officialTime ? `官方資訊更新 ${officialTime}` : (state.autoUpdateEnabled ? `台灣活動同步 ${t}` : `已核對資料 · ${t}`);
+  el.innerHTML = `${headline}${cadence}`;
+  el.title = "活動資料採 6 小時快取；快取到期後由下一次造訪觸發背景重新驗證，並另有每日排程同步。詳細內容仍以官方最新公告為準。";
+}
+
+function updateSearchScope() {
+  const el = $("#searchScopeNote");
+  if (!el) return;
+  const starts = state.events.map(e => new Date(e.start || 0)).filter(d => Number.isFinite(d.getTime()) && d.getFullYear() >= 2000);
+  if (!starts.length) return;
+  const earliest = new Date(Math.min(...starts.map(d => d.getTime())));
+  const label = new Intl.DateTimeFormat("zh-TW", { year: "numeric", month: "2-digit", timeZone: TAIPEI_TZ }).format(earliest);
+  el.textContent = `目前已收錄資料自 ${label} 起；更早場次持續補齊。搜尋會同時查近期與已收錄 Archive。`;
 }
 
 async function loadEvents() {
@@ -622,13 +696,13 @@ async function loadEvents() {
     const res = await fetch("/api/events", { headers: { Accept: "application/json" } });
     if (!res.ok) throw new Error("events unavailable");
     const data = await res.json();
-    if (Array.isArray(data.events) && data.events.length) state.events = data.events;
+    if (Array.isArray(data.events) && data.events.length) state.events = prepareEvents3D(data.events);
     if (Array.isArray(data.artists) && data.artists.length) state.artists = data.artists;
     state.dataUpdatedAt = data.updatedAt || null;
     state.autoUpdateEnabled = data.autoUpdateEnabled !== false;
     state.upstream = data.upstream || "curated-fallback";
   } catch {
-    state.events = seedEvents;
+    state.events = prepareEvents3D(seedEvents);
     state.artists = seedArtists.map(a => ({ ...a, upcomingEventCount: seedEvents.filter(e => e.artist.toLowerCase() === a.name.toLowerCase()).length, nextEvent: null, eventIds: [] }));
     state.dataUpdatedAt = null;
     state.autoUpdateEnabled = false;
@@ -641,6 +715,7 @@ async function loadEvents() {
   renderFollowing();
   renderFeatured();
   updateFreshness();
+  updateSearchScope();
   window.dispatchEvent(new CustomEvent("neul:dataupdated", { detail: { events: state.events, updatedAt: state.dataUpdatedAt } }));
   const idle = window.requestIdleCallback || (fn => setTimeout(fn, 900));
   idle(() => loadOfficialUpdates());
@@ -671,6 +746,8 @@ $("#viewMoreBtn").addEventListener("click", () => {
   renderEvents();
 });
 $("#featuredDetailBtn").addEventListener("click", () => openDetail(state.featuredId));
+$("#featuredPrevBtn")?.addEventListener("click", () => stepFeatured(-1));
+$("#featuredNextBtn")?.addEventListener("click", () => stepFeatured(1));
 $("#featuredSourceBtn").addEventListener("click", () => { const e = state.events.find(x => x.id === state.featuredId) || seedEvents[0]; window.open(safeUrl(e.sourceUrl), "_blank", "noopener,noreferrer"); });
 $(".follow-feature").addEventListener("click", e => toggleFollow(e.currentTarget.dataset.artist || "Stray Kids"));
 $("#clearFollowingBtn").addEventListener("click", openArtistDirectory);
@@ -780,8 +857,8 @@ function updateSeatWarning() {
   confidence.textContent = layout.historical
     ? "歷史官方票區圖重建 · 區域位置校正 · 單席視角未宣稱精準"
     : layout.eventId
-      ? "官方本場配置已核對 · 區域位置重建 · 排數／座號仍為校正估算"
-      : `${model.confidence} · 舞台依目前公開資料呈現`;
+      ? "官方本場配置已核對 · 區域位置重建 · 排數／座號仍為校正估算 · 現場燈光為模擬"
+      : `${model.confidence} · 舞台依目前公開資料呈現 · 現場燈光為模擬`;
   if (!warning.messages.length) { box.hidden = true; return; }
   box.hidden = false;
   box.className = `seat-warning ${warning.level}`;
@@ -1067,6 +1144,8 @@ async function initVenueWebGL(){
   if(!venueWebGL && webglStatus === "loading") webglStatus = "fallback";
   drawVenueOverview(); drawSeatPreview(); if(!viewer.hidden) requestVenueFrame();
 }
+
+state.events = prepareEvents3D(state.events);
 
 const deepLayoutId = new URLSearchParams(location.search).get("layout");
 if (deepLayoutId) {

@@ -43,4 +43,3 @@ export async function recordEventChanges(events){
 export async function eventChanges(eventId){const h=await idbGet('changes','event-history',[]);return h.filter(x=>x.eventId===eventId).slice(0,8);}
 export async function saveOfflineSnapshot(meta){return idbSet('prefs','last-sync',meta);}
 export async function loadOfflineSnapshot(){return idbGet('prefs','last-sync',null);}
-export async function saveSubmissionDraft(draft){const key=`submission-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;await idbSet('drafts',key,draft);return key;}
