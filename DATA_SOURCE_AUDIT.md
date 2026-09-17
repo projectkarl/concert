@@ -1,25 +1,25 @@
-# NEUL v0.32 Taiwan Event Source Audit
+# NEUL v0.34 Data Source Audit
 
-## Automatic sources
+Scope: Taiwan performances only. Artist nationality is unrestricted; overseas performances and overseas venues are excluded.
 
-1. **Live Nation Taiwan public event pages** — discovery is nationality-neutral. Taiwan shows are retained whether the artist is Korean, Japanese, American, British, Australian, European or otherwise international.
-2. **Taipei Arena official public event list** — adds venue-published shows that are not promoted by Live Nation.
-3. **Kaohsiung Arena official calendar** — retains the existing venue-level official calendar discovery.
-4. **Artist official tour pages** — new source class. v0.32 includes a YG Entertainment official parser for BABYMONSTER's 2026–27 CHOOM tour and only imports fields actually published by the artist/agency.
-5. **Curated verified fallback seeds** — ensures verified events remain visible when an upstream site is temporarily unavailable. These entries keep their official source URL and do not fabricate missing ticket details.
+Automatic public-source layers:
+1. Live Nation Taiwan
+2. Taipei Arena official published events
+3. Kaohsiung Arena official calendar
+4. Artist / agency official tour pages
+5. Taiwan ticket-platform discovery: tixCraft, KKTIX, Ticket Plus, Kham
+6. Curated verified fallback records when an upstream source is temporarily unavailable
 
-## Taiwan performances by artists from multiple markets
+Known-gap regression cases added:
+- LE SSERAFIM — 2026/11/14–15 — NTSU Arena — tixCraft official event page
+- KIM JI WON — 2026/11/08 — Legacy TERA — tixCraft official event page
 
-The current verified fallback set includes upcoming Taiwan appearances from markets beyond Korea, including Hans Zimmer, LANY, BE:FIRST, Henry Moodie, Yuuri, XG, Charlie Puth, Vaundy, Malcolm Todd, 5 Seconds of Summer, Khalid and FKJ, plus BABYMONSTER via YG official tour data.
-
-## Missing-data rule
-
-If an official page confirms only city/date/venue, NEUL stores only those fields. Price, onsale time, promoter, seat map and detailed configuration remain `TBA` / `CHECK OFFICIAL` until a reliable official source publishes them.
-
-## Discovery regression fixed
-
-The old Live Nation parser contained a Korea-oriented gate that could discard non-Korean artists before they reached the UI. v0.31 removes that gate and assigns a market tag only for display/metadata purposes; market does not determine eligibility.
+All discovered records still pass the Taiwan-region guard before reaching the frontend.
 
 
-## Taiwan-only boundary (v0.32)
-Only performances physically held in Taiwan are eligible for the product feed. Overseas tour dates and overseas venue models are intentionally excluded. Artists from Korea, Japan, Europe, the Americas or elsewhere remain eligible only when the event venue is in Taiwan.
+## v0.34 duplicate + award audit
+- Stray Kids RUN IT TAIPEI: official promoter and tixCraft records are treated as one event. tixCraft seat-map URL is retained; richer verified price data is protected from placeholder overwrite.
+- 2026 Asia Artist Awards in Kaohsiung: added from official tixCraft public activity data and seat-map source.
+- Dedupe identity: same Taiwan-local calendar date + canonical venue + artist/title identity overlap, with exact normalized source URL as an additional match path.
+- Source priority is used only to choose richer/current fields; all distinct official source references are retained in `sourceRefs`.
+- Overseas event records remain excluded by the Taiwan-only gate.

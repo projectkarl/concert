@@ -307,6 +307,17 @@ function stepFeatured(delta) {
   }
 }
 
+const FEATURED_IMAGES = [
+  "/assets/featured-1.webp",
+  "/assets/featured-2.webp",
+  "/assets/featured-3.webp",
+  "/assets/featured-4.webp"
+];
+function featuredImageFor(event, index=0) {
+  const key=String(event?.id||event?.artist||index);
+  let hash=0; for(let i=0;i<key.length;i++) hash=((hash<<5)-hash+key.charCodeAt(i))|0;
+  return FEATURED_IMAGES[Math.abs(hash + index) % FEATURED_IMAGES.length];
+}
 function renderFeatured() {
   const event = pickFeaturedEvent();
   if (!event) return;
@@ -324,6 +335,11 @@ function renderFeatured() {
   }
   const items = featuredEvents();
   const index = Math.max(0, items.findIndex(x => x.id === event.id));
+  const photo = $(".featured-stage");
+  if (photo) {
+    photo.style.backgroundImage = `url('${featuredImageFor(event,index)}')`;
+    photo.dataset.featuredImage = String((Math.abs(index)%FEATURED_IMAGES.length)+1);
+  }
   const count = $("#featuredCount");
   if (count) count.textContent = `${Math.min(index + 1, Math.max(items.length, 1))}/${Math.max(items.length, 1)}`;
   const prev = $("#featuredPrevBtn");
@@ -758,6 +774,19 @@ const allEventsSummary = $("#eventsModalSummary");
 const eventsMonthFilter = $("#eventsMonthFilter");
 const eventsStartFilter = $("#eventsStartFilter");
 const eventsEndFilter = $("#eventsEndFilter");
+const eventsAreaSearch = $("#eventsAreaSearch");
+const eventsCityFilter = $("#eventsCityFilter");
+
+function cityLabel(city) {
+  return ({Taipei:"台北",NewTaipei:"新北",Taoyuan:"桃園",Taichung:"台中",Tainan:"台南",Kaohsiung:"高雄",Hsinchu:"新竹",Keelung:"基隆",Chiayi:"嘉義",Changhua:"彰化",Pingtung:"屏東",Yilan:"宜蘭",Hualien:"花蓮",Taitung:"台東",Miaoli:"苗栗",Nantou:"南投",Yunlin:"雲林",Penghu:"澎湖",Kinmen:"金門",Matsu:"馬祖"})[city] || city || "其他";
+}
+function refreshEventsCityFilter() {
+  if (!eventsCityFilter) return;
+  const current=eventsCityFilter.value||"ALL";
+  const cities=[...new Set(state.events.filter(e=>e.region==="TW" && e.city).map(e=>String(e.city)))].sort((a,b)=>cityLabel(a).localeCompare(cityLabel(b),"zh-Hant"));
+  eventsCityFilter.innerHTML=`<option value="ALL">全台</option>`+cities.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(cityLabel(c))}</option>`).join("");
+  eventsCityFilter.value=cities.includes(current)?current:"ALL";
+}
 
 function taipeiDateKey(value) {
   if (!value) return "";
@@ -783,10 +812,22 @@ function modalBaseEvents() {
   }).sort((a,b) => new Date(a.start || 0) - new Date(b.start || 0));
 }
 function modalFilteredEvents() {
-  let list = modalBaseEvents();
+  // The expanded Upcoming explorer intentionally starts from all Taiwan events,
+  // rather than inheriting the three homepage city chips. This keeps the UI
+  // scalable when more counties/cities are added to the feed.
+  const now=Date.now();
+  let list=state.events.filter(e=>{
+    const endTs=new Date(e.end||e.start||0).getTime();
+    const future=Number.isFinite(endTs)&&endTs>=now-6*3600000&&!e.historical;
+    return future && e.region==="TW" && (state.type==="ALL" || e.type===state.type);
+  }).sort((a,b)=>new Date(a.start||0)-new Date(b.start||0));
   const month = eventsMonthFilter?.value || "";
   const start = eventsStartFilter?.value || "";
   const end = eventsEndFilter?.value || "";
+  const city = eventsCityFilter?.value || "ALL";
+  const areaQ = normalizeSearch(eventsAreaSearch?.value || "");
+  if (city !== "ALL") list = list.filter(e => String(e.city||"") === city);
+  if (areaQ) list = list.filter(e => normalizeSearch(`${e.artist} ${e.title} ${e.venue} ${e.city} ${cityLabel(e.city)} ${(e.tags||[]).join(" ")}`).includes(areaQ));
   if (month) list = list.filter(e => taipeiDateKey(e.start).startsWith(month));
   if (start) list = list.filter(e => taipeiDateKey(e.start) >= start);
   if (end) list = list.filter(e => taipeiDateKey(e.start) <= end);
@@ -813,6 +854,7 @@ function openAllEventsModal() {
   allEventsModal.hidden = false;
   allEventsModal.setAttribute("aria-hidden","false");
   document.body.classList.add("events-modal-open");
+  refreshEventsCityFilter();
   renderAllEventsModal();
 }
 function closeAllEventsModal() {
@@ -825,7 +867,7 @@ function setQuickEventWindow(days) {
   const today = new Date();
   const start = new Intl.DateTimeFormat("en-CA",{year:"numeric",month:"2-digit",day:"2-digit",timeZone:TAIPEI_TZ}).format(today);
   eventsMonthFilter.value = "";
-  if (days === "all") { eventsStartFilter.value = ""; eventsEndFilter.value = ""; }
+  if (days === "all") { eventsStartFilter.value = ""; eventsEndFilter.value = ""; if(eventsAreaSearch) eventsAreaSearch.value=""; if(eventsCityFilter) eventsCityFilter.value="ALL"; }
   else {
     const endDate = new Date(today.getTime() + Number(days)*dayMs);
     const end = new Intl.DateTimeFormat("en-CA",{year:"numeric",month:"2-digit",day:"2-digit",timeZone:TAIPEI_TZ}).format(endDate);
@@ -838,10 +880,11 @@ function setQuickEventWindow(days) {
 $("#viewMoreBtn")?.addEventListener("click", openAllEventsModal);
 $("#allEventsClose")?.addEventListener("click", closeAllEventsModal);
 allEventsModal?.addEventListener("click", e => { if (e.target === allEventsModal) closeAllEventsModal(); });
-[eventsMonthFilter,eventsStartFilter,eventsEndFilter].filter(Boolean).forEach(input => input.addEventListener("change", () => {
+[eventsMonthFilter,eventsStartFilter,eventsEndFilter,eventsCityFilter].filter(Boolean).forEach(input => input.addEventListener("change", () => {
   $$("[data-events-window]").forEach(b => b.classList.remove("active"));
   renderAllEventsModal();
 }));
+eventsAreaSearch?.addEventListener("input", renderAllEventsModal);
 $("#eventsFilterReset")?.addEventListener("click", () => setQuickEventWindow("all"));
 $$('[data-events-window]').forEach(btn => btn.addEventListener("click", () => setQuickEventWindow(btn.dataset.eventsWindow)));
 window.addEventListener("keydown", e => { if (e.key === "Escape") closeAllEventsModal(); });
@@ -959,7 +1002,9 @@ function refreshSectionOptions(forceDefault = false) {
   sectionSelect.innerHTML = tier.sections.map(id => {
     const sec=getVenueSection(state.venueId,id,state.layoutId);
     const label=sec?.label || id;
-    return `<option value="${escapeHtml(id)}" ${id === String(state.section) ? "selected" : ""}>${escapeHtml(label)}</option>`;
+    const ticket=sectionTicketLabel(state.layoutId,id);
+    const optionLabel=ticket ? `${label} · ${ticket}` : label;
+    return `<option value="${escapeHtml(id)}" ${id === String(state.section) ? "selected" : ""}>${escapeHtml(optionLabel)}</option>`;
   }).join("");
   refreshRowOptions();
   updateSeatLabel();
@@ -993,6 +1038,21 @@ function updateSeatLabel() {
   const chip=$("#viewerLensChip"); if(chip) chip.textContent=`${lensLabel} · ${state.viewerHeight}cm · ${state.posture==="standing"?"站著":"坐著"}`;
   const zone = $(".selected-zone");
   if (zone) zone.textContent = id;
+  const layout = currentVenueLayout();
+  const exactPrice = sectionTicketLabel(state.layoutId, id);
+  const fallbackPrice = !exactPrice && layout?.eventId && layout?.priceSummary ? `本場票價 ${layout.priceSummary}` : "";
+  const shownPrice = exactPrice ? `本區 ${exactPrice}` : fallbackPrice;
+  const selectedPrice = $("#selectedPrice");
+  if (selectedPrice) {
+    selectedPrice.hidden = !shownPrice;
+    selectedPrice.textContent = shownPrice;
+    selectedPrice.title = exactPrice ? "依本場官方座位圖對應" : "目前僅能可靠顯示本場票價級距；未硬套到單一票區";
+  }
+  const viewerPriceChip = $("#viewerPriceChip");
+  if (viewerPriceChip) {
+    viewerPriceChip.hidden = !shownPrice;
+    viewerPriceChip.textContent = shownPrice;
+  }
   updateSeatWarning();
   drawSeatPreview();
   drawVenueOverview();

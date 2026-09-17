@@ -35,7 +35,7 @@ a{color:inherit}
 .side-head{grid-area:side;height:72px;background:var(--dark);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 27px;position:sticky;top:0;z-index:40}
 .menu-icon{border:0;background:transparent;color:white;font-size:20px}
 .hero-panel{grid-area:hero;position:relative;min-height:594px;background:#0f1216;border-right:1px solid var(--line);border-bottom:1px solid var(--line);overflow:hidden}
-.hero-art{position:absolute;inset:0;background-image:url('/assets/hero-crowd.webp');background-size:cover;background-position:56% 42%;filter:saturate(.75) contrast(1.03) brightness(.78);transform:scale(1.06)}
+.hero-art{position:absolute;inset:0;background-image:url('/assets/hero-crowd-hd.webp');background-size:cover;background-position:56% 42%;filter:saturate(.75) contrast(1.03) brightness(.78);transform:scale(1.06)}
 .hero-art:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(9,11,14,.98) 0%,rgba(9,11,14,.84) 23%,rgba(9,11,14,.2) 56%,rgba(9,11,14,.24) 100%),linear-gradient(0deg,rgba(9,11,14,.74) 0%,transparent 40%)}
 .hero-shade{position:absolute;inset:0;background:radial-gradient(circle at 63% 23%,rgba(252,219,247,.12),transparent 26%),linear-gradient(90deg,transparent 60%,rgba(9,11,14,.26))}
 .hero-copy{position:relative;z-index:2;padding:42px 0 0 52px;width:48%}
@@ -798,3 +798,19 @@ body.light-mode .venue-controls select:focus,body.light-mode .seat-detail-grid i
 .venue-event-demo[hidden]{display:none}.venue-event-demo>span{display:block;font-size:8px;font-weight:850;letter-spacing:.12em;color:#e6bddd;margin-bottom:5px}.venue-event-demo strong{display:block;font-size:11px;line-height:1.3;color:#fff}.venue-event-demo small{display:block;margin-top:4px;font-size:8px;line-height:1.45;color:#aeb5bc}.venue-event-demo button{width:100%;min-height:30px;margin-top:8px;border:1px solid #5a4b59;border-radius:7px;background:#17151a;color:#efddea;font-size:8px;font-weight:800;cursor:pointer}.venue-event-demo button:hover{border-color:#d4a9c8;background:#211922}
 body.light-mode .venue-event-demo{background:linear-gradient(145deg,#fff7fc,#f7f3f1);border-color:#d8c5d1;box-shadow:none}body.light-mode .venue-event-demo>span{color:#874b76}body.light-mode .venue-event-demo strong{color:#211d20}body.light-mode .venue-event-demo small{color:#716b6e}body.light-mode .venue-event-demo button{background:#fff;color:#4c3545;border-color:#cdbac5}
 @media(max-width:900px){.venue-event-demo{max-width:360px}.venue-intro .pink-pill{margin-top:18px}}
+
+/* v0.33 · HD hero + distinct Featured photography + scalable Upcoming region search */
+.featured-stage{background-size:cover;background-position:center;transition:opacity .24s ease,transform .4s ease,background-image .2s ease}
+.featured-main.is-changing .featured-stage{animation:neul-feature-photo-swap .34s ease both}
+@keyframes neul-feature-photo-swap{0%{opacity:.42;transform:scale(1.035)}100%{opacity:1;transform:scale(1.01)}}
+.events-location-filters{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(145px,.7fr);gap:10px;margin:14px 0 8px}
+.events-location-filters label{display:grid;gap:5px}.events-location-filters span{font-size:9px;color:#99a2ac;font-weight:750;letter-spacing:.04em}
+.events-location-filters input,.events-location-filters select{width:100%;height:42px;border:1px solid #343b43;background:#151a20;color:#f4f5f6;border-radius:8px;padding:0 11px;font:inherit;outline:0}
+.events-location-filters input:focus,.events-location-filters select:focus{border-color:#9e70ab;box-shadow:0 0 0 2px rgba(158,112,171,.12)}
+body.light-mode .events-location-filters input,body.light-mode .events-location-filters select{background:#fff;color:#1d2024;border-color:#d8d2ce}
+@media(max-width:620px){.events-location-filters{grid-template-columns:1fr}.events-search-wide{grid-column:auto}}
+
+/* v0.34 · selected 3D ticket price sync */
+.selected-price{position:absolute;z-index:4;right:24%;bottom:22%;max-width:180px;background:rgba(8,11,15,.92);color:#fff;border:1px solid rgba(255,255,255,.28);padding:6px 9px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.01em;box-shadow:0 8px 24px rgba(0,0,0,.28)}
+.viewer-price-chip{position:absolute;left:18px;bottom:52px;z-index:6;max-width:min(560px,70vw);padding:8px 12px;border-radius:999px;background:rgba(14,18,24,.88);border:1px solid rgba(255,255,255,.22);color:#fff;font-size:12px;font-weight:800;backdrop-filter:blur(10px)}
+@media(max-width:700px){.selected-price{right:12px;bottom:14px;max-width:72%;font-size:10px}.viewer-price-chip{left:10px;bottom:46px;max-width:calc(100vw - 20px);font-size:10px}}

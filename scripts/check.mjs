@@ -4,14 +4,16 @@ import { extractOfficialSeatLayoutUrl } from "../lib/official-monitor.js";
 import { parseKaohsiungArenaCalendar } from "../lib/kaohsiung-arena-discovery.js";
 import { extractTaipeiArenaLinks, parseTaipeiArenaDates } from "../lib/taipei-arena-discovery.js";
 import { parseBabymonsterChoomTaipei } from "../lib/artist-official-discovery.js";
+import { parsePage as parseTicketPlatformPage } from "../lib/taiwan-ticket-platform-discovery.js";
+import { mergeAndDedupe } from "../api/events.js";
 import { seedEvents } from "../data/events.js";
-import { venueModels, venueLayouts, getVenueSection, venueSectionWarning, venueSectionPosition, venueIdFromName, ensureAutoEventLayout, getVenueLayout } from "../data/multi-venue-geometry.js";
+import { venueModels, venueLayouts, getVenueSection, venueSectionWarning, venueSectionPosition, venueIdFromName, ensureAutoEventLayout, getVenueLayout, sectionTicketLabel } from "../data/multi-venue-geometry.js";
 
 const required = [
   "index.html","styles.css","app.js","i18n.js","enhancements.js","storage.js","pwa.js","sw.js","manifest.webmanifest","webgl-venue.js","THIRD_PARTY_NOTICES.md","vercel.json","api/events.js","api/official.js","api/refresh.js","api/push-config.js","api/push-subscribe.js","api/push-digest.js",
   "data/events.js","data/artists.js","data/venues.js","data/discovery.js","data/taipei-dome-geometry.js","data/multi-venue-geometry.js",
-  "lib/official-monitor.js","lib/live-nation-discovery.js","lib/kaohsiung-arena-discovery.js","lib/taipei-arena-discovery.js","lib/artist-official-discovery.js",
-  "assets/hero-crowd.webp","assets/feature-stage.webp","assets/venue-3d.webp","assets/seat-view.webp",
+  "lib/official-monitor.js","lib/live-nation-discovery.js","lib/kaohsiung-arena-discovery.js","lib/taipei-arena-discovery.js","lib/artist-official-discovery.js","lib/taiwan-ticket-platform-discovery.js",
+  "assets/hero-crowd.webp","assets/hero-crowd-hd.webp","assets/feature-stage.webp","assets/venue-3d.webp","assets/seat-view.webp","assets/featured-1.webp","assets/featured-2.webp","assets/featured-3.webp","assets/featured-4.webp",
   "icons/icon-192.png","icons/icon-512.png","icons/icon-maskable-512.png","icons/apple-touch-icon.png"
 ];
 let ok = true;
@@ -181,12 +183,12 @@ if (!/zh-Hant/.test(i18n) || !/locale: 'en-US'/.test(i18n) || !/locale: 'ja-JP'/
 if (!/data-lang="zh-Hant"/.test(indexHtml) || !/data-lang="en"/.test(indexHtml) || !/data-lang="ja"/.test(indexHtml) || !/data-lang="ko"/.test(indexHtml)) { console.error("language selector buttons missing"); ok=false; }
 if (!/neul-language/.test(i18n) || !/neul:languagechange/.test(i18n) || !/MutationObserver/.test(i18n)) { console.error("dynamic language switching incomplete"); ok=false; }
 if (!/Noto\+Sans\+JP/.test(indexHtml)) { console.error("Japanese font support missing"); ok=false; }
-if (!/\/i18n\.js/.test(sw) || !/neul-v0\.32\.0/.test(sw)) { console.error("PWA multilingual cache update missing"); ok=false; }
+if (!/\/i18n\.js/.test(sw) || !/neul-v0\.34\.0/.test(sw)) { console.error("PWA multilingual cache update missing"); ok=false; }
 if (!/uiLocale/.test(app) || !/neul:languagechange/.test(app)) { console.error("locale-aware dynamic render hook missing"); ok=false; }
 
 
 // v0.28 settings reliability + Upcoming modal checks
-for (const id of ["allEventsModal","eventsMonthFilter","eventsStartFilter","eventsEndFilter","eventsModalList","eventsFilterReset"]) {
+for (const id of ["allEventsModal","eventsAreaSearch","eventsCityFilter","eventsMonthFilter","eventsStartFilter","eventsEndFilter","eventsModalList","eventsFilterReset"]) {
   if (!indexHtml.includes(`id="${id}"`)) { console.error("upcoming modal hook missing", id); ok=false; }
 }
 if (!/openAllEventsModal/.test(app) || !/modalFilteredEvents/.test(app) || !/eventsMonthFilter/.test(app) || !/data-events-window/.test(indexHtml)) { console.error("Upcoming modal/time filter incomplete"); ok=false; }
@@ -233,12 +235,46 @@ if (!indexHtml.includes('id="iveTaipeiDemo"') || !indexHtml.includes('id="iveDem
 if (!/model\.id !== "taipei-arena"/.test(app) || !/ive-show-what-i-am-2026/.test(app) || !/紅2D/.test(app)) { console.error("IVE Taipei Arena demo wiring missing"); ok=false; }
 if (!/taiwanVenueModels/.test(app) || !/taiwanEventsOnly/.test(app)) { console.error("frontend Taiwan-only guard missing"); ok=false; }
 const apiEventsCode = fs.readFileSync(new URL("../api/events.js", import.meta.url), "utf8");
-if (!/function isTaiwanEvent/.test(apiEventsCode) || !/TAIWAN_CITIES/.test(apiEventsCode) || !/\.filter\(isTaiwanEvent\)/.test(apiEventsCode)) { console.error("API Taiwan-only guard missing"); ok=false; }
+if (!/function isTaiwanEvent/.test(apiEventsCode) || !/TAIWAN_CITIES/.test(apiEventsCode) || !/isTaiwanEvent\(candidate\)/.test(apiEventsCode)) { console.error("API Taiwan-only guard missing"); ok=false; }
 const overseasVenueTokens=/Singapore|Tokyo|Seoul|Bangkok|Hong Kong|Macau|Osaka|Yokohama|Singapore Indoor Stadium|東京|首爾|新加坡/;
 for (const [id,v] of Object.entries(venueModels)) { if (overseasVenueTokens.test(`${v.name||''} ${v.en||''} ${v.city||''}`)) { console.error("overseas venue leaked into selector model",id,v); ok=false; } }
 if (seedEvents.some(e=>e.region!=="TW")) { console.error("overseas seed event leaked into Taiwan feed"); ok=false; }
 const iveLayout = getVenueLayout('ive-show-what-i-am-2026');
 if (!iveLayout || iveLayout.venueId!=='taipei-arena' || iveLayout.autoGenerated) { console.error("IVE hand-calibrated WebGL layout missing",iveLayout); ok=false; }
 
+// v0.33 complete Taipei Arena + HD/Featured + scalable Upcoming + ticket-platform discovery
+const taipeiModel=venueModels["taipei-arena"];
+const arena3f=taipeiModel.sections.filter(s=>String(s.id).match(/^[紅黃紫藍]3/));
+if (arena3f.length < 40) { console.error("Taipei Arena complete 3F structural bowl missing",arena3f.length); ok=false; }
+if (!/eventActive:false/.test(fs.readFileSync(new URL("../data/multi-venue-geometry.js", import.meta.url), "utf8"))) { console.error("event/base venue merge guard missing"); ok=false; }
+if (!/hero-crowd-hd\.webp/.test(css) || !/FEATURED_IMAGES/.test(app) || !/featuredImageFor/.test(app)) { console.error("HD hero or distinct Featured images missing"); ok=false; }
+if (!/eventsAreaSearch/.test(app) || !/eventsCityFilter/.test(app) || !/refreshEventsCityFilter/.test(app)) { console.error("scalable Upcoming region search missing"); ok=false; }
+if (!/discoverTaiwanTicketPlatforms/.test(apiEventsCode)) { console.error("Taiwan ticket-platform discovery not wired"); ok=false; }
+const lsf=seedEvents.find(e=>e.id==="le-sserafim-pureflow-taipei-2026");
+const kjw=seedEvents.find(e=>e.id==="kim-ji-won-wonederland-taipei-2026");
+if (!lsf || !kjw) { console.error("known tixCraft gap regression",{lsf,kjw}); ok=false; }
+
+// v0.34 Stray Kids price-in-3D + AAA + cross-source dedupe
+const skz34=seedEvents.find(e=>e.id==="skz-run-it-taipei-2026");
+const aaa=seedEvents.find(e=>e.id==="aaa-2026-kaohsiung");
+if (!skz34 || sectionTicketLabel("skz-run-it-2026","106") !== "NT$6,880" || sectionTicketLabel("skz-run-it-2026","111")) { console.error("Stray Kids fixed-stand 3D ticket price mapping missing/over-guessed",skz34,sectionTicketLabel("skz-run-it-2026","106"),sectionTicketLabel("skz-run-it-2026","111")); ok=false; }
+if (!indexHtml.includes('id="selectedPrice"') || !indexHtml.includes('id="viewerPriceChip"') || !/本場票價/.test(app) || !/optionLabel=ticket/.test(app)) { console.error("3D price chips/section labels missing"); ok=false; }
+if (!aaa || !aaa.start.startsWith("2026-12-05") || aaa.city!=="Kaohsiung" || aaa.type!=="AWARDS" || !indexHtml.includes('data-type="AWARDS"')) { console.error("AAA official seed/filter missing",aaa); ok=false; }
+const aaaLayoutId=ensureAutoEventLayout(aaa);
+const aaaLayout=getVenueLayout(aaaLayoutId);
+if (!aaaLayout || aaaLayout.venueId!=="kaohsiung-stadium" || !aaaLayout.stage?.centerStage || !aaaLayout.seatMapDetected) { console.error("AAA central-stage auto 3D missing",aaaLayout); ok=false; }
+const aaaFixture=`<html><head><title>2026 Asia Artist Awards in Kaohsiung</title></head><body>演出日期：2026年12月5日 17:00 演出地點：高雄國家體育場（世運主場館） 票價：NT$6,980 / 5,980 / 4,980 / 3,980 / 2,980 / 1,980 一般售票：2026年9月19日 13:00 <a href="https://static.tixcraft.com/images/activity/field/aaa.jpg">座位圖</a></body></html>`;
+const parsedAaa=parseTicketPlatformPage(aaaFixture,"https://tixcraft.com/activity/detail/26_aaa",{name:"tixCraft 拓元"});
+if (!parsedAaa || parsedAaa.type!=="AWARDS" || parsedAaa.city!=="Kaohsiung" || !parsedAaa.start.startsWith("2026-12-05")) { console.error("AAA ticket-platform parser failed",parsedAaa); ok=false; }
+const dedupeProbe=mergeAndDedupe([
+  {id:"seed",artist:"Stray Kids",title:"World Tour RUN IT TAIPEI",region:"TW",start:"2026-12-12T18:00:00+08:00",venue:"臺北大巨蛋 Taipei Dome",city:"Taipei",price:"VIP NT$7,880 / 一般 NT$6,880 / 5,880",sourceName:"Live Nation Taiwan",sourceUrl:"https://www.livenation.com.tw/a",verified:true,venueModelId:"taipei-dome",venueLayoutId:"skz-run-it-2026"}
+],[
+  {id:"auto",artist:"STRAY KIDS",title:"Stray Kids World Tour RUN IT",region:"TW",start:"2026-12-12T18:00:00+08:00",venue:"Taipei Dome",city:"Taipei",price:"依官方售票頁公告",sourceName:"tixCraft 拓元",sourceUrl:"https://tixcraft.com/activity/detail/26_straykids",verified:true,seatLayoutSourceUrl:"https://static.tixcraft.com/test.jpg"}
+]);
+if (dedupeProbe.length!==1 || !dedupeProbe[0].price?.includes("7,880") || dedupeProbe[0].venueLayoutId!=="skz-run-it-2026" || !dedupeProbe[0].seatLayoutSourceUrl || (dedupeProbe[0].sourceRefs||[]).length<2) { console.error("cross-source dedupe/quality merge failed",dedupeProbe); ok=false; }
+if (!/likelySameEvent/.test(apiEventsCode) || !/canonicalVenue/.test(apiEventsCode) || !/sourceRefs/.test(apiEventsCode)) { console.error("dedupe review engine missing"); ok=false; }
+const seedOnlyDedupe=mergeAndDedupe(seedEvents,[]);
+if (seedOnlyDedupe.length!==seedEvents.length || !seedOnlyDedupe.some(e=>e.id==="yuuri-asia-tour-taipei-2026")) { console.error("distinct official pages falsely deduped",{raw:seedEvents.length,deduped:seedOnlyDedupe.length}); ok=false; }
+
 if (!ok) process.exit(1);
-console.log(`NEUL v0.32 checks passed · Taiwan-only · ${seedEvents.length} seed events · ${Object.keys(venueModels).length} venue models · WebGL + Canvas fallback · PWA + IndexedDB · day mode · archive · calendar/reminders · seat compare · Web Push foundation · Taipei Dome Calibration 2.0 · TICC / TMC / KMC precision pass`);
+console.log(`NEUL v0.34 checks passed · Taiwan-only · ${seedEvents.length} seed events · ${Object.keys(venueModels).length} venue models · WebGL + Canvas fallback · PWA + IndexedDB · day mode · archive · calendar/reminders · seat compare · Web Push foundation · Taipei Dome Calibration 2.0 · TICC / TMC / KMC precision pass`);

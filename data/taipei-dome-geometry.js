@@ -76,6 +76,14 @@ export const taipeiDomeBase = {
   ]
 };
 
+const strayKidsSectionPriceLabels = {};
+for (const n of [...Array.from({length:7},(_,i)=>103+i), ...Array.from({length:7},(_,i)=>117+i)]) strayKidsSectionPriceLabels[pad3(n)] = "NT$6,880";
+for (const n of [102,110,116,124]) strayKidsSectionPriceLabels[pad3(n)] = "NT$5,880";
+for (const n of [...Array.from({length:8},(_,i)=>204+i), ...Array.from({length:7},(_,i)=>216+i)]) strayKidsSectionPriceLabels[pad3(n)] = "NT$5,880";
+for (const n of [202,203,223,224, ...Array.from({length:18},(_,i)=>301+i), ...Array.from({length:9},(_,i)=>405+i)]) strayKidsSectionPriceLabels[pad3(n)] = "NT$4,880";
+for (const n of [401,402,403,404,414,415,416,417, ...Array.from({length:7},(_,i)=>506+i)]) strayKidsSectionPriceLabels[pad3(n)] = "NT$3,880";
+for (const n of [503,504,505,513,514,515]) strayKidsSectionPriceLabels[pad3(n)] = "NT$2,880";
+
 export const strayKidsRunItLayout = {
   id: "skz-run-it-2026",
   eventId: "skz-run-it-taipei-2026",
@@ -92,7 +100,11 @@ export const strayKidsRunItLayout = {
   bStageFacingSections: ["001","002","003","004","005","006","007","008","009","010","011","012","013","014","015","016"],
   restrictedViewSections: ["001","006","102","110","111","112","113","114","115","116","124","202","203","223","224"],
   frontRowCaution: true,
+  sectionPriceLabels: strayKidsSectionPriceLabels,
+  priceSummary: "VIP NT$7,880 / 一般 NT$6,880 / 5,880 / 4,880 / 3,880 / 2,880",
+  seatLayoutSourceUrl: "https://static.tixcraft.com/images/activity/field/26_straykids_94646da4bfc54de7f8ccfdd2f7ea570e.jpg",
   notices: [
+    "本場票價色階已依拓元官方座位圖同步到可可靠對應的固定看台區；灰色／未售或無法可靠辨識的區域不硬填票價。",
     "平面 001–016 區依官方售票頁說明，座位主要面向 B-stage；觀看主舞台時可能需要轉身。",
     "官方售票頁列出的部分看台與平面區可能因舞台、FOH、場館結構或設備而有受限視角。",
     "各看台前排亦可能受安全欄杆或牆面影響；實際程度依座位而異。"
@@ -156,6 +168,8 @@ export function sectionWarning(sectionId, row, layout = strayKidsRunItLayout, vi
   const id = String(sectionId).padStart(3, "0");
   const messages = [];
   let level = "normal";
+  const ticketPrice = layout?.sectionPriceLabels?.[id] || null;
+  if (ticketPrice) messages.push(`本場官方座位圖對應票價：${ticketPrice}。`);
   if (layout.bStageFacingSections?.includes(id)) {
     messages.push("本區主要面向 B-stage；觀看主舞台時可能需要轉身。");
     level = "notice";

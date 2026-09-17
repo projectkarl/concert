@@ -28,7 +28,16 @@ const taipeiArena2 = [
   ...arenaColorSections('紫',2,174,126,18,[2.92,4.06]),
   ...arenaColorSections('藍',2,174,126,18,[4.32,5.10])
 ].map(s=>({...s,rowMin:1,rowMax:15,seatEstimateMax:28,depthX:24,depthZ:18,rise:12,rowCurve:1.04,rowRangeConfidence:'public-seat-records',seatRangeConfidence:'row-dependent'}));
-const taipeiArena3 = arcGroup(['黃3A','黃3B','黃3C','黃3D','黃3E','黃3F','黃3G','黃3H','黃3I','黃3J'], '3F', 210,154,54,.22,2.92).map(s=>({...s,rowMin:1,rowMax:30,depthX:32,depthZ:25,rise:17,rowCurve:1.08}));
+// Complete 3F bowl. Earlier builds only drew the yellow/rear arc, which made
+// auto-generated Taipei Arena events look like a partial venue. Keep all four
+// colour families in the structural model; event layouts may mark only the sold
+// ticket areas, but the physical bowl remains visible in True3D.
+const taipeiArena3 = [
+  ...arcGroup(['紅3A','紅3B','紅3C','紅3D','紅3E','紅3F','紅3G','紅3H','紅3I','紅3J'], '3F', 210,154,54,-1.10,.18),
+  ...arcGroup(['黃3A','黃3B','黃3C','黃3D','黃3E','黃3F','黃3G','黃3H','黃3I','黃3J'], '3F', 210,154,54,.22,2.92),
+  ...arcGroup(['紫3A','紫3B','紫3C','紫3D','紫3E','紫3F','紫3G','紫3H','紫3I','紫3J'], '3F', 210,154,54,2.96,4.24),
+  ...arcGroup(['藍3A','藍3B','藍3C','藍3D','藍3E','藍3F','藍3G','藍3H','藍3I','藍3J'], '3F', 210,154,54,4.28,5.58)
+].map(s=>({...s,rowMin:1,rowMax:30,seatEstimateMax:30,depthX:32,depthZ:25,rise:17,rowCurve:1.08,rowRangeConfidence:'venue-structural-model'}));
 const taipeiArenaSections = [...taipeiArena2, ...taipeiArena3];
 const taipeiArenaTiers = [
   {id:'2F', label:'二樓固定席', short:'2F', sections:taipeiArena2.map(x=>x.id)},
@@ -368,9 +377,15 @@ function autoStageForEvent(venueId, event={}) {
   const model=getVenueModel(venueId);
   const field=model.field || {x:120,z:90};
   const base=copyStage(model.stage) || genericStage(-Math.round(field.z*.92),Math.round(field.x*.7),28);
-  const isFanMeeting=/fan\s*meeting|fanmeeting|見面會/i.test(`${event.type||''} ${event.title||''}`);
+  const eventText=`${event.type||''} ${event.title||''} ${event.artist||''}`;
+  const isFanMeeting=/fan\s*meeting|fanmeeting|見面會/i.test(eventText);
+  const isCenterStage=/\bawards?\b|asia\s*artist\s*awards|\baaa\b|360(?:°|\s*degree)?|四面台|中央舞台/i.test(eventText);
   const compactVenue=['ticc','taipei-music-center','kaohsiung-music-center','ntu-sports-center','tianmu-gymnasium'].includes(venueId);
   const stadium=['taipei-dome','kaohsiung-stadium'].includes(venueId);
+  if (isCenterStage && stadium) {
+    const w=Math.max(54,Math.round(field.x*.30)), d=Math.max(48,Math.round(field.z*.34));
+    return {main:{x:0,y:-16,z:4,width:w,depth:d},runway:null,bStage:null,centerStage:true};
+  }
   if (isFanMeeting || compactVenue) return base;
   const main=base.main || {x:0,y:-16,z:-Math.round(field.z*.92),width:Math.round(field.x*.68),depth:28};
   const runwayEnd=stadium ? Math.round(field.z*.12) : Math.round(field.z*.02);
@@ -421,6 +436,7 @@ export function ensureAutoEventLayout(event={}) {
       seatMapDetected:linked,
       generationConfidence: linked ? 'seat-map-linked-draft' : 'venue-only-draft',
       sectionPriceRules:Array.isArray(event.sectionPriceRules) ? JSON.parse(JSON.stringify(event.sectionPriceRules)) : [],
+      priceSummary:event.price || null,
       generatedAt:new Date().toISOString(),
       notices:[
         linked
@@ -439,6 +455,7 @@ export function ensureAutoEventLayout(event={}) {
     layout.seatMapDetected=linked;
     layout.generationConfidence=linked ? 'seat-map-linked-draft' : 'venue-only-draft';
     layout.sectionPriceRules=Array.isArray(event.sectionPriceRules) ? JSON.parse(JSON.stringify(event.sectionPriceRules)) : [];
+    layout.priceSummary=event.price || layout.priceSummary || null;
     layout.generatedAt=new Date().toISOString();
     layout.notices=[
       linked
@@ -474,7 +491,18 @@ export function layoutsForVenue(venueId) { return Object.values(venueLayouts).fi
 export function getVenueModel(venueId) { return venueModels[venueId] || venueModels['taipei-dome']; }
 export function getVenueLayout(layoutId) { return venueLayouts[layoutId] || venueLayouts['taipei-dome-base']; }
 export function effectiveTiers(venueId, layoutId) { const layout=getVenueLayout(layoutId); return layout.venueId===venueId && Array.isArray(layout.tiers) ? layout.tiers : getVenueModel(venueId).tiers; }
-export function effectiveSections(venueId, layoutId) { const layout=getVenueLayout(layoutId); return layout.venueId===venueId && Array.isArray(layout.sections) ? layout.sections : getVenueModel(venueId).sections; }
+export function effectiveSections(venueId, layoutId) {
+  const model=getVenueModel(venueId), layout=getVenueLayout(layoutId);
+  if(layout.venueId!==venueId || !Array.isArray(layout.sections)) return model.sections;
+  // Event-specific ticket maps often expose only sold/open blocks. For 3D we still
+  // render the complete physical venue bowl and let event sections override the
+  // corresponding structural sections. This prevents auto-generated events from
+  // looking like an incomplete arena.
+  const eventById=new Map(layout.sections.map(s=>[String(s.id),{...s,eventActive:true}]));
+  const structural=model.sections.map(s=>eventById.get(String(s.id)) || {...s,eventActive:false});
+  const extras=layout.sections.filter(s=>!model.sections.some(m=>String(m.id)===String(s.id))).map(s=>({...s,eventActive:true}));
+  return [...structural,...extras];
+}
 export function getVenueTier(venueId,tierId,layoutId=null) { const tiers=effectiveTiers(venueId,layoutId); return tiers.find(t=>t.id===tierId)||tiers[0]; }
 export function getVenueSection(venueId,id,layoutId=null) {
   if (venueId==='taipei-dome' && (!layoutId || !getVenueLayout(layoutId).sections)) return getTaipeiDomeSection(id);

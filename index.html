@@ -64,6 +64,7 @@
           <button class="category" data-type="CONCERT">♬ 演唱會</button>
           <button class="category" data-type="FAN MEETING">♧ 見面會</button>
           <button class="category" data-type="FESTIVAL">♬ 音樂節</button>
+          <button class="category" data-type="AWARDS">★ 頒獎典禮</button>
           <button class="category" data-type="EXHIBITION">▧ 展覽</button>
           <button class="category" data-type="OTHER">◌ 其他</button>
         </div>
@@ -160,6 +161,7 @@
         <canvas id="venueOverviewCanvas" class="venue-render" aria-label="目前選擇場館的 3D 區域模型"></canvas>
         <span class="venue-stage-tag">STAGE</span>
         <span class="selected-zone">106</span>
+        <span class="selected-price" id="selectedPrice" hidden></span>
       </div>
       <div class="venue-controls">
         <label for="venueSelect">場館</label>
@@ -212,7 +214,9 @@
       <button id="viewerClose">×</button>
     </div>
     <canvas id="venueCanvas" aria-label="臺北大巨蛋互動 3D 場館"></canvas>
-    <div class="viewer-lens-chip" id="viewerLensChip">肉眼 · 160cm · 坐著</div><div class="viewer-help" id="viewerHelp">拖曳觀看 · 滾輪／雙指縮放 · 官方配置校正／模擬視角</div>
+    <div class="viewer-lens-chip" id="viewerLensChip">肉眼 · 160cm · 坐著</div>
+    <div class="viewer-price-chip" id="viewerPriceChip" hidden></div>
+    <div class="viewer-help" id="viewerHelp">拖曳觀看 · 滾輪／雙指縮放 · 官方配置校正／模擬視角</div>
   </div>
 
   <nav class="mobile-bottom" aria-label="手機導覽">
@@ -225,12 +229,16 @@
       <button class="events-modal-close" id="allEventsClose" type="button" aria-label="關閉">×</button>
       <span class="eyebrow">UPCOMING</span>
       <h2 id="allEventsTitle">所有近期活動</h2>
-      <p class="events-modal-lead">依目前城市與活動類型顯示，並可用月份或日期區間查詢。</p>
+      <p class="events-modal-lead">可依地區、場館／藝人關鍵字、月份或日期區間搜尋；未來新增縣市也會自動加入選單。</p>
+      <div class="events-location-filters" aria-label="活動地區搜尋">
+        <label class="events-search-wide"><span>搜尋</span><input id="eventsAreaSearch" type="search" autocomplete="off" placeholder="輸入縣市、場館或藝人"></label>
+        <label><span>地區</span><select id="eventsCityFilter"><option value="ALL">全台</option></select></label>
+      </div>
       <div class="events-time-filters" aria-label="活動時間篩選">
         <label><span>月份</span><input id="eventsMonthFilter" type="month"></label>
         <label><span>開始日期</span><input id="eventsStartFilter" type="date"></label>
         <label><span>結束日期</span><input id="eventsEndFilter" type="date"></label>
-        <button type="button" id="eventsFilterReset">清除時間</button>
+        <button type="button" id="eventsFilterReset">清除篩選</button>
       </div>
       <div class="events-quick-filter" role="group" aria-label="快速時間篩選">
         <button type="button" data-events-window="all" class="active">全部日期</button>

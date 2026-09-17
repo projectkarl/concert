@@ -134,6 +134,10 @@ const CUBE=cubeMesh();
 function sectionColor(layout,section,selected,theme='dark'){
   const light=theme==='light';
   if(selected)return light?'#d94ee8':'#d98cff';
+  // Structural sections that are not part of an event's published ticket map stay
+  // visible in the venue model, but subdued. They represent the physical arena,
+  // not an assertion that those seats are on sale for the selected event.
+  if(section.eventActive===false)return light?'#9ca6ae':'#252c33';
   if(layout.restrictedViewSections?.includes(String(section.id)))return light?'#c27b2d':'#8d6745';
   if(layout.id==='plave-keep-it-manic-2026')return (light?{vip6300:'#cf5b76','5300':'#2f8b75','3800':'#9a8e2d','2900':'#41865d'}:{vip6300:'#7d3d4d','5300':'#315d54','3800':'#77733b','2900':'#365846'})[section.group]||(light?'#657888':'#39434d');
   if(layout.id==='ive-show-what-i-am-2026')return (light?{vip7800:'#e05ca8','5800':'#55a2d1','4800':'#d77d88','3800':'#44aaa5',side2f:'#7797bd','3fRange':'#9277b3',box4800:'#aa7381'}:{vip7800:'#c45190','5800':'#5687a6','4800':'#aa6971','3800':'#4e908c',side2f:'#657991','3fRange':'#735e8b',box4800:'#825f68'})[section.group]||(light?'#657888':'#39434d');
@@ -155,9 +159,9 @@ function prism(top,thickness=7){
 function seatSamples(section,selected,quality){
   const out=[];
   const actualRows=Math.max(1,Number(section.rowMax??30)-Number(section.rowMin??1)+1);
-  const rows=selected?(quality==='high'?Math.min(42,actualRows):Math.min(24,actualRows)):(quality==='high'?Math.min(5,actualRows):Math.min(3,actualRows));
+  const rows=selected?(quality==='high'?Math.min(42,actualRows):Math.min(24,actualRows)):(quality==='high'?Math.min(8,actualRows):Math.min(5,actualRows));
   const seatMax=Math.max(10,Number(section.seatEstimateMax||28));
-  const cols=selected?(quality==='high'?Math.min(34,seatMax):Math.min(20,seatMax)):(quality==='high'?6:4);
+  const cols=selected?(quality==='high'?Math.min(34,seatMax):Math.min(20,seatMax)):(quality==='high'?9:6);
   if(section.shape==='block'||section.tier==='FLOOR'||Number.isFinite(section.x)){
     const w=section.width||38,d=section.depth||32;for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const u=(c+.5)/cols,v=(r+.5)/rows;out.push({x:section.x-w/2+u*w,y:(section.y??-20)+2.4+v*Number(section.rise||2),z:section.z-d/2+v*d,rot:Math.atan2(-section.x,-section.z)});}return out;
   }

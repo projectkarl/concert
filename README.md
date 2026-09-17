@@ -32,3 +32,19 @@ The venue models are calibrated reconstructions, not BIM or official per-seat CA
 - Taipei Arena keeps the existing page layout and only adds a compact IVE 2026 demo entry.
 - The IVE demo loads the hand-calibrated `ive-show-what-i-am-2026` WebGL layout (default demo seat: 紅2D 14排 19號).
 - Hand-calibrated 3D geometry is never overwritten by automatic data refresh; official structured prices/seat-map metadata can sync without moving calibrated distances.
+
+
+## v0.34 Price Sync + AAA + Duplicate Review
+
+- Stray Kids `RUN IT TAIPEI` keeps the official Taipei Dome 3D layout and now exposes official ticket price labels directly inside the 3D section UI for fixed-stand zones that can be reliably matched to the tixCraft seating map. Gray / unavailable / ambiguous zones are intentionally not assigned a guessed price.
+- Added the 2026 Asia Artist Awards in Kaohsiung (2026-12-05 to 12-06) with official tixCraft dates, price range, official seating-map source, and a centered / 360-stage auto-3D draft on the Kaohsiung National Stadium model.
+- Cross-source duplicate review now canonicalizes venue names and compares artist/title identity on the same date. Duplicate records from ticketing, promoter, artist official, and venue sources are merged into one event card rather than simply deleting one source.
+- Merge quality is source-aware: placeholders such as `TBA` / `依官方售票頁公告` cannot overwrite richer verified prices, while seat-layout URLs, price rules, notes, and source references are preserved and merged.
+- UI structure and existing visual design are unchanged; this update is data-quality and True3D functionality only.
+
+## v0.33 refinement
+- Original homepage design preserved.
+- Taipei Arena auto-3D now keeps the complete physical seating bowl visible.
+- HD hero asset and distinct Featured Concert carousel imagery.
+- Upcoming “view more” supports dynamic Taiwan city/region search plus venue/artist keyword search.
+- Added Taiwan ticket-platform discovery layer while retaining Taiwan-only filtering.
