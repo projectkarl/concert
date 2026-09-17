@@ -704,4 +704,94 @@ export const seedEvents = [
     ],
     notes: ["活動資訊來自 ibon 售票資料與主辦公告彙整，演出後亦有韓媒報導確認活動完成。"]
   },
+
+  {
+    id: "hans-zimmer-next-level-taipei-2026", artist: "Hans Zimmer", shortArtist: "HZ", market: "EU",
+    title: "HANS ZIMMER LIVE – THE NEXT LEVEL IN TAIPEI", type: "CONCERT", region: "TW",
+    start: "2026-09-20T19:30:00+08:00", timeConfirmed: true, venue: "臺北小巨蛋 Taipei Arena", city: "Taipei",
+    statusLabel: "演唱會", ticketStatus: "ON SALE", ticketing: "寬宏售票", price: "VIP NT$8,800 / NT$6,880 / 5,880 / 4,880 / 3,880 / 2,880 / 800",
+    sourceName: "臺北小巨蛋官方", sourceUrl: "https://www.arena.taipei/News_Content.aspx?n=2E1489AFE4B1BEA1&s=35991854E23FBF99&sms=F9A95D3F5A5C2C68",
+    verified: true, checkedAt: "2026-09-17T11:30:00+08:00", tags: ["EU","SCORE","TAIPEI ARENA"], venueModelId: "taipei-arena", venueLayoutId: "taipei-arena-far",
+    summary: "漢斯·季默本人演出的 The Next Level 台北場，臺北小巨蛋官方已公布日期、時間、票價與售票系統。"
+  },
+  {
+    id: "lany-soft-world-tour-taipei-2026", artist: "LANY", shortArtist: "LANY", market: "US",
+    title: "LANY: soft world tour", type: "CONCERT", region: "TW", start: "2026-09-26T00:00:00+08:00", timeConfirmed: false,
+    venue: "臺北小巨蛋 Taipei Arena", city: "Taipei", statusLabel: "演唱會", ticketStatus: "ON SALE", ticketing: "tixCraft 拓元", price: "NT$800–8,880",
+    sourceName: "Live Nation Taiwan", sourceUrl: "https://www.livenation.com.tw/en/event/lany-soft-world-tour-taipei-tickets-edp1660106", verified: true, checkedAt: "2026-09-17T11:30:00+08:00",
+    tags: ["US","ALTERNATIVE","TAIPEI ARENA"], venueModelId: "taipei-arena", venueLayoutId: "taipei-arena-far", summary: "LANY 2026/09/26 首度攻台北小巨蛋。"
+  },
+  {
+    id: "befirst-watch-me-taipei-2026", artist: "BE:FIRST", shortArtist: "BE1", market: "JP",
+    title: "BE:FIRST WORLD SHOWCASE 2026 “WATCH ME”", type: "CONCERT", region: "TW", start: "2026-09-27T00:00:00+08:00", timeConfirmed: false,
+    venue: "Legacy TERA", city: "Taipei", statusLabel: "演唱會", ticketStatus: "SOLD OUT", ticketing: "tixCraft 拓元", price: "VIP NT$5,180 / NT$2,480",
+    sourceName: "Live Nation Taiwan", sourceUrl: "https://www.livenation.com.tw/en/event/be-first-world-showcase-2026-watch-me--taipei-tickets-edp1674414", verified: true, checkedAt: "2026-09-17T11:30:00+08:00", tags: ["JP","J-POP","LEGACY TERA"]
+  },
+  {
+    id: "henry-moodie-mood-swings-taipei-2026", artist: "Henry Moodie", shortArtist: "HM", market: "UK",
+    title: "Henry Moodie: Mood Swings World Tour", type: "CONCERT", region: "TW", start: "2026-10-05T00:00:00+08:00", timeConfirmed: false,
+    venue: "Legacy Taipei", city: "Taipei", statusLabel: "演唱會", ticketStatus: "ON SALE", ticketing: "tixCraft 拓元", price: "NT$2,280 + VIP Package",
+    sourceName: "Live Nation Taiwan", sourceUrl: "https://www.livenation.com.tw/en/event/henry-moodie-mood-swings-world-tour-taipei-tickets-edp1694176", verified: true, checkedAt: "2026-09-17T11:30:00+08:00", tags: ["UK","POP","LEGACY"]
+  },
+  {
+    id: "yuuri-asia-tour-taipei-2026", artist: "Yuuri", shortArtist: "YUR", market: "JP",
+    title: "Yuuri ASIA TOUR 2026 in Taipei", type: "CONCERT", region: "TW", start: "2026-10-09T17:00:00+08:00", end: "2026-10-10T17:00:00+08:00", timeConfirmed: true,
+    venue: "臺北小巨蛋 Taipei Arena", city: "Taipei", statusLabel: "演唱會", ticketStatus: "ON SALE", ticketing: "Ticket Plus 遠大", price: "NT$5,280 / 4,880 / 4,280 / 3,280 / 2,280 / 800 / 400",
+    sourceName: "臺北小巨蛋官方", sourceUrl: "https://www.arena.taipei/News_Content.aspx?n=2E1489AFE4B1BEA1&s=F5A59B45406E3E27", verified: true, checkedAt: "2026-09-17T11:30:00+08:00",
+    tags: ["JP","J-POP","2 DAYS","TAIPEI ARENA"], venueModelId: "taipei-arena", venueLayoutId: "taipei-arena-far"
+  },
+  {
+    id: "xg-the-core-taipei-2026", artist: "XG", shortArtist: "XG", market: "JP",
+    title: "XG WORLD TOUR: THE CORE (TAIPEI)", type: "CONCERT", region: "TW", start: "2026-10-17T00:00:00+08:00", timeConfirmed: false,
+    venue: "臺北小巨蛋 Taipei Arena", city: "Taipei", statusLabel: "演唱會", ticketStatus: "ON SALE", ticketing: "依官方售票頁公告", price: "依官方公告",
+    sourceName: "XG Official", sourceUrl: "https://xgalx.com/xg/schedule/detail.php?id=1116559", secondarySourceUrl: "https://www.arena.taipei/News_Content.aspx?n=2E1489AFE4B1BEA1&s=C25BAEDAF3FD2862&sms=F9A95D3F5A5C2C68", verified: true, checkedAt: "2026-09-17T11:30:00+08:00",
+    tags: ["JP","GLOBAL","TAIPEI ARENA"], venueModelId: "taipei-arena", venueLayoutId: "taipei-arena-far"
+  },
+  {
+    id: "charlie-puth-clever-taipei-2026", artist: "Charlie Puth", shortArtist: "CP", market: "US",
+    title: "Charlie Puth - Whatever's Clever! World Tour", type: "CONCERT", region: "TW", start: "2026-10-20T00:00:00+08:00", timeConfirmed: false,
+    venue: "臺北小巨蛋 Taipei Arena", city: "Taipei", statusLabel: "演唱會", ticketStatus: "ON SALE", ticketing: "tixCraft 拓元", price: "依官方售票頁公告",
+    sourceName: "Live Nation Taiwan", sourceUrl: "https://www.livenation.com.tw/en/event/charlie-puth-whatever-s-clever-world-tour-taipei-tickets-edp1681124", verified: true, checkedAt: "2026-09-17T11:30:00+08:00",
+    tags: ["US","POP","TAIPEI ARENA"], venueModelId: "taipei-arena", venueLayoutId: "taipei-arena-far"
+  },
+  {
+    id: "vaundy-horo-taipei-2026", artist: "Vaundy", shortArtist: "VAU", market: "JP",
+    title: "Vaundy ASIA ARENA TOUR 2026 “HORO” in TAIPEI", type: "CONCERT", region: "TW", start: "2026-10-31T19:00:00+08:00", end: "2026-11-01T19:00:00+08:00", timeConfirmed: true,
+    venue: "臺北小巨蛋 Taipei Arena", city: "Taipei", statusLabel: "演唱會", ticketStatus: "SOLD OUT", ticketing: "Ticket Plus 遠大", price: "NT$5,880 / 4,880 / 3,880 / 2,880 / 800",
+    sourceName: "Vaundy Official / 臺北小巨蛋", sourceUrl: "https://member.vaundy.jp/feature/ASIAARENATOUR_2026", secondarySourceUrl: "https://www.arena.taipei/News_Content.aspx?n=2E1489AFE4B1BEA1&s=44EFCD82A9D43986&sms=F9A95D3F5A5C2C68", verified: true, checkedAt: "2026-09-17T11:30:00+08:00",
+    tags: ["JP","J-POP","2 DAYS","SOLD OUT","TAIPEI ARENA"], venueModelId: "taipei-arena", venueLayoutId: "taipei-arena-far"
+  },
+  {
+    id: "babymonster-choom-taipei-2026", artist: "BABYMONSTER", shortArtist: "BM", market: "KR",
+    title: "2026–27 BABYMONSTER WORLD TOUR [춤 (CHOOM)] IN TAIPEI", type: "CONCERT", region: "TW", start: "2026-11-21T00:00:00+08:00", end: "2026-11-22T00:00:00+08:00", timeConfirmed: false,
+    venue: "臺北小巨蛋 Taipei Arena", city: "Taipei", statusLabel: "官方已確認", ticketStatus: "DETAILS TBA", generalSale: null, ticketing: "TBA", price: "TBA",
+    sourceName: "YG Entertainment Official", sourceUrl: "https://artist.ygfamily.co.kr/ARTISTS/BABYMONSTER/concert/worldtourchoom/index.html", verified: true, checkedAt: "2026-09-17T11:30:00+08:00",
+    tags: ["KR","K-POP","2 DAYS","TAIPEI ARENA","YG OFFICIAL"], venueModelId: "taipei-arena", venueLayoutId: "taipei-arena-far",
+    summary: "YG 官方世界巡演頁確認 BABYMONSTER 於 2026/11/21、11/22 在 Taipei Arena 舉行台北站；售票細節仍為 Coming Soon。",
+    sessions: [{date:"2026/11/21",time:"待公布",note:"YG 官方已確認"},{date:"2026/11/22",time:"待公布",note:"YG 官方已確認"}], notes:["在主辦／售票頁公開前，不自行填寫票價、開賣時間或本場座位圖。"]
+  },
+  {
+    id: "malcolm-todd-do-that-again-taipei-2026", artist: "Malcolm Todd", shortArtist: "MT", market: "US",
+    title: "Malcolm Todd: Do That Again Tour", type: "CONCERT", region: "TW", start: "2026-11-23T00:00:00+08:00", timeConfirmed: false,
+    venue: "台北國際會議中心 TICC", city: "Taipei", statusLabel: "演唱會", ticketStatus: "UPCOMING SALE", generalSale: "2026-09-23T12:00:00+08:00", ticketing: "tixCraft 拓元", price: "NT$1,980–5,180（依官方頁即時顯示）",
+    sourceName: "Live Nation Taiwan", sourceUrl: "https://www.livenation.com.tw/en/event/malcolm-todd-do-that-again-tour-taipei-tickets-edp1697051", verified: true, checkedAt: "2026-09-17T11:30:00+08:00", tags: ["US","INDIE POP","TICC"], venueModelId: "ticc", venueLayoutId: "ticc-base"
+  },
+  {
+    id: "5sos-everyones-a-star-taipei-2026", artist: "5 Seconds of Summer", shortArtist: "5SOS", market: "AU",
+    title: "5 SECONDS OF SUMMER: EVERYONE’S A STAR! WORLD TOUR", type: "CONCERT", region: "TW", start: "2026-11-25T00:00:00+08:00", timeConfirmed: false,
+    venue: "臺北流行音樂中心 Taipei Music Center", city: "Taipei", statusLabel: "演唱會", ticketStatus: "ON SALE", ticketing: "tixCraft 拓元", price: "NT$3,380 起；VIP NO.1 OBSESSION SEAT PACKAGE NT$8,680",
+    sourceName: "Live Nation Taiwan", sourceUrl: "https://www.livenation.com.tw/event/5-seconds-of-summer-everyone-s-a-star-world-tour-taipei-tickets-edp1690391", verified: true, checkedAt: "2026-09-17T11:30:00+08:00", tags: ["AU","ROCK","TMC"], venueModelId: "taipei-music-center", venueLayoutId: "tmc-base"
+  },
+  {
+    id: "khalid-summer-somewhere-taipei-2026", artist: "Khalid", shortArtist: "KHA", market: "US",
+    title: "Khalid: It's Always Summer Somewhere Tour", type: "CONCERT", region: "TW", start: "2026-12-07T00:00:00+08:00", timeConfirmed: false,
+    venue: "台北國際會議中心 TICC", city: "Taipei", statusLabel: "演唱會", ticketStatus: "ON SALE", ticketing: "依官方售票頁公告", price: "依官方公告",
+    sourceName: "Live Nation Taiwan", sourceUrl: "https://www.livenation.com.tw/en/khalid-tickets-adp928417", verified: true, checkedAt: "2026-09-17T11:30:00+08:00", tags: ["US","R&B","TICC"], venueModelId: "ticc", venueLayoutId: "ticc-base"
+  },
+  {
+    id: "fkj-tyber-tour-taipei-2026", artist: "FKJ", shortArtist: "FKJ", market: "FR",
+    title: "FKJ – Tyber Tour", type: "CONCERT", region: "TW", start: "2026-12-08T00:00:00+08:00", timeConfirmed: false,
+    venue: "Zepp New Taipei", city: "New Taipei", statusLabel: "演唱會", ticketStatus: "ON SALE", ticketing: "tixCraft 拓元", price: "NT$2,580–3,680",
+    sourceName: "Live Nation Taiwan", sourceUrl: "https://www.livenation.com.tw/event/fkj-tyber-tour-taipei-tickets-edp1685113", verified: true, checkedAt: "2026-09-17T11:30:00+08:00", tags: ["FR","ELECTRONIC","ZEPP"]
+  },
 ];

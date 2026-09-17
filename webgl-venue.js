@@ -145,7 +145,7 @@ function sectionTop(section){
   if(section.tier==='FLOOR'||section.shape==='block'||Number.isFinite(section.x)){
     const w=section.width||38,d=section.depth||32,y=section.y??-20;return[[section.x-w/2,y,section.z-d/2],[section.x+w/2,y,section.z-d/2],[section.x+w/2,y,section.z+d/2],[section.x-w/2,y,section.z+d/2]];
   }
-  const half=section.span||.11,ox=section.radiusX+22,oz=section.radiusZ+17,ix=section.radiusX-5,iz=section.radiusZ-4,y0=section.y,y1=section.y+11;
+  const half=section.span||.11,dx=Number(section.depthX??24),dz=Number(section.depthZ??18),rise=Number(section.rise??12),ix=section.radiusX-2,iz=section.radiusZ-2,ox=section.radiusX+dx,oz=section.radiusZ+dz,y0=section.y,y1=section.y+rise;
   return[[Math.cos(section.angle-half)*ix,y0,Math.sin(section.angle-half)*iz],[Math.cos(section.angle+half)*ix,y0,Math.sin(section.angle+half)*iz],[Math.cos(section.angle+half)*ox,y1,Math.sin(section.angle+half)*oz],[Math.cos(section.angle-half)*ox,y1,Math.sin(section.angle-half)*oz]];
 }
 function prism(top,thickness=7){
@@ -153,11 +153,31 @@ function prism(top,thickness=7){
   return meshFromFaces([[top[0],top[1],top[2]],[top[0],top[2],top[3]],[b[0],b[2],b[1]],[b[0],b[3],b[2]],[top[0],b[0],b[1]],[top[0],b[1],top[1]],[top[1],b[1],b[2]],[top[1],b[2],top[2]],[top[2],b[2],b[3]],[top[2],b[3],top[3]],[top[3],b[3],b[0]],[top[3],b[0],top[0]]]);
 }
 function seatSamples(section,selected,quality){
-  const out=[],rows=selected?(quality==='high'?8:6):(quality==='high'?3:2),cols=selected?(quality==='high'?12:9):(quality==='high'?5:3);
+  const out=[];
+  const actualRows=Math.max(1,Number(section.rowMax??30)-Number(section.rowMin??1)+1);
+  const rows=selected?(quality==='high'?Math.min(42,actualRows):Math.min(24,actualRows)):(quality==='high'?Math.min(5,actualRows):Math.min(3,actualRows));
+  const seatMax=Math.max(10,Number(section.seatEstimateMax||28));
+  const cols=selected?(quality==='high'?Math.min(34,seatMax):Math.min(20,seatMax)):(quality==='high'?6:4);
   if(section.shape==='block'||section.tier==='FLOOR'||Number.isFinite(section.x)){
-    const w=section.width||38,d=section.depth||32;for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const u=(c+.5)/cols,v=(r+.5)/rows;out.push({x:section.x-w/2+u*w,y:(section.y??-20)+2.4,z:section.z-d/2+v*d,rot:Math.atan2(-section.x,-section.z)});}return out;
+    const w=section.width||38,d=section.depth||32;for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const u=(c+.5)/cols,v=(r+.5)/rows;out.push({x:section.x-w/2+u*w,y:(section.y??-20)+2.4+v*Number(section.rise||2),z:section.z-d/2+v*d,rot:Math.atan2(-section.x,-section.z)});}return out;
   }
-  const span=section.span||.11;for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const v=(r+.5)/rows,u=(c+.5)/cols,a=section.angle-span*.78+u*span*1.56,rx=section.radiusX-1+v*24,rz=section.radiusZ-1+v*18;out.push({x:Math.cos(a)*rx,y:section.y+3+v*10,z:Math.sin(a)*rz,rot:Math.atan2(-Math.cos(a),-Math.sin(a))});}return out;
+  const span=section.span||.11,dx=Number(section.depthX??24),dz=Number(section.depthZ??18),rise=Number(section.rise??12),curve=Number(section.rowCurve||1);
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){let v=(r+.5)/rows;v=Math.pow(v,curve);const u=(c+.5)/cols,a=section.angle-span*.78+u*span*1.56,rx=section.radiusX+v*dx,rz=section.radiusZ+v*dz;out.push({x:Math.cos(a)*rx,y:section.y+2.2+v*rise,z:Math.sin(a)*rz,rot:Math.atan2(-Math.cos(a),-Math.sin(a))});}return out;
+}
+function sectionArchitecture(section,selected,quality,theme){
+  const lines=[],solids=[]; if(section.shape==='block'||section.tier==='FLOOR'||Number.isFinite(section.x))return{lines,solids};
+  const half=section.span||.11,dx=Number(section.depthX??24),dz=Number(section.depthZ??18),rise=Number(section.rise??12),rows=Math.max(1,Number(section.rowMax??30)-Number(section.rowMin??1)+1);
+  const railColor=theme==='light'?[.47,.53,.58,.92]:[.58,.64,.70,.82];
+  // Side stair / aisle edges follow the real section depth rather than a flat overlay.
+  for(const side of [-1,1]){const pts=[];const n=selected?(quality==='high'?Math.min(rows,32):12):6;for(let i=0;i<=n;i++){const v=i/n,a=section.angle+side*half*.91;pts.push(Math.cos(a)*(section.radiusX+v*dx),section.y+1.1+v*rise,Math.sin(a)*(section.radiusZ+v*dz));}lines.push({vertices:new Float32Array(pts),color:railColor});}
+  // Individual riser edges are shown for the selected zone; nearby zones keep sparse cross-aisles.
+  const nSteps=selected?(quality==='high'?Math.min(rows,32):Math.min(rows,18)):Math.min(3,rows);
+  for(let i=0;i<=nSteps;i++){const v=nSteps?i/nSteps:0,a0=section.angle-half*.88,a1=section.angle+half*.88,rx=section.radiusX+v*dx,rz=section.radiusZ+v*dz,y=section.y+.55+v*rise;lines.push({vertices:new Float32Array([Math.cos(a0)*rx,y,Math.sin(a0)*rz,Math.cos(a1)*rx,y,Math.sin(a1)*rz]),color:theme==='light'?[.36,.41,.46,.40]:[.72,.76,.80,.30]});}
+  // Cross aisle at roughly two-thirds depth for deeper bowls.
+  if(rows>=18){const v=.63,a0=section.angle-half*.95,a1=section.angle+half*.95,rx=section.radiusX+v*dx,rz=section.radiusZ+v*dz,y=section.y+1.0+v*rise;lines.push({vertices:new Float32Array([Math.cos(a0)*rx,y,Math.sin(a0)*rz,Math.cos(a1)*rx,y,Math.sin(a1)*rz]),color:theme==='light'?[.70,.74,.78,.85]:[.86,.88,.90,.62]});}
+  // Handrail posts at aisle edges, only dense around selected block to preserve mobile performance.
+  if(selected){for(const side of [-1,1])for(const v of [.08,.32,.56,.80]){const a=section.angle+side*half*.93,rx=section.radiusX+v*dx,rz=section.radiusZ+v*dz;solids.push(boxItem({x:Math.cos(a)*rx,y:section.y+v*rise,z:Math.sin(a)*rz,width:.48,depth:.48,height:3.3},theme==='light'?'#8c979f':'#65717b','#111820',3.3));}}
+  return{lines,solids};
 }
 function boxItem(cfg,color,emissive='#090a0d',height=5){const h=cfg.height||height;return{mesh:CUBE,model:mat4TRS(cfg.x||0,(cfg.y??-16)+h/2,cfg.z||0,cfg.ry||0,cfg.width||40,h,cfg.depth||20),color,emissive};}
 function ringLine(rx,rz,y,n=96){const a=[];for(let i=0;i<=n;i++){const t=i/n*Math.PI*2;a.push(Math.cos(t)*rx,y,Math.sin(t)*rz);}return new Float32Array(a);}
@@ -167,7 +187,7 @@ function buildCPUScene(config,quality){
   const {model,layout,sections,selectedId}=config,solids=[],lines=[],seatMats=[],seatColors=[],theme=config.theme||'dark';
   const lightTheme=theme==='light';
   solids.push(boxItem({x:0,y:-27,z:0,width:model.field.x*2.15,depth:model.field.z*2.2},lightTheme?'#26303a':'#151b20','#000000',3));
-  for(const sec of sections){const selected=String(sec.id)===selectedId,top=sectionTop(sec);solids.push({mesh:prism(top,selected?9:6.5),model:mat4Identity(),color:sectionColor(layout,sec,selected,theme),emissive:selected?(lightTheme?'#7c237f':'#5e1f75'):'#06080b'});if(selected)lines.push({vertices:rectLine(top),color:lightTheme?[1,.88,1,1]:[.96,.83,1,1]});for(const s of seatSamples(sec,selected,quality)){seatMats.push(mat4TRS(s.x,s.y,s.z,s.rot,2.15,1.8,1.8));seatColors.push(...color3(selected?(lightTheme?'#ffd0ff':'#f2b7ff'):sectionColor(layout,sec,false,theme)));}}
+  for(const sec of sections){const selected=String(sec.id)===selectedId,top=sectionTop(sec);solids.push({mesh:prism(top,selected?9:6.5),model:mat4Identity(),color:sectionColor(layout,sec,selected,theme),emissive:selected?(lightTheme?'#7c237f':'#5e1f75'):'#06080b'});if(selected)lines.push({vertices:rectLine(top),color:lightTheme?[1,.88,1,1]:[.96,.83,1,1]});const arch=sectionArchitecture(sec,selected,quality,theme);solids.push(...arch.solids);lines.push(...arch.lines);for(const seat of seatSamples(sec,selected,quality)){seatMats.push(mat4TRS(seat.x,seat.y,seat.z,seat.rot,2.15,1.8,1.8));seatColors.push(...color3(selected?(lightTheme?'#ffd0ff':'#f2b7ff'):sectionColor(layout,sec,false,theme)));}}
   const stage=layout.stage||model.stage;solids.push(boxItem(stage.main,'#090a0e','#251427',7));
   // Runway edge lights add depth cues for long catwalks.
   if(stage.runway){
@@ -191,6 +211,13 @@ function buildCPUScene(config,quality){
   solids.push(boxItem({x:m.x,y:screenY,z:screenZ,width:m.width*.72,depth:1.15},ledMain[0],ledMain[1],screenH));
   solids.push(boxItem({x:m.x-m.width*.60,y:screenY-1,z:screenZ+1,width:m.width*.18,depth:1.05},ledLeft[0],ledLeft[1],screenH*.78));
   solids.push(boxItem({x:m.x+m.width*.60,y:screenY-1,z:screenZ+1,width:m.width*.18,depth:1.05},ledRight[0],ledRight[1],screenH*.78));
+  // LED panel seams and light bars: true geometry in WebGL, not an image overlay.
+  if(!rearView){
+    const gridColor=[.94,.90,1,.20];
+    for(let i=1;i<8;i++){const x=m.x-m.width*.36+i*(m.width*.72/8);lines.push({vertices:new Float32Array([x,screenY-screenH*.48,screenZ-0.7,x,screenY+screenH*.48,screenZ-0.7]),color:gridColor});}
+    for(let i=1;i<5;i++){const y=screenY-screenH*.5+i*(screenH/5);lines.push({vertices:new Float32Array([m.x-m.width*.36,y,screenZ-.7,m.x+m.width*.36,y,screenZ-.7]),color:gridColor});}
+    for(let i=0;i<6;i++){const x=m.x-m.width*.32+i*(m.width*.64/5);solids.push(boxItem({x,y:m.y+6,z:m.z+m.depth*.43,width:.65,depth:.65,height:1.1},'#fff5ff',i%2?'#6d78ff':'#df62ef',1.1));}
+  }
   // Truss and hanging speaker arrays make the venue feel more like a live concert without pretending to be an exact rig.
   const trussY=m.y+screenH+18;
   solids.push(boxItem({x:m.x,y:trussY,z:m.z,width:m.width*1.24,depth:2.4},'#29313a','#111923',2.4));
@@ -224,7 +251,7 @@ function buildCPUScene(config,quality){
   for(let i=0;i<16;i++){const a=i/16*Math.PI*2;solids.push(boxItem({x:Math.cos(a)*rx*.99,y:-18,z:Math.sin(a)*rz*.99,width:2.5,depth:2.5},'#26303a','#05070a',maxY+65));}
   for(const o of config.occluders||[]){solids.push(boxItem(o,o.color||'#343b42',o.kind==='overhang'?'#080a0c':'#101318',o.height||4));}
   const sp=config.seatPosition;solids.push(boxItem({x:sp[0],y:sp[1]-3,z:sp[2],width:4,depth:4,height:6},'#ffe2ff','#c45de4',6));
-  const maxSeats=quality==='high'?1900:950,seatCount=Math.min(maxSeats,seatMats.length);
+  const maxSeats=quality==='high'?3200:1450,seatCount=Math.min(maxSeats,seatMats.length);
   return{solids,lines:lines.filter(x=>x.vertices),seatMats:seatMats.slice(0,seatCount),seatColors:new Float32Array(seatColors.slice(0,seatCount*3)),seatCount};
 }
 

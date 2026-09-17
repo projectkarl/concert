@@ -2,13 +2,15 @@ import fs from "node:fs";
 import { extractLiveNationEventUrls, parseLiveNationDiscoveredEvent } from "../lib/live-nation-discovery.js";
 import { extractOfficialSeatLayoutUrl } from "../lib/official-monitor.js";
 import { parseKaohsiungArenaCalendar } from "../lib/kaohsiung-arena-discovery.js";
+import { extractTaipeiArenaLinks, parseTaipeiArenaDates } from "../lib/taipei-arena-discovery.js";
+import { parseBabymonsterChoomTaipei } from "../lib/artist-official-discovery.js";
 import { seedEvents } from "../data/events.js";
 import { venueModels, venueLayouts, getVenueSection, venueSectionWarning, venueSectionPosition, venueIdFromName, ensureAutoEventLayout, getVenueLayout } from "../data/multi-venue-geometry.js";
 
 const required = [
   "index.html","styles.css","app.js","i18n.js","enhancements.js","storage.js","pwa.js","sw.js","manifest.webmanifest","webgl-venue.js","THIRD_PARTY_NOTICES.md","vercel.json","api/events.js","api/official.js","api/refresh.js","api/push-config.js","api/push-subscribe.js","api/push-digest.js",
   "data/events.js","data/artists.js","data/venues.js","data/discovery.js","data/taipei-dome-geometry.js","data/multi-venue-geometry.js",
-  "lib/official-monitor.js","lib/live-nation-discovery.js","lib/kaohsiung-arena-discovery.js",
+  "lib/official-monitor.js","lib/live-nation-discovery.js","lib/kaohsiung-arena-discovery.js","lib/taipei-arena-discovery.js","lib/artist-official-discovery.js",
   "assets/hero-crowd.webp","assets/feature-stage.webp","assets/venue-3d.webp","assets/seat-view.webp",
   "icons/icon-192.png","icons/icon-512.png","icons/icon-maskable-512.png","icons/apple-touch-icon.png"
 ];
@@ -45,6 +47,19 @@ const urls = extractLiveNationEventUrls(fixture, "https://www.livenation.com.tw/
 if (urls.length !== 1) { console.error("discovery URL parser failed", urls); ok = false; }
 const parsed = parseLiveNationDiscoveredEvent(fixture, urls[0]);
 if (!parsed || parsed.region !== "TW" || parsed.venue !== "Taipei Arena" || !parsed.start.startsWith("2026-12-30")) { console.error("discovery event parser failed", parsed); ok = false; }
+
+const intlFixture = `<html><body><h1>5 SECONDS OF SUMMER: EVERYONE’S A STAR! WORLD TOUR</h1><div>Australian pop rock band</div><div>● TIME: 2026/11/25</div><div>● VENUE: Taipei Music Center</div><div>● PRICE: NTD $3,380</div><div>Line-Up</div><div>Headliner</div><div>5 Seconds of Summer</div></body></html>`;
+const intlParsed = parseLiveNationDiscoveredEvent(intlFixture, "https://www.livenation.com.tw/en/event/5-seconds-of-summer-test");
+if (!intlParsed || intlParsed.market !== "AU" || intlParsed.region !== "TW") { console.error("international Live Nation parser still filtering non-Korean event", intlParsed); ok=false; }
+
+const arenaFixture = `<a href="/News_Content.aspx?n=2E1489AFE4B1BEA1&s=AAA&sms=F9A95D3F5A5C2C68">2026/10/09、10/10 Yuuri ASIA TOUR 2026 in Taipei</a><a href="/News_Content.aspx?n=2E1489AFE4B1BEA1&s=BBB&sms=F9A95D3F5A5C2C68">2026/10/31、11/01 Vaundy ASIA ARENA TOUR 2026 “HORO” in TAIPEI</a>`;
+const arenaLinks = extractTaipeiArenaLinks(arenaFixture);
+const arenaDates = parseTaipeiArenaDates(arenaLinks[0]?.title || "");
+if (arenaLinks.length !== 2 || arenaDates?.start !== "2026-10-09T00:00:00+08:00" || arenaDates?.end !== "2026-10-10T00:00:00+08:00") { console.error("Taipei Arena official index parser failed", arenaLinks, arenaDates); ok=false; }
+
+const ygFixture = `<main>TAIPEI TAIPEI ARENA 2026.11.21. (SAT) 2026.11.22. (SUN) COMING SOON SINGAPORE</main>`;
+const bmOfficial = parseBabymonsterChoomTaipei(ygFixture);
+if (!bmOfficial || bmOfficial.start !== "2026-11-21T00:00:00+08:00" || bmOfficial.end !== "2026-11-22T00:00:00+08:00" || bmOfficial.sourceName !== "YG Entertainment Official") { console.error("BABYMONSTER YG official parser failed", bmOfficial); ok=false; }
 
 const kaoFixture = `<div>藝文表演 TREASURE THE STAGE 2026 NEW WAV : LIVE IN KAOHSIUNG 2026/09/26~2026/09/26</div><div>藝文表演 2026 PLAVE World Tour [KEEP IT MANIC] in Kaohsiung 2026/10/03~2026/10/03</div><div>其他 KICA 2026/10/09~2026/10/12</div><div>地址：高雄市左營區博愛二路757號</div>`;
 const kao = parseKaohsiungArenaCalendar(kaoFixture);
@@ -166,7 +181,7 @@ if (!/zh-Hant/.test(i18n) || !/locale: 'en-US'/.test(i18n) || !/locale: 'ja-JP'/
 if (!/data-lang="zh-Hant"/.test(indexHtml) || !/data-lang="en"/.test(indexHtml) || !/data-lang="ja"/.test(indexHtml) || !/data-lang="ko"/.test(indexHtml)) { console.error("language selector buttons missing"); ok=false; }
 if (!/neul-language/.test(i18n) || !/neul:languagechange/.test(i18n) || !/MutationObserver/.test(i18n)) { console.error("dynamic language switching incomplete"); ok=false; }
 if (!/Noto\+Sans\+JP/.test(indexHtml)) { console.error("Japanese font support missing"); ok=false; }
-if (!/\/i18n\.js/.test(sw) || !/neul-v0\.30\.0/.test(sw)) { console.error("PWA multilingual cache update missing"); ok=false; }
+if (!/\/i18n\.js/.test(sw) || !/neul-v0\.32\.0/.test(sw)) { console.error("PWA multilingual cache update missing"); ok=false; }
 if (!/uiLocale/.test(app) || !/neul:languagechange/.test(app)) { console.error("locale-aware dynamic render hook missing"); ok=false; }
 
 
@@ -199,5 +214,31 @@ if (!/behindStage/.test(app) || !/performance surface/.test(app)) { console.erro
 const rearWarn=venueSectionWarning("taipei-arena","紅2A",10,"taipei-arena-far");
 if (!Array.isArray(rearWarn.messages)) { console.error("generic rear-stage warning path failed",rearWarn); ok=false; }
 
+// v0.31 multi-market Taiwan-event + true-3D detail checks
+const bm = seedEvents.find(e => e.id === "babymonster-choom-taipei-2026");
+const fiveSos = seedEvents.find(e => e.id === "5sos-everyones-a-star-taipei-2026");
+const yuuri = seedEvents.find(e => e.id === "yuuri-asia-tour-taipei-2026");
+if (!bm || !/ygfamily/i.test(bm.sourceUrl || "") || !bm.start.startsWith("2026-11-21") || !bm.end?.startsWith("2026-11-22")) { console.error("BABYMONSTER Taipei official seed missing", bm); ok=false; }
+if (!fiveSos || fiveSos.market !== "AU" || !yuuri || yuuri.market !== "JP") { console.error("western/Japanese event coverage missing", {fiveSos,yuuri}); ok=false; }
+for (const red of ["紅2A","紅2B","紅2C","紅2D","紅2E"]) {
+  const sec=getVenueSection("taipei-arena",red);
+  if (!sec || sec.rowMin !== 1 || sec.rowMax !== 15 || Number(sec.seatEstimateMax||0) < 28) { console.error("Taipei Arena Red 2 calibration mismatch", red, sec); ok=false; }
+}
+if (!/sectionArchitecture/.test(webgl) || !/Cross aisle/.test(webgl) || !/handrail/i.test(webgl) || !/LED panel seams/.test(webgl) || !/drawArraysInstanced/.test(webgl)) { console.error("true WebGL row/aisle/rail/LED detail pass incomplete"); ok=false; }
+if (!/discoverArtistOfficialTours/.test(fs.readFileSync(new URL("../api/events.js", import.meta.url), "utf8"))) { console.error("artist official tour source not wired into API"); ok=false; }
+
+
+// v0.32 Taiwan-only scope + original-layout IVE demo regression
+if (!indexHtml.includes('id="iveTaipeiDemo"') || !indexHtml.includes('id="iveDemoBtn"')) { console.error("IVE compact demo entry missing"); ok=false; }
+if (!/model\.id !== "taipei-arena"/.test(app) || !/ive-show-what-i-am-2026/.test(app) || !/紅2D/.test(app)) { console.error("IVE Taipei Arena demo wiring missing"); ok=false; }
+if (!/taiwanVenueModels/.test(app) || !/taiwanEventsOnly/.test(app)) { console.error("frontend Taiwan-only guard missing"); ok=false; }
+const apiEventsCode = fs.readFileSync(new URL("../api/events.js", import.meta.url), "utf8");
+if (!/function isTaiwanEvent/.test(apiEventsCode) || !/TAIWAN_CITIES/.test(apiEventsCode) || !/\.filter\(isTaiwanEvent\)/.test(apiEventsCode)) { console.error("API Taiwan-only guard missing"); ok=false; }
+const overseasVenueTokens=/Singapore|Tokyo|Seoul|Bangkok|Hong Kong|Macau|Osaka|Yokohama|Singapore Indoor Stadium|東京|首爾|新加坡/;
+for (const [id,v] of Object.entries(venueModels)) { if (overseasVenueTokens.test(`${v.name||''} ${v.en||''} ${v.city||''}`)) { console.error("overseas venue leaked into selector model",id,v); ok=false; } }
+if (seedEvents.some(e=>e.region!=="TW")) { console.error("overseas seed event leaked into Taiwan feed"); ok=false; }
+const iveLayout = getVenueLayout('ive-show-what-i-am-2026');
+if (!iveLayout || iveLayout.venueId!=='taipei-arena' || iveLayout.autoGenerated) { console.error("IVE hand-calibrated WebGL layout missing",iveLayout); ok=false; }
+
 if (!ok) process.exit(1);
-console.log(`NEUL v0.30 checks passed · Taiwan-only · ${seedEvents.length} seed events · ${Object.keys(venueModels).length} venue models · WebGL + Canvas fallback · PWA + IndexedDB · day mode · archive · calendar/reminders · seat compare · Web Push foundation · Taipei Dome Calibration 2.0 · TICC / TMC / KMC precision pass`);
+console.log(`NEUL v0.32 checks passed · Taiwan-only · ${seedEvents.length} seed events · ${Object.keys(venueModels).length} venue models · WebGL + Canvas fallback · PWA + IndexedDB · day mode · archive · calendar/reminders · seat compare · Web Push foundation · Taipei Dome Calibration 2.0 · TICC / TMC / KMC precision pass`);

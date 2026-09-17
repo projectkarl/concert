@@ -170,10 +170,10 @@
     document.documentElement.dataset.lang = current;
     const desc = document.querySelector('meta[name="description"]');
     const descriptions = {
-      'zh-Hant':'NEUL｜韓星活動、售票提醒、場館 3D 視野與追星行程。',
-      en:'NEUL | K-pop events in Taiwan, ticket reminders, 3D venue views and concert planning.',
-      ja:'NEUL｜台湾のK-POPイベント、チケット通知、3D会場ビュー、推し活プランニング。',
-      ko:'NEUL｜대만 K-POP 공연, 티켓 알림, 3D 공연장 시야와 콘서트 플래닝.'
+      'zh-Hant':'NEUL｜台灣演唱會活動、售票提醒、場館 3D 視野與追星行程。',
+      en:'NEUL | Concerts in Taiwan, ticket reminders, true 3D venue views and concert planning.',
+      ja:'NEUL｜台湾のコンサート情報、チケット通知、3D会場ビュー、ライブ準備。',
+      ko:'NEUL｜대만 콘서트 정보, 티켓 알림, 3D 공연장 시야와 공연 플래닝.'
     };
     if(desc) desc.content=descriptions[current];
   }

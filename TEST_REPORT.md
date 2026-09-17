@@ -1,4 +1,4 @@
-# NEUL v0.30 Test Report
+# NEUL v0.32 Test Report
 
 ## Automated checks
 
@@ -37,3 +37,36 @@ Specific v0.30 corrections:
 ## Limitation
 
 This container cannot provide trustworthy GPU/WebGL visual screenshots for real-device Safari/Chrome. Geometry, shader syntax and runtime hooks were validated programmatically; final GPU appearance should still be checked after Vercel deployment on iPhone Safari and desktop Chrome/Safari.
+
+
+
+## v0.32 Taiwan-only Events + True3D QA
+
+- `npm run check` — **PASS**
+- Full JavaScript / MJS / CJS syntax scan — **PASS**
+- Static HTTP smoke test (`/`, `app.js`, `webgl-venue.js`, event data, geometry, manifest) — **PASS / HTTP 200**
+- 37 Taiwan seed events load — **PASS**
+- Active market coverage includes KR, JP, US, UK, AU, EU and FR — **PASS**
+- BABYMONSTER 2026/11/21–22 Taipei Arena with YG Entertainment official source — **PASS**
+- Non-Korean Live Nation fixture survives discovery and is tagged AU instead of being discarded — **PASS**
+- Taipei Arena official event-index parser — **PASS**
+- Artist-official tour parser (YG / BABYMONSTER) — **PASS**
+- Taipei Arena Red 2 A–E row model = 1–15; public seat estimate metadata = up to 28, row-dependent — **PASS**
+- True WebGL2 renderer still uses instanced 3D seats — **PASS**
+- Selected section renders row-aware seats plus stair/riser edges, side aisles, cross-aisle and handrails — **PASS**
+- LED panel segmentation is 3D geometry, not a flat venue image — **PASS**
+- Seat-number lateral placement now uses per-section seat estimate when available — **PASS**
+- PWA cache bumped to `neul-v0.32.0` — **PASS**
+
+### Device limitation
+
+The container cannot provide a trustworthy GPU/WebGL visual capture equivalent to iPhone Safari or desktop Chrome/Safari. Runtime hooks, shader/module syntax, geometry generation and static serving were tested programmatically. Final GPU appearance should still be visually checked on the deployed URL.
+
+
+## v0.32 scope/layout regression
+- Venue selector filters to Taiwan venue cities only — PASS
+- API event merge enforces `region=TW` and Taiwan city guard — PASS
+- Existing homepage/venue 3D grid remains intact; no replacement redesign — PASS
+- Taipei Arena shows compact IVE demo entry only when selected — PASS
+- IVE demo switches to true WebGL layout `ive-show-what-i-am-2026`, 紅2D 14排 19號 — PASS
+- Hand-calibrated layout geometry remains stable while structured price/source metadata can sync — PASS

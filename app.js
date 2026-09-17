@@ -8,7 +8,7 @@ const $ = (q, root = document) => root.querySelector(q);
 const $$ = (q, root = document) => [...root.querySelectorAll(q)];
 const uiLocale = () => window.NEUL_I18N?.locale?.() || 'zh-TW';
 const state = {
-  events: seedEvents,
+  events: seedEvents.filter(e => e?.region === "TW"),
   artists: seedArtists.map(a => ({ ...a, upcomingEventCount: 0, nextEvent: null, eventIds: [] })),
   dataUpdatedAt: null,
   autoUpdateEnabled: true,
@@ -63,6 +63,10 @@ const friendlySourceName = value => {
   if (/official event source/i.test(v)) return "官方活動來源";
   return v.replace(/\s*API\s*/gi, " ").trim();
 };
+
+const TAIWAN_VENUE_CITIES = new Set(["Taipei","New Taipei","Taoyuan","Taichung","Tainan","Kaohsiung","Hsinchu","Keelung","Chiayi","Pingtung","Yilan","Hualien","Taitung","Penghu"]);
+const taiwanEventsOnly = events => (Array.isArray(events) ? events : []).filter(e => e?.region === "TW");
+const taiwanVenueModels = () => Object.values(venueModels).filter(v => TAIWAN_VENUE_CITIES.has(String(v.city || "")));
 
 const TAIPEI_TZ = "Asia/Taipei";
 const dayMs = 86400000;
@@ -704,13 +708,13 @@ async function loadEvents() {
     const res = await fetch("/api/events", { headers: { Accept: "application/json" } });
     if (!res.ok) throw new Error("events unavailable");
     const data = await res.json();
-    if (Array.isArray(data.events) && data.events.length) state.events = prepareEvents3D(data.events);
+    if (Array.isArray(data.events) && data.events.length) state.events = prepareEvents3D(taiwanEventsOnly(data.events));
     if (Array.isArray(data.artists) && data.artists.length) state.artists = data.artists;
     state.dataUpdatedAt = data.updatedAt || null;
     state.autoUpdateEnabled = data.autoUpdateEnabled !== false;
     state.upstream = data.upstream || "curated-fallback";
   } catch {
-    state.events = prepareEvents3D(seedEvents);
+    state.events = prepareEvents3D(taiwanEventsOnly(seedEvents));
     state.artists = seedArtists.map(a => ({ ...a, upcomingEventCount: seedEvents.filter(e => e.artist.toLowerCase() === a.name.toLowerCase()).length, nextEvent: null, eventIds: [] }));
     state.dataUpdatedAt = null;
     state.autoUpdateEnabled = false;
@@ -897,10 +901,12 @@ function renderVenueIdentity() {
   if (canvasLabel) canvasLabel.setAttribute("aria-label", `${model.name}互動 3D 場館`);
   const tip = $(".venue-tip");
   if (tip) tip.title = `${model.sourceName}：${model.sourceUrl}`;
+  const iveDemo = $("#iveTaipeiDemo");
+  if (iveDemo) iveDemo.hidden = model.id !== "taipei-arena";
 }
 function renderVenueOptions() {
   if (!venueSelect) return;
-  venueSelect.innerHTML = Object.values(venueModels).map(v => `<option value="${escapeHtml(v.id)}" ${v.id===state.venueId?"selected":""}>${escapeHtml(v.name)}</option>`).join("");
+  venueSelect.innerHTML = taiwanVenueModels().map(v => `<option value="${escapeHtml(v.id)}" ${v.id===state.venueId?"selected":""}>${escapeHtml(v.name)}</option>`).join("");
 }
 function renderLayoutOptions() {
   const options = layoutsForVenue(state.venueId);
@@ -940,6 +946,12 @@ function refreshRowOptions() {
   const current = Math.max(minRow, Math.min(maxRow, Number(state.row) || minRow));
   state.row = String(current);
   rowSelect.innerHTML = Array.from({length:maxRow-minRow+1},(_,i)=>minRow+i).map(n=>`<option value="${n}" ${n===current?"selected":""}>${n}</option>`).join("");
+  const seatMax = Number(section?.seatEstimateMax);
+  if (seatNumberInput) {
+    seatNumberInput.max = Number.isFinite(seatMax) && seatMax > 0 ? String(seatMax) : "99";
+    seatNumberInput.placeholder = Number.isFinite(seatMax) && seatMax > 0 ? `公開紀錄約至 ${seatMax}，依排別` : "依票券座號";
+    seatNumberInput.title = Number.isFinite(seatMax) && seatMax > 0 ? `本區公開座位紀錄上限約 ${seatMax} 號；不同排別可能不同。` : "此區尚無可靠逐排座號上限，請以官方票券為準。";
+  }
 }
 function refreshSectionOptions(forceDefault = false) {
   const tier = tierById(state.floor);
@@ -961,7 +973,7 @@ function updateSeatWarning() {
   confidence.textContent = layout.historical
     ? "歷史官方票區圖重建 · 區域位置校正 · 單席視角未宣稱精準"
     : layout.eventId
-      ? "官方本場配置已核對 · 區域位置重建 · 排數／座號仍為校正估算 · 現場燈光為模擬"
+      ? "官方本場配置已核對 · 固定席排數依公開座位紀錄校正 · 座號依排別可能不同 · 現場舞台／燈光為 3D 模擬"
       : `${model.confidence} · 舞台依目前公開資料呈現 · 現場燈光為模擬`;
   if (!warning.messages.length) { box.hidden = true; return; }
   box.hidden = false;
@@ -1006,6 +1018,18 @@ lensTabs?.addEventListener("click", e => { const b=e.target.closest("button[data
 $("#seatPreviewBtn").addEventListener("click", () => { updateSeatLabel(); openViewer(true); });
 $("#open3dBtn").addEventListener("click", () => openViewer(false));
 $("#expandPreviewBtn").addEventListener("click", () => openViewer(true));
+$("#iveDemoBtn")?.addEventListener("click", () => {
+  setVenue("taipei-arena", "ive-show-what-i-am-2026");
+  state.floor = "2F";
+  state.section = "紅2D";
+  state.row = "14";
+  state.seatNumber = "19";
+  if (seatNumberInput) seatNumberInput.value = state.seatNumber;
+  renderTierTabs();
+  refreshSectionOptions(false);
+  updateSeatLabel();
+  openViewer(true);
+});
 
 const viewer = $("#viewerModal");
 const canvas = $("#venueCanvas");
@@ -1111,7 +1135,7 @@ function openViewer(seat = false) {
   if (seat) { yaw = 0; pitch = 0; zoom = 1.08; } else { yaw = -.45; pitch = .72; zoom = 1; }
   updateSeatLabel();
   $("#viewerHelp").textContent = seat
-    ? "拖曳左右觀看 · 可切肉眼／手機倍率 · 欄杆／屋簷為校正遮擋模型"
+    ? "拖曳左右觀看 · 可切肉眼／手機倍率 · 真 3D 座椅列／階梯／走道／欄杆與舞台螢幕"
     : "拖曳旋轉場館 · 滾輪／雙指縮放 · 選取區域會高亮";
   viewer.hidden = false; document.body.style.overflow = "hidden";
   requestVenueFrame();

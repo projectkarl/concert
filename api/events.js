@@ -2,6 +2,8 @@ import { seedEvents } from "../data/events.js";
 import { seedArtists } from "../data/artists.js";
 import { discoverLiveNationTaiwan } from "../lib/live-nation-discovery.js";
 import { discoverKaohsiungArena } from "../lib/kaohsiung-arena-discovery.js";
+import { discoverTaipeiArena } from "../lib/taipei-arena-discovery.js";
+import { discoverArtistOfficialTours } from "../lib/artist-official-discovery.js";
 
 const dateKey = iso => {
   if (!iso) return "";
@@ -21,6 +23,14 @@ function normalizeUrl(url = "") {
 
 function normalizeText(value = "") {
   return String(value).toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/g, " ").trim();
+}
+
+const TAIWAN_CITIES = new Set(["Taipei","New Taipei","Taoyuan","Taichung","Tainan","Kaohsiung","Hsinchu","Keelung","Chiayi","Pingtung","Yilan","Hualien","Taitung","Penghu"]);
+function isTaiwanEvent(event = {}) {
+  if (event.region !== "TW") return false;
+  const city = String(event.city || "");
+  if (city && !TAIWAN_CITIES.has(city)) return false;
+  return true;
 }
 
 function mergeDiscovered(seed, live) {
@@ -54,7 +64,7 @@ function mergeAndDedupe(seeds, discovered) {
     else result.push(live);
   }
   return result
-    .filter(e => e.region === "TW")
+    .filter(isTaiwanEvent)
     .sort((a, b) => new Date(a.start || 0) - new Date(b.start || 0));
 }
 
@@ -70,7 +80,7 @@ function buildArtists(events) {
       name: event.artist,
       shortName: event.shortArtist || event.artist.slice(0, 3).toUpperCase(),
       type: "ARTIST",
-      market: "KR",
+      market: event.market || "INTL",
       agency: null,
       officialUrl: event.sourceUrl,
       sourceName: event.sourceName || "Official Taiwan event source",
@@ -109,9 +119,11 @@ export default async function handler(req, res) {
 
   let discovery = { events: [], checkedUrls: 0, indexErrors: [], pageErrors: [], source: "Taiwan official public pages" };
   let autoUpdateError = null;
-  const [liveNationResult, kaohsiungResult] = await Promise.allSettled([
+  const [liveNationResult, kaohsiungResult, taipeiArenaResult, artistOfficialResult] = await Promise.allSettled([
     discoverLiveNationTaiwan(),
-    discoverKaohsiungArena()
+    discoverKaohsiungArena(),
+    discoverTaipeiArena(),
+    discoverArtistOfficialTours()
   ]);
   const sources = [];
   const errors = [];
@@ -129,6 +141,22 @@ export default async function handler(req, res) {
     discovery.checkedUrls += d.checkedUrls || 0;
     sources.push(d.source || "高雄巨蛋官方活動行事曆");
   } else errors.push(kaohsiungResult.reason?.message || "Kaohsiung Arena unavailable");
+  if (taipeiArenaResult.status === "fulfilled") {
+    const d = taipeiArenaResult.value;
+    discovery.events.push(...(d.events || []));
+    discovery.checkedUrls += d.checkedUrls || 0;
+    discovery.indexErrors.push(...(d.indexErrors || []));
+    discovery.pageErrors.push(...(d.pageErrors || []));
+    sources.push(d.source || "臺北小巨蛋官方已公開活動");
+  } else errors.push(taipeiArenaResult.reason?.message || "Taipei Arena unavailable");
+  if (artistOfficialResult.status === "fulfilled") {
+    const d = artistOfficialResult.value;
+    discovery.events.push(...(d.events || []));
+    discovery.checkedUrls += d.checkedUrls || 0;
+    discovery.indexErrors.push(...(d.indexErrors || []));
+    discovery.pageErrors.push(...(d.pageErrors || []));
+    sources.push(d.source || "藝人官方巡演頁");
+  } else errors.push(artistOfficialResult.reason?.message || "Artist official tour source unavailable");
   if (errors.length) autoUpdateError = errors.join(" · ");
   discovery.source = sources.join(" + ") || "curated fallback";
 
