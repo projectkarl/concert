@@ -814,3 +814,48 @@ body.light-mode .events-location-filters input,body.light-mode .events-location-
 .selected-price{position:absolute;z-index:4;right:24%;bottom:22%;max-width:180px;background:rgba(8,11,15,.92);color:#fff;border:1px solid rgba(255,255,255,.28);padding:6px 9px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.01em;box-shadow:0 8px 24px rgba(0,0,0,.28)}
 .viewer-price-chip{position:absolute;left:18px;bottom:52px;z-index:6;max-width:min(560px,70vw);padding:8px 12px;border-radius:999px;background:rgba(14,18,24,.88);border:1px solid rgba(255,255,255,.22);color:#fff;font-size:12px;font-weight:800;backdrop-filter:blur(10px)}
 @media(max-width:700px){.selected-price{right:12px;bottom:14px;max-width:72%;font-size:10px}.viewer-price-chip{left:10px;bottom:46px;max-width:calc(100vw - 20px);font-size:10px}}
+
+/* v0.35 · responsive overflow audit + crisp hero/featured media */
+html,body{max-width:100%;overflow-x:hidden}
+.site-shell,.topbar,.hero-panel,.upcoming-panel,.lower-grid,.featured-card,.featured-main,.my-list-card,.brand-story,.venue-section,.footer{min-width:0}
+.hero-art{background-image:url('/assets/hero-crowd-hd2.webp');background-repeat:no-repeat;transform:none;backface-visibility:hidden;will-change:auto}
+.featured-stage{background-image:url('/assets/featured-1-hd.webp');background-repeat:no-repeat;transform:none;backface-visibility:hidden;will-change:auto}
+.event-row>*{min-width:0}
+.event-info{overflow:hidden}
+.event-info strong,.event-info .title,.event-info .date,.event-info .venue{max-width:100%}
+.event-arrow{min-width:0;max-width:112px;justify-self:end}
+.event-tag{display:block;max-width:88px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.event-arrow b{flex:0 0 auto}
+.upcoming-inner,.event-list{min-width:0}
+.featured-copy{max-width:720px;overflow-wrap:anywhere}
+.featured-copy h3,.featured-copy p,.featured-side h2,.featured-side p{overflow-wrap:anywhere}
+.events-modal-card,.events-modal-list,.events-modal-list>*{min-width:0}
+.events-modal-list strong,.events-modal-list span,.events-modal-list small{overflow-wrap:anywhere}
+.detail-drawer,.detail-content,.detail-meta,.detail-section{min-width:0;overflow-wrap:anywhere}
+.venue-controls,.seat-preview-card,.venue-intro{min-width:0}
+.venue-controls select,.venue-controls input{max-width:100%}
+img,canvas,svg{max-width:100%}
+@media (min-width:921px){
+  .event-list{height:392px}
+  .event-row{min-height:74px;grid-template-columns:54px minmax(0,1fr) minmax(72px,96px);gap:9px}
+  .event-poster{height:58px}
+  .event-arrow{width:100%;max-width:96px;justify-content:flex-end}
+  .event-tag{max-width:68px}
+}
+@media (max-width:920px){
+  .event-row{grid-template-columns:58px minmax(0,1fr) minmax(58px,88px);gap:9px}
+  .event-tag{max-width:66px}
+  .featured-copy{width:min(82%,560px)}
+}
+@media (max-width:560px){
+  .event-row{grid-template-columns:52px minmax(0,1fr) 26px;gap:8px;padding:8px}
+  .event-poster{height:58px}
+  .event-arrow{width:26px;max-width:26px}
+  .event-tag{display:none}
+  .event-info strong{font-size:14px}
+  .event-info .title,.event-info .date,.event-info .venue{font-size:11px}
+  .featured-copy{width:92%;padding-right:44px}
+  .featured-copy h3{font-size:25px}
+  .carousel-mini{right:10px;bottom:10px}
+  .events-modal-card{width:calc(100vw - 16px);max-width:calc(100vw - 16px);margin:8px}
+}

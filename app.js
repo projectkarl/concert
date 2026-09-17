@@ -308,10 +308,10 @@ function stepFeatured(delta) {
 }
 
 const FEATURED_IMAGES = [
-  "/assets/featured-1.webp",
-  "/assets/featured-2.webp",
-  "/assets/featured-3.webp",
-  "/assets/featured-4.webp"
+  "/assets/featured-1-hd.webp",
+  "/assets/featured-2-hd.webp",
+  "/assets/featured-3-hd.webp",
+  "/assets/featured-4-hd.webp"
 ];
 function featuredImageFor(event, index=0) {
   const key=String(event?.id||event?.artist||index);

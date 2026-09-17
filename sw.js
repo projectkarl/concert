@@ -1,4 +1,4 @@
-const VERSION = "neul-v0.34.0";
+const VERSION = "neul-v0.35.0";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const APP_SHELL = [
@@ -18,7 +18,11 @@ const APP_SHELL = [
   "/data/discovery.js",
   "/data/taipei-dome-geometry.js",
   "/data/multi-venue-geometry.js",
-  "/assets/hero-crowd.webp",
+  "/assets/hero-crowd-hd2.webp",
+  "/assets/featured-1-hd.webp",
+  "/assets/featured-2-hd.webp",
+  "/assets/featured-3-hd.webp",
+  "/assets/featured-4-hd.webp",
   "/assets/feature-stage.webp",
   "/assets/venue-3d.webp",
   "/assets/seat-view.webp",

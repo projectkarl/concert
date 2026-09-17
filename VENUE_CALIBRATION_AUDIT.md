@@ -1,4 +1,4 @@
-# NEUL v0.34 Venue Calibration Audit
+# NEUL v0.35 Venue Calibration Audit
 
 ## Taipei Arena
 - 2F Red / Yellow / Purple / Blue structural sections retained.
@@ -17,3 +17,6 @@
 ## v0.34 event-layout calibration
 - Taipei Dome / Stray Kids: official ticket colors are attached only to fixed stands that can be read reliably from the official seating map. Gray or ambiguous fixed sections and floor blocks without a reliable section-to-price match remain unpriced rather than inferred.
 - Kaohsiung National Stadium / AAA: auto-generated event layout uses the existing full stadium geometry plus centered-stage mode because the official ticket page describes a four-sided / 360-degree stage. Event geometry is still a draft until precise production dimensions are published.
+
+## v0.35 metadata-sync boundary
+Hand-calibrated WebGL geometry remains immutable during routine official-data refresh. Official seat-map URLs, total price summaries and recognizable section-price pairs may update automatically and are reflected in the 3D UI. A changed 2D image alone is not treated as sufficient evidence to move calibrated 3D coordinates.

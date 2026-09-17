@@ -1,4 +1,4 @@
-# NEUL v0.34 Data Source Audit
+# NEUL v0.35 Data Source Audit
 
 Scope: Taiwan performances only. Artist nationality is unrestricted; overseas performances and overseas venues are excluded.
 
@@ -17,9 +17,16 @@ Known-gap regression cases added:
 All discovered records still pass the Taiwan-region guard before reaching the frontend.
 
 
-## v0.34 duplicate + award audit
+## v0.35 duplicate + award audit
 - Stray Kids RUN IT TAIPEI: official promoter and tixCraft records are treated as one event. tixCraft seat-map URL is retained; richer verified price data is protected from placeholder overwrite.
 - 2026 Asia Artist Awards in Kaohsiung: added from official tixCraft public activity data and seat-map source.
 - Dedupe identity: same Taiwan-local calendar date + canonical venue + artist/title identity overlap, with exact normalized source URL as an additional match path.
 - Source priority is used only to choose richer/current fields; all distinct official source references are retained in `sourceRefs`.
 - Overseas event records remain excluded by the Taiwan-only gate.
+
+## v0.35 automatic sync audit
+- `/api/events` remains the primary six-hour cached discovery/sync endpoint.
+- tixCraft / KKTIX / Ticket Plus / KHAM detail parsing now returns `sectionPriceRules` when zone labels and prices are recognizable.
+- `seatLayoutSourceUrl`, total `price`, and structured zone prices are merged across official sources.
+- `ensureAutoEventLayout()` synchronizes those fields into both auto-generated and hand-calibrated event layouts without overwriting calibrated geometry/distances.
+- Ambiguous zone names remain unmatched rather than receiving guessed prices.

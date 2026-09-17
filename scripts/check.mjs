@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import { extractLiveNationEventUrls, parseLiveNationDiscoveredEvent } from "../lib/live-nation-discovery.js";
-import { extractOfficialSeatLayoutUrl } from "../lib/official-monitor.js";
+import { extractOfficialSeatLayoutUrl, extractSectionPriceRules } from "../lib/official-monitor.js";
 import { parseKaohsiungArenaCalendar } from "../lib/kaohsiung-arena-discovery.js";
 import { extractTaipeiArenaLinks, parseTaipeiArenaDates } from "../lib/taipei-arena-discovery.js";
 import { parseBabymonsterChoomTaipei } from "../lib/artist-official-discovery.js";
@@ -13,7 +13,7 @@ const required = [
   "index.html","styles.css","app.js","i18n.js","enhancements.js","storage.js","pwa.js","sw.js","manifest.webmanifest","webgl-venue.js","THIRD_PARTY_NOTICES.md","vercel.json","api/events.js","api/official.js","api/refresh.js","api/push-config.js","api/push-subscribe.js","api/push-digest.js",
   "data/events.js","data/artists.js","data/venues.js","data/discovery.js","data/taipei-dome-geometry.js","data/multi-venue-geometry.js",
   "lib/official-monitor.js","lib/live-nation-discovery.js","lib/kaohsiung-arena-discovery.js","lib/taipei-arena-discovery.js","lib/artist-official-discovery.js","lib/taiwan-ticket-platform-discovery.js",
-  "assets/hero-crowd.webp","assets/hero-crowd-hd.webp","assets/feature-stage.webp","assets/venue-3d.webp","assets/seat-view.webp","assets/featured-1.webp","assets/featured-2.webp","assets/featured-3.webp","assets/featured-4.webp",
+  "assets/hero-crowd.webp","assets/hero-crowd-hd.webp","assets/hero-crowd-hd2.webp","assets/feature-stage.webp","assets/venue-3d.webp","assets/seat-view.webp","assets/featured-1.webp","assets/featured-2.webp","assets/featured-3.webp","assets/featured-4.webp","assets/featured-1-hd.webp","assets/featured-2-hd.webp","assets/featured-3-hd.webp","assets/featured-4-hd.webp",
   "icons/icon-192.png","icons/icon-512.png","icons/icon-maskable-512.png","icons/apple-touch-icon.png"
 ];
 let ok = true;
@@ -183,7 +183,7 @@ if (!/zh-Hant/.test(i18n) || !/locale: 'en-US'/.test(i18n) || !/locale: 'ja-JP'/
 if (!/data-lang="zh-Hant"/.test(indexHtml) || !/data-lang="en"/.test(indexHtml) || !/data-lang="ja"/.test(indexHtml) || !/data-lang="ko"/.test(indexHtml)) { console.error("language selector buttons missing"); ok=false; }
 if (!/neul-language/.test(i18n) || !/neul:languagechange/.test(i18n) || !/MutationObserver/.test(i18n)) { console.error("dynamic language switching incomplete"); ok=false; }
 if (!/Noto\+Sans\+JP/.test(indexHtml)) { console.error("Japanese font support missing"); ok=false; }
-if (!/\/i18n\.js/.test(sw) || !/neul-v0\.34\.0/.test(sw)) { console.error("PWA multilingual cache update missing"); ok=false; }
+if (!/\/i18n\.js/.test(sw) || !/neul-v0\.35\.0/.test(sw)) { console.error("PWA multilingual cache update missing"); ok=false; }
 if (!/uiLocale/.test(app) || !/neul:languagechange/.test(app)) { console.error("locale-aware dynamic render hook missing"); ok=false; }
 
 
@@ -276,5 +276,15 @@ if (!/likelySameEvent/.test(apiEventsCode) || !/canonicalVenue/.test(apiEventsCo
 const seedOnlyDedupe=mergeAndDedupe(seedEvents,[]);
 if (seedOnlyDedupe.length!==seedEvents.length || !seedOnlyDedupe.some(e=>e.id==="yuuri-asia-tour-taipei-2026")) { console.error("distinct official pages falsely deduped",{raw:seedEvents.length,deduped:seedOnlyDedupe.length}); ok=false; }
 
+// v0.35 official seat-map/price sync + responsive overflow + HD media
+const priceFixture=`<html><body>演出日期：2026年12月12日 18:00 演出地點：臺北大巨蛋 票價：VIP NT$7,880 / 紅2A NT$6,880 / 紫2A NT$5,880 <a href="https://static.tixcraft.com/images/activity/field/test-seat-map.jpg">官方座位圖</a></body></html>`;
+const parsedPriceFixture=parseTicketPlatformPage(priceFixture,"https://tixcraft.com/activity/detail/26_price_fixture",{name:"tixCraft 拓元"});
+if (!parsedPriceFixture?.seatLayoutSourceUrl || !parsedPriceFixture.sectionPriceRules?.length || !parsedPriceFixture.sectionPriceRules.some(x=>String(x.price).includes("6,880"))) { console.error("ticket platform seat-map/section-price sync parser failed",parsedPriceFixture); ok=false; }
+const syncProbe={...skz34,sectionPriceRules:[{label:"106",price:"NT$6,880"}],seatLayoutSourceUrl:"https://static.tixcraft.com/images/activity/field/skz-new.jpg",checkedAt:"2026-09-17T06:00:00.000Z"};
+const syncLayoutId=ensureAutoEventLayout(syncProbe); const syncLayout=getVenueLayout(syncLayoutId);
+if (!syncLayout?.ticketSyncSignature || syncLayout.latestSeatLayoutSourceUrl!==syncProbe.seatLayoutSourceUrl || sectionTicketLabel(syncLayoutId,"106")!=="NT$6,880") { console.error("calibrated 3D official metadata sync failed",syncLayout); ok=false; }
+if (!/event-tag\{display:block;max-width:88px;overflow:hidden;text-overflow:ellipsis/.test(css) || !/html,body\{max-width:100%;overflow-x:hidden/.test(css)) { console.error("responsive overflow guard missing"); ok=false; }
+if (!/hero-crowd-hd2\.webp/.test(css) || !/featured-1-hd\.webp/.test(app)) { console.error("retina hero/featured assets not wired"); ok=false; }
+
 if (!ok) process.exit(1);
-console.log(`NEUL v0.34 checks passed · Taiwan-only · ${seedEvents.length} seed events · ${Object.keys(venueModels).length} venue models · WebGL + Canvas fallback · PWA + IndexedDB · day mode · archive · calendar/reminders · seat compare · Web Push foundation · Taipei Dome Calibration 2.0 · TICC / TMC / KMC precision pass`);
+console.log(`NEUL v0.35 checks passed · Taiwan-only · ${seedEvents.length} seed events · ${Object.keys(venueModels).length} venue models · WebGL + Canvas fallback · PWA + IndexedDB · day mode · archive · calendar/reminders · seat compare · Web Push foundation · Taipei Dome Calibration 2.0 · TICC / TMC / KMC precision pass`);
