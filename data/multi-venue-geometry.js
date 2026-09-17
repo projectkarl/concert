@@ -21,6 +21,8 @@ function arenaColorSections(prefix, tier, rx, rz, y, angles, letters=['A','B','C
   return arcGroup(letters.map(x => `${prefix}${tier}${x}`), `${tier}F`, rx, rz, y, angles[0], angles[1]);
 }
 
+function structuralBlock(id,tier,x,z,width=30,depth=24,group='structural'){ return {id,tier,x,z,y:-19,width,depth,shape:'block',group}; }
+
 // Taipei Arena: official sightline guide exposes Red/Purple/Yellow/Blue 2F zones and Yellow 3F A-J.
 const taipeiArena2 = [
   ...arenaColorSections('紅',2,174,126,18,[-.92,.22]),
@@ -38,8 +40,23 @@ const taipeiArena3 = [
   ...arcGroup(['紫3A','紫3B','紫3C','紫3D','紫3E','紫3F','紫3G','紫3H','紫3I','紫3J'], '3F', 210,154,54,2.96,4.24),
   ...arcGroup(['藍3A','藍3B','藍3C','藍3D','藍3E','藍3F','藍3G','藍3H','藍3I','藍3J'], '3F', 210,154,54,4.28,5.58)
 ].map(s=>({...s,rowMin:1,rowMax:30,seatEstimateMax:30,depthX:32,depthZ:25,rise:17,rowCurve:1.08,rowRangeConfidence:'venue-structural-model'}));
-const taipeiArenaSections = [...taipeiArena2, ...taipeiArena3];
+// B1 is not a fixed-seat tier. Taipei Arena's official venue information states that
+// the basement main floor is configurable by the promoter and that the venue also has
+// 2,486 retractable seats. Earlier NEUL builds only rendered the 2F/3F fixed bowl, so
+// auto-generated shows looked physically incomplete. The blocks below are a neutral
+// structural visualization of the retractable/configurable B1 seating envelope — NOT
+// event ticket zones. Event-specific official floor maps can override/add their own blocks.
+const structuralArenaBlock=(id,x,z,width,depth)=>({id,tier:'B1',x,z,y:-19,width,depth,shape:'block',group:'structural-b1'});
+const taipeiArenaB1 = [
+  structuralArenaBlock('B1西伸縮A',-92,-30,28,58),
+  structuralArenaBlock('B1西伸縮B',-92,35,28,54),
+  structuralArenaBlock('B1東伸縮A',92,-30,28,58),
+  structuralArenaBlock('B1東伸縮B',92,35,28,54),
+  structuralArenaBlock('B1南伸縮',0,77,82,22)
+].map(s=>({...s,label:`${s.id}（依活動配置）`,rowMin:1,rowMax:18,seatEstimateMax:24,rise:5,structuralOnly:true,eventFlexible:true,rowRangeConfidence:'venue-capacity-envelope',seatRangeConfidence:'not-a-ticket-zone'}));
+const taipeiArenaSections = [...taipeiArenaB1, ...taipeiArena2, ...taipeiArena3];
 const taipeiArenaTiers = [
+  {id:'B1', label:'B1 伸縮／活動席（依場次配置）', short:'B1', sections:taipeiArenaB1.map(x=>x.id)},
   {id:'2F', label:'二樓固定席', short:'2F', sections:taipeiArena2.map(x=>x.id)},
   {id:'3F', label:'三樓固定席', short:'3F', sections:taipeiArena3.map(x=>x.id)}
 ];
@@ -59,8 +76,24 @@ const ntsuUpper = [
 ];
 const ntsuMiddleCal = ntsuMiddle.map(s=>({...s,rowMin:1,rowMax:15,rowDirection:'reverse',depthX:32,depthZ:24,rise:13,rowCurve:1.08}));
 const ntsuUpperCal = ntsuUpper.map(s=>({...s,rowMin:0,rowMax:16,depthX:40,depthZ:30,rise:19,rowCurve:1.10}));
-const ntsuSections = [...ntsuMiddleCal,...ntsuUpperCal];
+// NTSU / Linkou also has configurable 1F activity seating. Older NEUL builds exposed only
+// MIDDLE/UPPER fixed bowls, making every concert look as if the lower arena did not exist.
+// These LOWER/FLOOR envelopes preserve the physical venue volume without pretending they are
+// permanent ticket-zone names. Event-specific official maps may add/override exact blocks.
+const ntsuLower = [
+  ...arcGroup(['1F黃側A','1F黃側B','1F黃側C'],'LOWER',132,98,-5,-2.40,-.72),
+  ...arcGroup(['1F綠側A','1F綠側B','1F綠側C'],'LOWER',132,98,-5,-.48,.88),
+  ...arcGroup(['1F橙側A','1F橙側B','1F橙側C'],'LOWER',132,98,-5,1.10,2.08),
+  ...arcGroup(['1F藍側A','1F藍側B','1F藍側C'],'LOWER',132,98,-5,2.30,3.58)
+].map(s=>({...s,rowMin:1,rowMax:12,depthX:22,depthZ:17,rise:8,rowCurve:1.04,structuralOnly:true,eventFlexible:true,label:`${s.id}（依活動配置）`}));
+const ntsuFloor = [
+  structuralBlock('1F平面A','FLOOR',-50,8,31,70,'floor'), structuralBlock('1F平面B','FLOOR',-17,8,31,70,'floor'),
+  structuralBlock('1F平面C','FLOOR',17,8,31,70,'floor'), structuralBlock('1F平面D','FLOOR',50,8,31,70,'floor')
+].map(s=>({...s,rowMin:1,rowMax:36,depthZ:34,rise:2,rowCurve:1.02,structuralOnly:true,eventFlexible:true,label:`${s.id}（依活動排椅）`}));
+const ntsuSections = [...ntsuFloor,...ntsuLower,...ntsuMiddleCal,...ntsuUpperCal];
 const ntsuTiers = [
+  {id:'FLOOR',label:'1F 活動平面席（依場次配置）',short:'1F平面',sections:ntsuFloor.map(x=>x.id)},
+  {id:'LOWER',label:'1F 階梯／活動席（依場次配置）',short:'1F下層',sections:ntsuLower.map(x=>x.id)},
   {id:'MIDDLE',label:'中層固定席',short:'中層',sections:ntsuMiddleCal.map(x=>x.id)},
   {id:'UPPER',label:'上層固定席',short:'上層',sections:ntsuUpperCal.map(x=>x.id)}
 ];
@@ -131,8 +164,13 @@ const kh2 = ring(Array.from({length:22},(_,i)=>pad(201+i)), '2F', 186,142,18,-Ma
 });
 const kh4 = ring(Array.from({length:10},(_,i)=>pad(401+i)), '4F', 220,168,53,-Math.PI/2+.14).map(s=>({...s,rowMin:1,rowMax:2,depthX:6,depthZ:5,rise:3,rowCurve:1}));
 const kh5 = ring(Array.from({length:18},(_,i)=>pad(501+i)), '5F', 252,194,83,-Math.PI/2+.10).map(s=>({...s,rowMin:1,rowMax:20,depthX:26,depthZ:20,rise:15,rowCurve:1.05}));
-const kaohsiungSections = [...kh2,...kh4,...kh5];
+const khFloor = [
+  structuralBlock('1F平面A','FLOOR',-50,8,30,78,'floor'),structuralBlock('1F平面B','FLOOR',-17,8,30,78,'floor'),
+  structuralBlock('1F平面C','FLOOR',17,8,30,78,'floor'),structuralBlock('1F平面D','FLOOR',50,8,30,78,'floor')
+].map(s=>({...s,rowMin:1,rowMax:40,depthZ:38,rise:2,rowCurve:1.02,structuralOnly:true,eventFlexible:true,label:`${s.id}（依活動配置）`}));
+const kaohsiungSections = [...khFloor,...kh2,...kh4,...kh5];
 const kaohsiungTiers = [
+  {id:'FLOOR',label:'1F 活動平面／排椅區',short:'1F',sections:khFloor.map(x=>x.id)},
   {id:'2F',label:'二樓看台',short:'2F',sections:kh2.map(x=>x.id)},
   {id:'4F',label:'四樓包廂／看台',short:'4F',sections:kh4.map(x=>x.id)},
   {id:'5F',label:'五／六樓看台',short:'5F+',sections:kh5.map(x=>x.id)}
@@ -377,20 +415,21 @@ function autoStageForEvent(venueId, event={}) {
   const model=getVenueModel(venueId);
   const field=model.field || {x:120,z:90};
   const base=copyStage(model.stage) || genericStage(-Math.round(field.z*.92),Math.round(field.x*.7),28);
-  const eventText=`${event.type||''} ${event.title||''} ${event.artist||''}`;
-  const isFanMeeting=/fan\s*meeting|fanmeeting|見面會/i.test(eventText);
+  const eventText=`${event.type||''} ${event.title||''} ${event.artist||''} ${(event.tags||[]).join(' ')}`;
   const isCenterStage=/\bawards?\b|asia\s*artist\s*awards|\baaa\b|360(?:°|\s*degree)?|四面台|中央舞台/i.test(eventText);
-  const compactVenue=['ticc','taipei-music-center','kaohsiung-music-center','ntu-sports-center','tianmu-gymnasium'].includes(venueId);
   const stadium=['taipei-dome','kaohsiung-stadium'].includes(venueId);
   if (isCenterStage && stadium) {
     const w=Math.max(54,Math.round(field.x*.30)), d=Math.max(48,Math.round(field.z*.34));
     return {main:{x:0,y:-16,z:4,width:w,depth:d},runway:null,bStage:null,centerStage:true};
   }
-  if (isFanMeeting || compactVenue) return base;
+  // Automatic generation must be conservative. A runway/B-stage is added only when the
+  // event data explicitly says one exists; otherwise keep the venue's neutral end-stage.
+  const hasRunway=/runway|catwalk|b[- ]?stage|延伸台|花道|副舞台/i.test(eventText);
+  if (!hasRunway) return base;
   const main=base.main || {x:0,y:-16,z:-Math.round(field.z*.92),width:Math.round(field.x*.68),depth:28};
   const runwayEnd=stadium ? Math.round(field.z*.12) : Math.round(field.z*.02);
   const runway={x:0,y:(main.y||-16)+1,z1:(main.z||-field.z*.9)+Math.max(16,(main.depth||28)*.55),z2:runwayEnd,width:Math.max(12,Math.round(field.x*.10))};
-  const bStage=stadium ? {x:0,y:(main.y||-16)+2,z:Math.round(field.z*.10),radius:Math.max(16,Math.round(field.x*.11))} : null;
+  const bStage=/b[- ]?stage|副舞台/i.test(eventText) ? {x:0,y:(main.y||-16)+2,z:Math.round(field.z*.10),radius:Math.max(16,Math.round(field.x*.11))} : null;
   return {...base,main,runway,bStage};
 }
 
@@ -496,7 +535,19 @@ export function activityLayoutMeta(event={}) {
 export function layoutsForVenue(venueId) { return Object.values(venueLayouts).filter(x=>x.venueId===venueId); }
 export function getVenueModel(venueId) { return venueModels[venueId] || venueModels['taipei-dome']; }
 export function getVenueLayout(layoutId) { return venueLayouts[layoutId] || venueLayouts['taipei-dome-base']; }
-export function effectiveTiers(venueId, layoutId) { const layout=getVenueLayout(layoutId); return layout.venueId===venueId && Array.isArray(layout.tiers) ? layout.tiers : getVenueModel(venueId).tiers; }
+export function effectiveTiers(venueId, layoutId) {
+  const model=getVenueModel(venueId), layout=getVenueLayout(layoutId);
+  const base=(model.tiers||[]).map(t=>({...t,sections:[...(t.sections||[])]}));
+  if(layout.venueId!==venueId || !Array.isArray(layout.tiers)) return base;
+  const merged=new Map(base.map(t=>[String(t.id),t]));
+  for(const eventTier of layout.tiers){
+    const id=String(eventTier.id);
+    const existing=merged.get(id);
+    if(existing) merged.set(id,{...existing,...eventTier,sections:[...new Set([...(existing.sections||[]),...(eventTier.sections||[])])]});
+    else merged.set(id,{...eventTier,sections:[...(eventTier.sections||[])]});
+  }
+  return [...merged.values()];
+}
 export function effectiveSections(venueId, layoutId) {
   const model=getVenueModel(venueId), layout=getVenueLayout(layoutId);
   if(layout.venueId!==venueId || !Array.isArray(layout.sections)) return model.sections;
@@ -534,13 +585,33 @@ export function venueSectionPosition(venueId, section, row=10, seatNumber=null) 
   return {x:Math.cos(a)*rx,y:section.y+depth*Number(section.rise ?? 12),z:Math.sin(a)*rz};
 }
 function priceRuleMatch(ruleLabel='', section={}) {
-  const norm=v=>String(v||'').toLowerCase().replace(/\s+/g,'').replace(/[區席票]/g,'');
-  const r=norm(ruleLabel), id=norm(section.id), group=norm(section.group), tier=norm(section.tier);
+  const norm=v=>String(v||'').toLowerCase().replace(/[（(][^）)]*[）)]/g,'').replace(/\s+/g,'').replace(/[區席票]/g,'').replace(/[臺台]/g,'台');
+  const raw=String(ruleLabel||'');
+  const r=norm(raw);
   if(!r) return false;
-  if(id && (r===id || r.includes(id) || id.includes(r))) return true;
-  if(group && (r===group || r.includes(group) || group.includes(r))) return true;
-  if(tier && (r===tier || r.includes(tier) || tier.includes(r))) return true;
-  if(r.startsWith('vip') && (tier==='vip' || group.startsWith('vip') || id.startsWith('vip'))) return true;
+  const candidates=[section.id,section.label,section.officialId,section.group,...(Array.isArray(section.aliases)?section.aliases:[])].map(norm).filter(Boolean);
+  for(const c of candidates){
+    if(r===c || r.includes(c) || c.includes(r)) return true;
+  }
+  const parts=raw.split(/[、,，/／+＋&＆]/).map(norm).filter(Boolean);
+  for(const part of parts){
+    if(candidates.some(c=>part===c || part.includes(c) || c.includes(part))) return true;
+  }
+  // Expand common letter ranges such as VIP A~E only when the section carries the same prefix.
+  const range=raw.match(/([A-Za-z0-9一-龥]+)\s*([A-Z])\s*[~～-]\s*([A-Z])/i);
+  if(range){
+    const prefix=norm(range[1]); const from=range[2].toUpperCase().charCodeAt(0), to=range[3].toUpperCase().charCodeAt(0);
+    for(const c of candidates){
+      const m=c.match(/^(.+?)([a-z])$/i);
+      if(m && (!prefix || m[1].includes(prefix) || prefix.includes(m[1]))){
+        const code=m[2].toUpperCase().charCodeAt(0); if(code>=Math.min(from,to)&&code<=Math.max(from,to)) return true;
+      }
+    }
+  }
+  // Generic tier labels are accepted only when the rule itself is exactly a tier label.
+  const tier=norm(section.tier);
+  if(tier && r===tier) return true;
+  if(r.startsWith('vip') && (tier==='vip' || candidates.some(c=>c.startsWith('vip')))) return true;
   return false;
 }
 export function sectionTicketLabel(layoutId, sectionId) {
@@ -554,6 +625,11 @@ export function sectionTicketLabel(layoutId, sectionId) {
 export function venueSectionWarning(venueId, sectionId, row, layoutId, viewer={}) {
   if (venueId==='taipei-dome') return domeSectionWarning(sectionId,row,getVenueLayout(layoutId),viewer);
   const messages=[]; let level='normal'; const layout=getVenueLayout(layoutId); const id=String(sectionId);
+  const structuralSection=getVenueSection(venueId,id,layoutId);
+  if (structuralSection?.structuralOnly) {
+    messages.push(`${structuralSection.tier==='B1'?'B1':'此層'}為可變動活動座席／結構示意，不代表本場實際售票區；實際排椅、站區與封閉範圍以該場官方座位圖為準。`);
+    level='info';
+  }
   if (layout.id==='plave-keep-it-manic-2026') {
     const price=sectionTicketLabel(layoutId,id); if (price) messages.push(`本場官方票區圖對應票價：${price}。`);
     if (layout.restrictedViewSections?.includes(id)) { messages.push('拓元官方售票頁將本票區列為部分座位可能視線受阻的區域。'); level='caution'; }

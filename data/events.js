@@ -871,12 +871,23 @@ export const seedEvents = [
   },
   {
     id: "babymonster-choom-taipei-2026", artist: "BABYMONSTER", shortArtist: "BM", market: "KR",
-    title: "2026–27 BABYMONSTER WORLD TOUR [춤 (CHOOM)] IN TAIPEI", type: "CONCERT", region: "TW", start: "2026-11-21T00:00:00+08:00", end: "2026-11-22T00:00:00+08:00", timeConfirmed: false,
-    venue: "臺北小巨蛋 Taipei Arena", city: "Taipei", statusLabel: "官方已確認", ticketStatus: "DETAILS TBA", generalSale: null, ticketing: "TBA", price: "TBA",
-    sourceName: "YG Entertainment Official", sourceUrl: "https://artist.ygfamily.co.kr/ARTISTS/BABYMONSTER/concert/worldtourchoom/index.html", verified: true, checkedAt: "2026-09-17T11:30:00+08:00",
-    tags: ["KR","K-POP","2 DAYS","TAIPEI ARENA","YG OFFICIAL"], venueModelId: "taipei-arena", venueLayoutId: "taipei-arena-far",
-    summary: "YG 官方世界巡演頁確認 BABYMONSTER 於 2026/11/21、11/22 在 Taipei Arena 舉行台北站；售票細節仍為 Coming Soon。",
-    sessions: [{date:"2026/11/21",time:"待公布",note:"YG 官方已確認"},{date:"2026/11/22",time:"待公布",note:"YG 官方已確認"}], notes:["在主辦／售票頁公開前，不自行填寫票價、開賣時間或本場座位圖。"]
+    title: "2026–27 BABYMONSTER WORLD TOUR [춤 (CHOOM)] IN TAIPEI", type: "CONCERT", region: "TW", start: "2026-11-21T19:30:00+08:00", end: "2026-11-22T18:00:00+08:00", timeConfirmed: true,
+    venue: "臺北小巨蛋 Taipei Arena", city: "Taipei", statusLabel: "演唱會", ticketStatus: "UPCOMING SALE", generalSale: "2026-10-14T12:00:00+08:00", ticketing: "Ticket Plus 遠大售票", price: "NT$6,780 / 5,800 / 4,800 / 4,200 / 3,600 / 2,600 / 800",
+    sectionPriceRules: [
+      {label:"VIP A",price:"NT$6,780"},{label:"VIP B",price:"NT$6,780"},{label:"VIP C",price:"NT$6,780"},{label:"VIP D",price:"NT$6,780"},{label:"VIP E",price:"NT$6,780"},
+      {label:"紫2B",price:"NT$6,780"},{label:"紫2C",price:"NT$6,780"},{label:"紅2B",price:"NT$6,780"},{label:"紅2C",price:"NT$6,780"}
+    ],
+    sourceName: "YG Entertainment / SuperDome 公告", sourceUrl: "https://artist.ygfamily.co.kr/ARTISTS/BABYMONSTER/concert/worldtourchoom/index.html", secondarySourceUrl: "https://www.facebook.com/superdometw", verified: true, checkedAt: "2026-09-17T15:40:00+08:00",
+    tags: ["KR","K-POP","2 DAYS","TAIPEI ARENA","YG OFFICIAL","AUTO SYNC"], venueModelId: "taipei-arena", venueLayoutId: "taipei-arena-far",
+    summary: "台北小巨蛋 11/21 19:30、11/22 18:00；主辦已公布全場座位席、Ticket Plus 售票與 7 段票價。NEUL 僅把能可靠對應到官方票區名稱的價格套進 3D。",
+    sessions: [{date:"2026/11/21",time:"19:30"},{date:"2026/11/22",time:"18:00"}],
+    ticketTimeline: [
+      {label:"Fanclub 登記",at:"2026-09-17T11:00:00+08:00",end:"2026-09-20T11:00:00+08:00"},
+      {label:"Fanclub 優先購",at:"2026-10-12T12:00:00+08:00"},
+      {label:"JOOX 優先預售",at:"2026-10-13T12:00:00+08:00"},
+      {label:"Klook 優先預售",at:"2026-10-13T14:00:00+08:00"},
+      {label:"正式啟售",at:"2026-10-14T12:00:00+08:00"}
+    ]
   },
   {
     id: "malcolm-todd-do-that-again-taipei-2026", artist: "Malcolm Todd", shortArtist: "MT", market: "US",
@@ -902,4 +913,134 @@ export const seedEvents = [
     venue: "Zepp New Taipei", city: "New Taipei", statusLabel: "演唱會", ticketStatus: "ON SALE", ticketing: "tixCraft 拓元", price: "NT$2,580–3,680",
     sourceName: "Live Nation Taiwan", sourceUrl: "https://www.livenation.com.tw/event/fkj-tyber-tour-taipei-tickets-edp1685113", verified: true, checkedAt: "2026-09-17T11:30:00+08:00", tags: ["FR","ELECTRONIC","ZEPP"]
   },
+
+  {
+    id: "post-malone-big-ass-kaohsiung-2026", artist: "Post Malone", shortArtist: "PM", market: "US",
+    title: "Post Malone Presents The BIG ASS Stadium World Tour", type: "CONCERT", region: "TW", start: "2026-09-19T00:00:00+08:00", timeConfirmed: false,
+    venue: "高雄國家體育場（世運主場館） Kaohsiung National Stadium", city: "Kaohsiung", statusLabel: "演唱會", ticketStatus: "ON SALE", ticketing: "tixCraft 拓元", price: "NT$2,980 起；VIP 套票最高 NT$12,180",
+    sourceName: "Live Nation Taiwan", sourceUrl: "https://www.livenation.com.tw/event/post-malone-presents-the-big-ass-stadium-world-tour-kaohsiung-tickets-edp1664488", verified: true, checkedAt: "2026-09-17T15:10:00+08:00",
+    tags: ["US","HIP HOP","KAOHSIUNG STADIUM"], venueModelId: "kaohsiung-stadium", venueLayoutId: "ks-standard", summary: "2026/09/19 高雄世運主場館；Special Guest: Don Toliver。"
+  },
+  {
+    id: "joji-solaris-kaohsiung-2026", artist: "JOJI", shortArtist: "JOJI", market: "JP",
+    title: "JOJI: SOLARIS", type: "CONCERT", region: "TW", start: "2026-11-27T00:00:00+08:00", timeConfirmed: false,
+    venue: "高雄巨蛋 Kaohsiung Arena", city: "Kaohsiung", statusLabel: "演唱會", ticketStatus: "ON SALE", ticketing: "tixCraft 拓元", price: "NT$2,900–7,400",
+    sourceName: "Live Nation Taiwan", sourceUrl: "https://www.livenation.com.tw/event/joji-solaris-kaohsiung-tickets-edp1668603", verified: true, checkedAt: "2026-09-17T15:10:00+08:00",
+    tags: ["JP","R&B","KAOHSIUNG ARENA"], venueModelId: "kaohsiung-arena", venueLayoutId: "kaohsiung-base"
+  },
+  {
+    id: "against-the-current-till-death-taipei-2027", artist: "Against The Current", shortArtist: "ATC", market: "US",
+    title: "AGAINST THE CURRENT : TILL DEATH & BACK TOUR", type: "CONCERT", region: "TW", start: "2027-01-15T00:00:00+08:00", timeConfirmed: false,
+    venue: "台北國際會議中心 TICC", city: "Taipei", statusLabel: "演唱會", ticketStatus: "ON SALE", ticketing: "tixCraft 拓元", price: "NT$2,100–5,500",
+    sourceName: "Live Nation Taiwan", sourceUrl: "https://www.livenation.com.tw/event/against-the-current-till-death-and-back-tour-taipei-tickets-edp1685117", verified: true, checkedAt: "2026-09-17T15:10:00+08:00",
+    tags: ["US","ROCK","TICC"], venueModelId: "ticc", venueLayoutId: "ticc-base"
+  },
+  {
+    id: "maroon5-asia-kaohsiung-2027", artist: "Maroon 5", shortArtist: "M5", market: "US",
+    title: "Maroon 5 Asia 2027 in Kaohsiung", type: "CONCERT", region: "TW", start: "2027-01-24T00:00:00+08:00", timeConfirmed: false,
+    venue: "高雄國家體育場（世運主場館） Kaohsiung National Stadium", city: "Kaohsiung", statusLabel: "演唱會", ticketStatus: "ON SALE", ticketing: "tixCraft 拓元", price: "NT$2,500 起；LOVE IS LIKE VIP 套票 NT$9,700",
+    sourceName: "Live Nation Taiwan", sourceUrl: "https://www.livenation.com.tw/event/maroon-5-asia-2027-in-kaohsiung-kaohsiung-tickets-edp1689725", verified: true, checkedAt: "2026-09-17T15:10:00+08:00",
+    tags: ["US","POP ROCK","KAOHSIUNG STADIUM"], venueModelId: "kaohsiung-stadium", venueLayoutId: "ks-standard"
+  },
+  {
+    id: "westlife-25-kaohsiung-2027", artist: "Westlife", shortArtist: "WL", market: "EU",
+    title: "WESTLIFE 25: THE ANNIVERSARY WORLD TOUR", type: "CONCERT", region: "TW", start: "2027-01-30T00:00:00+08:00", timeConfirmed: false,
+    venue: "高雄巨蛋 Kaohsiung Arena", city: "Kaohsiung", statusLabel: "演唱會", ticketStatus: "ON SALE", ticketing: "tixCraft 拓元", price: "NT$2,980–8,680",
+    sourceName: "Live Nation Taiwan", sourceUrl: "https://www.livenation.com.tw/event/westlife-25-the-anniversary-world-tour-kaohsiung-tickets-edp1686626", verified: true, checkedAt: "2026-09-17T15:10:00+08:00",
+    tags: ["EU","POP","KAOHSIUNG ARENA"], venueModelId: "kaohsiung-arena", venueLayoutId: "kaohsiung-base"
+  },
+  {
+    id: "bruno-mars-romantic-kaohsiung-2027", artist: "Bruno Mars", shortArtist: "BM", market: "US",
+    title: "Bruno Mars - The Romantic Tour", type: "CONCERT", region: "TW", start: "2027-05-01T00:00:00+08:00", end: "2027-05-02T00:00:00+08:00", timeConfirmed: false,
+    venue: "高雄國家體育場（世運主場館） Kaohsiung National Stadium", city: "Kaohsiung", statusLabel: "演唱會", ticketStatus: "ON SALE", generalSale: "2026-09-14T10:00:00+08:00", ticketing: "tixCraft 拓元", price: "NT$3,380–7,980；身障優惠票 NT$2,490–2,990",
+    sourceName: "Live Nation Taiwan", sourceUrl: "https://www.livenation.com.tw/event/bruno-mars-the-romantic-tour-kaohsiung-tickets-edp1692984", secondarySourceUrl: "https://tixcraft.com/activity/detail/27_brunomars", verified: true, checkedAt: "2026-09-17T15:10:00+08:00",
+    tags: ["US","POP","2 DAYS","KAOHSIUNG STADIUM"], venueModelId: "kaohsiung-stadium", venueLayoutId: "ks-standard", summary: "2027/05/01–02 高雄世運主場館；Support: Anderson .Paak as DJ Pee .Wee。"
+  },
+
+  {
+    id: "bts-arirang-kaohsiung-2026", artist: "BTS", shortArtist: "BTS", market: "KR",
+    title: "BTS WORLD TOUR 'ARIRANG' IN KAOHSIUNG", type: "CONCERT", region: "TW", start: "2026-11-19T19:00:00+08:00", end: "2026-11-22T19:00:00+08:00", timeConfirmed: true,
+    venue: "高雄國家體育場（世運主場館） Kaohsiung National Stadium", city: "Kaohsiung", statusLabel: "演唱會", ticketStatus: "ON SALE", ticketing: "tixCraft 拓元", price: "VIP NT$9,380；一般 NT$7,980 / 6,980 / 5,980 / 4,980 / 3,980 / 2,980",
+    sourceName: "Live Nation Taiwan", sourceUrl: "https://www.livenation.com.tw/event/bts-world-tour-arirang-in-kaohsiung-kaohsiung-tickets-edp1675887", secondarySourceUrl: "https://tixcraft.com/activity/detail/26_btskns", verified: true, checkedAt: "2026-09-17T15:25:00+08:00",
+    tags: ["KR","K-POP","BTS","KAOHSIUNG STADIUM"], venueModelId: "kaohsiung-stadium", venueLayoutId: "ks-standard",
+    sessions: [{date:"2026/11/19",time:"19:00"},{date:"2026/11/21",time:"19:00"},{date:"2026/11/22",time:"19:00"}]
+  },
+  {
+    id: "bigbang-cosmos-taipei-2026", artist: "BIGBANG", shortArtist: "BB", market: "KR",
+    title: "BIGBANG 2026-2027 WORLD TOUR < XX : COSMOS > IN TAIPEI", type: "CONCERT", region: "TW", start: "2026-10-09T18:00:00+08:00", end: "2026-10-11T18:00:00+08:00", timeConfirmed: true,
+    venue: "臺北大巨蛋 Taipei Dome", city: "Taipei", statusLabel: "演唱會", ticketStatus: "CHECK OFFICIAL", ticketing: "Ticket Plus 遠大售票", price: "依官方售票頁最新公告",
+    sourceName: "YG Entertainment Official", sourceUrl: "https://ygfamily.com/ko/news/notice/5891", secondarySourceUrl: "https://ticketplus.com.tw/activity/21d3c3504ff522a6732789a46f5796d7", verified: true, checkedAt: "2026-09-17T15:25:00+08:00",
+    tags: ["KR","K-POP","BIGBANG","TAIPEI DOME"], venueModelId: "taipei-dome", venueLayoutId: "td-standard",
+    sessions: [{date:"2026/10/09",time:"18:00"},{date:"2026/10/10",time:"18:00"},{date:"2026/10/11",time:"18:00"}]
+  },
+  {
+    id: "bigbang-cosmos-kaohsiung-2027", artist: "BIGBANG", shortArtist: "BB", market: "KR",
+    title: "BIGBANG 2026-2027 WORLD TOUR < XX : COSMOS > IN KAOHSIUNG", type: "CONCERT", region: "TW", start: "2027-02-27T18:30:00+08:00", end: "2027-02-28T18:30:00+08:00", timeConfirmed: true,
+    venue: "高雄國家體育場（世運主場館） Kaohsiung National Stadium", city: "Kaohsiung", statusLabel: "演唱會", ticketStatus: "CHECK OFFICIAL", ticketing: "寬宏售票", price: "依官方售票頁最新公告",
+    sourceName: "YG Entertainment Official", sourceUrl: "https://ygfamily.com/ko/news/notice/5890", verified: true, checkedAt: "2026-09-17T15:25:00+08:00",
+    tags: ["KR","K-POP","BIGBANG","KAOHSIUNG STADIUM"], venueModelId: "kaohsiung-stadium", venueLayoutId: "ks-standard",
+    sessions: [{date:"2027/02/27",time:"18:30"},{date:"2027/02/28",time:"18:30"}]
+  },
+  {
+    id: "fire-ex-on-fire-day-kaohsiung-2026", artist: "滅火器 Fire EX.", shortArtist: "FIRE", market: "TW",
+    title: "ON FIRE DAY 2026 滅火器高雄巨蛋演唱會", type: "CONCERT", region: "TW", start: "2026-12-12T19:30:00+08:00", end: "2026-12-13T17:30:00+08:00", timeConfirmed: true,
+    venue: "高雄巨蛋 Kaohsiung Arena", city: "Kaohsiung", statusLabel: "演唱會", ticketStatus: "ON SALE", ticketing: "KKTIX", price: "NT$3,500 / 3,000 / 2,699 / 2,400 / 2,000 / 1,600 / 1,500 / 1,000 / 500",
+    sourceName: "KKTIX / KKLIVE Taiwan", sourceUrl: "https://kklivetw.kktix.cc/events/476bcfdb", verified: true, checkedAt: "2026-09-17T15:25:00+08:00",
+    tags: ["TW","BAND","KAOHSIUNG ARENA"], venueModelId: "kaohsiung-arena", venueLayoutId: "kaohsiung-base"
+  },
+  {
+    id: "accusefive-century-taipei-2026", artist: "告五人 Accusefive", shortArtist: "A5", market: "TW",
+    title: "告五人 [在這裡 @century] 世界巡迴演唱會 台北小巨蛋", type: "CONCERT", region: "TW", start: "2026-11-07T19:30:00+08:00", end: "2026-11-08T19:30:00+08:00", timeConfirmed: true,
+    venue: "臺北小巨蛋 Taipei Arena", city: "Taipei", statusLabel: "演唱會", ticketStatus: "ON SALE", ticketing: "tixCraft 拓元", price: "NT$3,850 / 3,250 / 2,950 / 2,450 / 1,950 / 1,550 / 800",
+    sourceName: "tixCraft 拓元", sourceUrl: "https://tixcraft.com/activity/detail/26_aftp", verified: true, checkedAt: "2026-09-17T15:25:00+08:00",
+    tags: ["TW","POP","TAIPEI ARENA"], venueModelId: "taipei-arena", venueLayoutId: "taipei-arena-far"
+  },
+  {
+    id: "rene-final-call-taipei-2026", artist: "劉若英 René Liu", shortArtist: "RNE", market: "TW",
+    title: "劉若英 [飛行日] 2026巡迴演唱會 台北站", type: "CONCERT", region: "TW", start: "2026-12-05T18:30:00+08:00", timeConfirmed: true,
+    venue: "臺北小巨蛋 Taipei Arena", city: "Taipei", statusLabel: "演唱會", ticketStatus: "ON SALE", ticketing: "tixCraft 拓元", price: "NT$4,500 / 4,200 / 3,800 / 3,200 / 2,800 / 2,200 / 1,800 / 800",
+    sourceName: "tixCraft 拓元", sourceUrl: "https://tixcraft.com/activity/detail/26_renetp", verified: true, checkedAt: "2026-09-17T15:25:00+08:00",
+    tags: ["TW","POP","TAIPEI ARENA","CENTER STAGE"], venueModelId: "taipei-arena", venueLayoutId: "taipei-arena-center"
+  },
+  {
+    id: "tws-247-kaohsiung-2026", artist: "TWS", shortArtist: "TWS", market: "KR",
+    title: "2026 TWS TOUR ‘24/7:FOR:YOU’ IN KAOHSIUNG", type: "CONCERT", region: "TW", start: "2026-10-24T19:00:00+08:00", timeConfirmed: true,
+    venue: "高雄巨蛋 Kaohsiung Arena", city: "Kaohsiung", statusLabel: "演唱會", ticketStatus: "ON SALE", ticketing: "tixCraft 拓元", price: "NT$6,680 / 5,880 / 4,880 / 3,880 / 2,880 / 2,080",
+    sourceName: "tixCraft 拓元", sourceUrl: "https://tixcraft.com/activity/detail/26_twskh", verified: true, checkedAt: "2026-09-17T15:25:00+08:00",
+    tags: ["KR","K-POP","TWS","KAOHSIUNG ARENA"], venueModelId: "kaohsiung-arena", venueLayoutId: "kaohsiung-base"
+  },
+
+  {
+    id: "aov-10th-anniversary-taipei-dome-2026", artist: "傳說對決", shortArtist: "AOV", market: "TW",
+    title: "《流光穿梭 十年傳說》傳說十週年演唱會", type: "CONCERT", region: "TW", start: "2026-10-31T19:00:00+08:00", timeConfirmed: true,
+    venue: "臺北大巨蛋 Taipei Dome", city: "Taipei", statusLabel: "演唱會", ticketStatus: "ON SALE", generalSale: "2026-09-19T12:00:00+08:00", ticketing: "ibon 售票", price: "NT$3,490 / 2,990 / 2,490 / 790",
+    sectionPriceRules: [{label:"B2 A",price:"NT$3,490"},{label:"B2 B",price:"NT$3,490"},{label:"B1",price:"NT$2,990"},{label:"L2",price:"NT$2,490"},{label:"L4",price:"NT$790"},{label:"L5",price:"NT$790"}],
+    sourceName: "Garena 傳說對決官方 / ibon", sourceUrl: "https://moba.garena.tw/news/show/5704", secondarySourceUrl: "https://ticket.ibon.com.tw/ActivityInfo/Details/39910", verified: true, checkedAt: "2026-09-17T15:45:00+08:00",
+    tags: ["TW","GAME","ANNIVERSARY","TAIPEI DOME","MINNIE"], venueModelId: "taipei-dome", summary: "十週年演唱會；官方公布 MINNIE、婁峻碩等卡司與分層票價。"
+  },
+  {
+    id: "silica-gel-asia-tour-taipei-2026", artist: "Silica Gel", shortArtist: "SG", market: "KR",
+    title: "Silica Gel Asia Tour 2026 in Taipei", type: "CONCERT", region: "TW", start: "2026-10-17T20:00:00+08:00", timeConfirmed: true,
+    venue: "Legacy Taipei", city: "Taipei", statusLabel: "演唱會", ticketStatus: "ON SALE", generalSale: "2026-07-15T12:00:00+08:00", ticketing: "KKTIX", price: "預售 NT$2,000 / 現場 NT$2,200",
+    sourceName: "KKTIX / Young Team Productions", sourceUrl: "https://youngteam.kktix.cc/events/silicagel26", verified: true, checkedAt: "2026-09-17T15:45:00+08:00",
+    tags: ["KR","BAND","STANDING","LEGACY TAIPEI"], summary: "全站席依序號入場；Legacy Taipei 尚未建立固定座席 3D，活動資訊仍會正常出現在 Upcoming。"
+  },
+  {
+    id: "mamamoo-4ward-taipei-2026", artist: "MAMAMOO", shortArtist: "MMM", market: "KR",
+    title: "MAMAMOO 2026 WORLD TOUR <4WARD> in TAIPEI", type: "CONCERT", region: "TW", start: "2026-11-28T18:00:00+08:00", end: "2026-11-29T15:00:00+08:00", timeConfirmed: true,
+    venue: "臺北小巨蛋 Taipei Arena", city: "Taipei", statusLabel: "演唱會", ticketStatus: "UPCOMING SALE", generalSale: "2026-09-26T11:00:00+08:00", ticketing: "ibon 售票", price: "NT$6,980 / 5,980 / 3,980 / 3,280 / 800",
+    sourceName: "希林國際 / ibon 售票", sourceUrl: "https://ibontw.com/26MAMAMOO", verified: true, checkedAt: "2026-09-17T15:45:00+08:00",
+    tags: ["KR","K-POP","MAMAMOO","2 DAYS","TAIPEI ARENA"], venueModelId: "taipei-arena", venueLayoutId: "taipei-arena-far", sessions:[{date:"2026/11/28",time:"18:00"},{date:"2026/11/29",time:"15:00"}],
+    summary: "台北小巨蛋巡演最終站；全場實名制。區域價位待 ibon 官方活動頁可可靠解析後自動套入 3D。"
+  },
+  {
+    id: "yoasobi-super-planet-taipei-2027", artist: "YOASOBI", shortArtist: "YOA", market: "JP",
+    title: "YOASOBI ASIA 10-CITY DOME & STADIUM TOUR 2026-2027 超惑星 ‘SUPER PLANET’ IN TAIPEI", type: "CONCERT", region: "TW", start: "2027-01-09T18:00:00+08:00", end: "2027-01-10T18:00:00+08:00", timeConfirmed: true,
+    venue: "臺北大巨蛋 Taipei Dome", city: "Taipei", statusLabel: "演唱會", ticketStatus: "LOTTERY OPEN", ticketing: "Ticket Plus 遠大售票", price: "NT$6,880 / 6,280 / 5,880 / 4,880 / 3,880 / 2,800 / 1,800",
+    sourceName: "Ticket Plus 遠大售票", sourceUrl: "https://ticketplus.com.tw/activity/c3dc337da337c035c92bb65268f10986", secondarySourceUrl: "https://ticketplus.com.tw/activity/017266f1d31197001346497774e29b64", verified: true, checkedAt: "2026-09-17T15:45:00+08:00",
+    tags: ["JP","J-POP","YOASOBI","2 DAYS","TAIPEI DOME","REAL NAME LOTTERY"], venueModelId: "taipei-dome", sessions:[{date:"2027/01/09",time:"18:00"},{date:"2027/01/10",time:"18:00"}],
+    ticketTimeline:[{label:"CUBE 卡友優先購",at:"2026-09-16T12:00:00+08:00",end:"2026-09-16T18:00:00+08:00"},{label:"實名抽選登記",at:"2026-09-17T12:00:00+08:00",end:"2026-09-20T19:00:00+08:00"}],
+    summary: "2027/01/09–10 台北大巨蛋；採實名抽選，分區價位待官方座位配置可可靠解析後自動寫入 3D。"
+  },
+
 ];

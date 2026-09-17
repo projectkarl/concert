@@ -1,32 +1,52 @@
-# NEUL v0.35 Data Source Audit
+# NEUL v0.37 Data Source Audit
 
-Scope: Taiwan performances only. Artist nationality is unrestricted; overseas performances and overseas venues are excluded.
+Audit date: 2026-09-17
 
-Automatic public-source layers:
+Scope: Taiwan performances only. Artist nationality is unrestricted; overseas performances and overseas venues are excluded before frontend display.
+
+## Automatic public-source layers
+
 1. Live Nation Taiwan
+   - Taiwan discovery/index pages
+   - known Taiwan venue pages
+   - bounded artist-page -> event-page follow-up
 2. Taipei Arena official published events
 3. Kaohsiung Arena official calendar
 4. Artist / agency official tour pages
-5. Taiwan ticket-platform discovery: tixCraft, KKTIX, Ticket Plus, Kham
-6. Curated verified fallback records when an upstream source is temporarily unavailable
+5. Taiwan official ticket-platform discovery
+   - tixCraft / 拓元
+   - KKTIX
+   - Ticket Plus / 遠大售票
+   - KHAM / 寬宏售票
+   - FamiTicket / 全網售票
+   - udn 售票網
+   - ibon 售票 (`/ActivityInfo/Details/...`)
+   - MNA / 牛耳藝術 (`ticket.mna.com.tw`)
+   - 年代售票 (`ticket.com.tw`)
+6. Curated verified fallback records when an upstream source is temporarily unavailable or changes HTML
 
-Known-gap regression cases added:
-- LE SSERAFIM — 2026/11/14–15 — NTSU Arena — tixCraft official event page
-- KIM JI WON — 2026/11/08 — Legacy TERA — tixCraft official event page
+The sources are merged, normalized and deduplicated. A single event discovered by several official sources is shown once while useful ticket, seat-map and source metadata are combined.
 
-All discovered records still pass the Taiwan-region guard before reaching the frontend.
+## Verified fallback coverage added in v0.37
 
+- 傳說對決十週年演唱會 — 2026/10/31 — 臺北大巨蛋 — Garena + ibon
+- Silica Gel Asia Tour — 2026/10/17 — Legacy Taipei — KKTIX
+- MAMAMOO WORLD TOUR <4WARD> in TAIPEI — 2026/11/28–29 — 臺北小巨蛋 — ibon / promoter-confirmed public information
+- YOASOBI DOME LIVE 2026-2027 “SUPER PLANET” TAIPEI — 2027/01/09–10 — 臺北大巨蛋 — Ticket Plus
+- BABYMONSTER WORLD TOUR [CHOOM] IN TAIPEI — 2026/11/21–22 — 臺北小巨蛋 — Ticket Plus schedule/price fallback plus YG official tour source
 
-## v0.35 duplicate + award audit
-- Stray Kids RUN IT TAIPEI: official promoter and tixCraft records are treated as one event. tixCraft seat-map URL is retained; richer verified price data is protected from placeholder overwrite.
-- 2026 Asia Artist Awards in Kaohsiung: added from official tixCraft public activity data and seat-map source.
-- Dedupe identity: same Taiwan-local calendar date + canonical venue + artist/title identity overlap, with exact normalized source URL as an additional match path.
-- Source priority is used only to choose richer/current fields; all distinct official source references are retained in `sourceRefs`.
-- Overseas event records remain excluded by the Taiwan-only gate.
+Previously retained verified fallbacks include Charlie Puth, Post Malone, BTS, BIGBANG, Bruno Mars and other Taiwan events.
 
-## v0.35 automatic sync audit
-- `/api/events` remains the primary six-hour cached discovery/sync endpoint.
-- tixCraft / KKTIX / Ticket Plus / KHAM detail parsing now returns `sectionPriceRules` when zone labels and prices are recognizable.
-- `seatLayoutSourceUrl`, total `price`, and structured zone prices are merged across official sources.
-- `ensureAutoEventLayout()` synchronizes those fields into both auto-generated and hand-calibrated event layouts without overwriting calibrated geometry/distances.
-- Ambiguous zone names remain unmatched rather than receiving guessed prices.
+## Discovery policy
+
+No single public Taiwan concert feed is complete. NEUL therefore uses overlapping official/public source layers. Third-party calendars can help identify gaps during development, but event facts are promoted into the verified fallback layer only after an official venue, ticketing platform, promoter, artist or agency source supports them.
+
+Runtime discovery is intentionally bounded for Vercel Hobby safety, so the fallback layer protects major verified events from temporary upstream failures. The architecture can add future ticket sources without changing the homepage UI.
+
+## Seat-map / price sync boundary
+
+- Recognizable section-price pairs become `sectionPriceRules`.
+- `seatLayoutSourceUrl`, total `price`, structured zone prices and source references are merged across official sources.
+- 3D layouts consume exact section-price rules only; overall event prices are not copied onto every 3D section.
+- A refreshed event map overlays the full base venue model. It cannot erase a physical floor or fixed tier.
+- Ambiguous or not-yet-machine-readable zone mappings stay unmatched/TBA instead of being guessed.

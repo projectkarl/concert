@@ -1,22 +1,46 @@
-# NEUL v0.35 Venue Calibration Audit
+# NEUL v0.37 Venue Calibration Audit
+
+Audit date: 2026-09-17
+
+## Global auto-generation invariant
+
+Every event-specific 3D layout is now an overlay on the venue's physical base model. Event ticket maps may:
+- activate an existing physical section,
+- attach verified section pricing,
+- add event-flexible floor blocks,
+- add production/stage metadata when explicitly supported.
+
+They may not remove the base venue's lower bowl, upper bowl, floor envelope or other known physical tiers. This prevents future automatically generated events from appearing as only a few middle/upper blocks.
+
+Likewise, generic auto-generation no longer invents a runway or B-stage unless event metadata explicitly supports it.
+
+## NTSU Arena / 林口體育館
+
+The previous model only exposed MIDDLE / UPPER visual tiers, which made concert layouts look physically incomplete. v0.37 retains four structural layers:
+- FLOOR — configurable activity-floor envelope
+- LOWER — lower / event-configurable stepped seating envelope
+- MIDDLE — retained bowl
+- UPPER — retained bowl
+
+The added FLOOR/LOWER blocks are structural envelopes, not a claim that every concert uses the same exact seat rows. Official event maps can overlay the corresponding activity blocks without deleting the rest of the arena.
+
+## Kaohsiung Arena
+
+A configurable FLOOR structural layer is retained alongside the fixed bowl tiers. Event layouts can add floor ticket zones while the physical venue remains complete.
 
 ## Taipei Arena
-- 2F Red / Yellow / Purple / Blue structural sections retained.
-- Public-seat-record calibration for 2F remains 1–15 rows where already verified; no unsupported 16+ row claim is introduced.
-- 3F structural bowl now renders all four colour families instead of only the previously modelled rear/yellow arc.
-- Event-specific layouts no longer delete the rest of the physical arena. Ticket-map sections override matching structural sections; non-ticket-map structural sections remain dimmed.
-- IVE event-specific VIP / 2F / 3F / box geometry remains separate from the base venue model.
 
-## Rendering
-- Native WebGL2 instanced seats.
-- Selected zones retain denser true seat-row geometry.
-- Background structural zones now use denser row/seat sampling so the complete bowl reads clearly without excessive mobile load.
-- Stair/aisle lines, cross aisles, handrails and LED panel seams remain geometry, not a background image.
+The v0.36 B1 + 2F + 3F completeness work remains intact:
+- B1 flexible/retractable-seat structural envelope
+- 2F fixed bowl
+- 3F complete structural bowl
 
+B1 is event-dependent and is not presented as a fixed permanent ticket-zone map.
 
-## v0.34 event-layout calibration
-- Taipei Dome / Stray Kids: official ticket colors are attached only to fixed stands that can be read reliably from the official seating map. Gray or ambiguous fixed sections and floor blocks without a reliable section-to-price match remain unpriced rather than inferred.
-- Kaohsiung National Stadium / AAA: auto-generated event layout uses the existing full stadium geometry plus centered-stage mode because the official ticket page describes a four-sided / 360-degree stage. Event geometry is still a draft until precise production dimensions are published.
+## Price display rule
 
-## v0.35 metadata-sync boundary
-Hand-calibrated WebGL geometry remains immutable during routine official-data refresh. Official seat-map URLs, total price summaries and recognizable section-price pairs may update automatically and are reflected in the 3D UI. A changed 2D image alone is not treated as sufficient evidence to move calibrated 3D coordinates.
+A 3D section displays a ticket price only when its ID/label/alias can be matched reliably to an official `sectionPriceRule`. A general event price range is not shown as though it were the selected section's price. This fixes the prior behavior where a whole list of ticket prices could appear on every section.
+
+## Expired event layouts
+
+Finished event-specific layouts are automatically removed from the normal venue selector based on event end/start time plus a small grace window. Archive/detail flows can still retain historical records without cluttering the live venue selector.

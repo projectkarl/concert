@@ -100,7 +100,7 @@ function isMeaningful(value) {
 
 function sourcePriority(event = {}) {
   const s = `${event.sourceName || ""} ${event.sourceUrl || ""} ${event.ticketing || ""}`.toLowerCase();
-  if (/tixcraft|拓元|kktix|ticketplus|遠大|kham|寬宏|ibon/.test(s)) return 60;
+  if (/tixcraft|拓元|kktix|ticketplus|遠大|kham|寬宏|ibon|famiticket|全網|udn|聯合|ticket\.mna|mna|牛耳|ticket\.com\.tw|年代/.test(s)) return 60;
   if (/livenation|live nation/.test(s)) return 55;
   if (/weverse|ygfamily|jype|smtown|hybe|official.*tour|藝人官方/.test(s)) return 50;
   if (/arena|小巨蛋|巨蛋|場館|calendar|行事曆/.test(s)) return 40;

@@ -220,7 +220,7 @@ function renderEvents() {
   const root = $("#eventList");
   const meta = $("#eventResultMeta");
   const more = $("#viewMoreBtn");
-  if (meta) meta.textContent = list.length ? `${list.length} 場台灣活動` : "沒有符合條件的活動";
+  if (meta) meta.textContent = list.length ? "台灣活動 · 已去重同步" : "沒有符合條件的活動";
   if (!list.length) {
     root.innerHTML = `<div class="empty-upcoming">目前沒有符合條件的活動。<br>切回「台灣／全部活動」可查看已核對資料。</div>`;
     if (more) more.hidden = true;
@@ -241,7 +241,7 @@ function renderEvents() {
   $$(".event-row", root).forEach(btn => btn.addEventListener("click", () => openDetail(btn.dataset.eventId)));
   if (more) {
     more.hidden = list.length <= 5;
-    more.textContent = list.length > 5 ? `查看更多活動（${list.length - 5}） →` : "查看更多活動 →";
+    more.textContent = "查看更多活動 →";
   }
 }
 
@@ -259,7 +259,7 @@ function renderFollowing() {
     const code = profile?.shortName || e?.shortArtist || name.split(/\s+/).map(s => s[0]).join("").slice(0, 3).toUpperCase();
     const count = profile?.upcomingEventCount || 0;
     return `<button class="artist-bubble" data-artist="${escapeHtml(name)}" aria-label="查看 ${escapeHtml(name)}">
-      <span class="artist-avatar">${escapeHtml(code)}</span><span>${escapeHtml(name)}</span>${count ? `<em>${count} EVENT${count > 1 ? "S" : ""}</em>` : ""}
+      <span class="artist-avatar">${escapeHtml(code)}</span><span class="artist-name">${escapeHtml(name)}</span>${count ? `<em>${count} EVENT${count > 1 ? "S" : ""}</em>` : ""}
     </button>`;
   }).join("");
   $$(".artist-bubble", root).forEach(btn => btn.addEventListener("click", () => openArtistDetail(btn.dataset.artist)));
@@ -308,10 +308,10 @@ function stepFeatured(delta) {
 }
 
 const FEATURED_IMAGES = [
-  "/assets/featured-1-hd.webp",
-  "/assets/featured-2-hd.webp",
-  "/assets/featured-3-hd.webp",
-  "/assets/featured-4-hd.webp"
+  "/assets/featured-1-crisp.webp",
+  "/assets/featured-2-crisp.webp",
+  "/assets/featured-3-crisp.webp",
+  "/assets/featured-4-crisp.webp"
 ];
 function featuredImageFor(event, index=0) {
   const key=String(event?.id||event?.artist||index);
@@ -938,7 +938,7 @@ function availableVenueTiers() {
 function renderVenueIdentity() {
   const model = activeVenueModel();
   const title = $("#venueTitle");
-  if (title) title.textContent = model.name;
+  if (title) { title.textContent = model.name; title.title = model.name; }
   if (overviewCanvas) overviewCanvas.setAttribute("aria-label", `${model.name} 3D 區域模型`);
   const canvasLabel = $("#venueCanvas");
   if (canvasLabel) canvasLabel.setAttribute("aria-label", `${model.name}互動 3D 場館`);
@@ -952,9 +952,19 @@ function renderVenueOptions() {
   venueSelect.innerHTML = taiwanVenueModels().map(v => `<option value="${escapeHtml(v.id)}" ${v.id===state.venueId?"selected":""}>${escapeHtml(v.name)}</option>`).join("");
 }
 function renderLayoutOptions() {
-  const options = layoutsForVenue(state.venueId);
-  if (!options.some(x => x.id === state.layoutId)) state.layoutId = activeVenueModel().baseLayoutId;
+  const now=Date.now();
+  const model=activeVenueModel();
+  const options=layoutsForVenue(state.venueId).filter(layout=>{
+    if(layout.id===model.baseLayoutId || !layout.eventId) return !layout.historical;
+    if(layout.id===state.layoutId) return true; // archive/deep-link may temporarily show its selected layout
+    const event=state.events.find(e=>e.id===layout.eventId);
+    if(!event || event.historical) return false;
+    const endTs=new Date(event.end||event.start||0).getTime();
+    return Number.isFinite(endTs) && endTs>=now-6*3600000;
+  });
+  if (!options.some(x => x.id === state.layoutId)) state.layoutId = model.baseLayoutId;
   layoutSelect.innerHTML = options.map(x => `<option value="${escapeHtml(x.id)}" ${x.id===state.layoutId?"selected":""}>${escapeHtml(x.label)}</option>`).join("");
+  layoutSelect.title = getVenueLayout(state.layoutId)?.label || "";
 }
 function setVenue(venueId, layoutId = null) {
   const model = getVenueModel(venueId);
@@ -1038,15 +1048,15 @@ function updateSeatLabel() {
   const chip=$("#viewerLensChip"); if(chip) chip.textContent=`${lensLabel} · ${state.viewerHeight}cm · ${state.posture==="standing"?"站著":"坐著"}`;
   const zone = $(".selected-zone");
   if (zone) zone.textContent = id;
-  const layout = currentVenueLayout();
   const exactPrice = sectionTicketLabel(state.layoutId, id);
-  const fallbackPrice = !exactPrice && layout?.eventId && layout?.priceSummary ? `本場票價 ${layout.priceSummary}` : "";
-  const shownPrice = exactPrice ? `本區 ${exactPrice}` : fallbackPrice;
+  // 3D must never paste an event-wide list of every price onto one selected section.
+  // Only show a price when the official zone label can be reliably mapped to this section.
+  const shownPrice = exactPrice ? `本區 ${exactPrice}` : "";
   const selectedPrice = $("#selectedPrice");
   if (selectedPrice) {
     selectedPrice.hidden = !shownPrice;
     selectedPrice.textContent = shownPrice;
-    selectedPrice.title = exactPrice ? "依本場官方座位圖對應" : "目前僅能可靠顯示本場票價級距；未硬套到單一票區";
+    selectedPrice.title = exactPrice ? "依官方本場票區名稱對應" : "本區尚無可靠官方價位對應";
   }
   const viewerPriceChip = $("#viewerPriceChip");
   if (viewerPriceChip) {

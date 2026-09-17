@@ -1,19 +1,19 @@
 import fs from "node:fs";
-import { extractLiveNationEventUrls, parseLiveNationDiscoveredEvent } from "../lib/live-nation-discovery.js";
+import { extractLiveNationEventUrls, extractLiveNationArtistUrls, parseLiveNationDiscoveredEvent } from "../lib/live-nation-discovery.js";
 import { extractOfficialSeatLayoutUrl, extractSectionPriceRules } from "../lib/official-monitor.js";
 import { parseKaohsiungArenaCalendar } from "../lib/kaohsiung-arena-discovery.js";
 import { extractTaipeiArenaLinks, parseTaipeiArenaDates } from "../lib/taipei-arena-discovery.js";
-import { parseBabymonsterChoomTaipei } from "../lib/artist-official-discovery.js";
+import { parseBabymonsterChoomTaipei, parseBigBangCosmosTaiwan } from "../lib/artist-official-discovery.js";
 import { parsePage as parseTicketPlatformPage } from "../lib/taiwan-ticket-platform-discovery.js";
 import { mergeAndDedupe } from "../api/events.js";
 import { seedEvents } from "../data/events.js";
-import { venueModels, venueLayouts, getVenueSection, venueSectionWarning, venueSectionPosition, venueIdFromName, ensureAutoEventLayout, getVenueLayout, sectionTicketLabel } from "../data/multi-venue-geometry.js";
+import { venueModels, venueLayouts, getVenueSection, venueSectionWarning, venueSectionPosition, venueIdFromName, ensureAutoEventLayout, getVenueLayout, sectionTicketLabel, effectiveTiers } from "../data/multi-venue-geometry.js";
 
 const required = [
   "index.html","styles.css","app.js","i18n.js","enhancements.js","storage.js","pwa.js","sw.js","manifest.webmanifest","webgl-venue.js","THIRD_PARTY_NOTICES.md","vercel.json","api/events.js","api/official.js","api/refresh.js","api/push-config.js","api/push-subscribe.js","api/push-digest.js",
   "data/events.js","data/artists.js","data/venues.js","data/discovery.js","data/taipei-dome-geometry.js","data/multi-venue-geometry.js",
   "lib/official-monitor.js","lib/live-nation-discovery.js","lib/kaohsiung-arena-discovery.js","lib/taipei-arena-discovery.js","lib/artist-official-discovery.js","lib/taiwan-ticket-platform-discovery.js",
-  "assets/hero-crowd.webp","assets/hero-crowd-hd.webp","assets/hero-crowd-hd2.webp","assets/feature-stage.webp","assets/venue-3d.webp","assets/seat-view.webp","assets/featured-1.webp","assets/featured-2.webp","assets/featured-3.webp","assets/featured-4.webp","assets/featured-1-hd.webp","assets/featured-2-hd.webp","assets/featured-3-hd.webp","assets/featured-4-hd.webp",
+  "assets/hero-crowd.webp","assets/hero-crowd-hd.webp","assets/hero-crowd-hd2.webp","assets/hero-crowd-crisp.webp","assets/feature-stage.webp","assets/venue-3d.webp","assets/seat-view.webp","assets/featured-1.webp","assets/featured-2.webp","assets/featured-3.webp","assets/featured-4.webp","assets/featured-1-hd.webp","assets/featured-2-hd.webp","assets/featured-3-hd.webp","assets/featured-4-hd.webp","assets/featured-1-crisp.webp","assets/featured-2-crisp.webp","assets/featured-3-crisp.webp","assets/featured-4-crisp.webp",
   "icons/icon-192.png","icons/icon-512.png","icons/icon-maskable-512.png","icons/apple-touch-icon.png"
 ];
 let ok = true;
@@ -157,11 +157,11 @@ if (!/\.wordmark\{font-size:29px\}/.test(fs.readFileSync(new URL("../styles.css"
 // v0.21 transparency / submission / live-atmosphere checks
 const indexHtml = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../styles.css", import.meta.url), "utf8");
-if (!/searchScopeNote/.test(indexHtml) || !/2026\/09/.test(indexHtml) || !/updateSearchScope/.test(app)) { console.error("search scope hint missing"); ok=false; }
+if (indexHtml.includes('id="searchScopeNote"')) { console.error("deprecated search scope hint still visible"); ok=false; }
 if (!/約每 6 小時/.test(app) || !/每日排程同步/.test(app)) { console.error("update cadence label missing"); ok=false; }
 if (!/diamondEgg/.test(indexHtml) || !/fanProjectNote/.test(indexHtml) || !/wireDiamondEgg/.test(enhancements)) { console.error("About diamond easter egg missing"); ok=false; }
 if (!/喜歡追星的人/.test(indexHtml)) { console.error("fan-made project disclosure missing"); ok=false; }
-if (!/search-scope-note/.test(css)) { console.error("search scope UI style missing"); ok=false; }
+if (/\.search-scope-note/.test(css)) { console.error("deprecated search scope UI style still present"); ok=false; }
 if (!/Main LED wall/.test(webgl) || !/audience light points/.test(webgl) || !/Soft spotlight beams/.test(webgl)) { console.error("WebGL concert atmosphere pass missing"); ok=false; }
 
 // v0.23 layout stability + IVE side-view calibration
@@ -183,7 +183,7 @@ if (!/zh-Hant/.test(i18n) || !/locale: 'en-US'/.test(i18n) || !/locale: 'ja-JP'/
 if (!/data-lang="zh-Hant"/.test(indexHtml) || !/data-lang="en"/.test(indexHtml) || !/data-lang="ja"/.test(indexHtml) || !/data-lang="ko"/.test(indexHtml)) { console.error("language selector buttons missing"); ok=false; }
 if (!/neul-language/.test(i18n) || !/neul:languagechange/.test(i18n) || !/MutationObserver/.test(i18n)) { console.error("dynamic language switching incomplete"); ok=false; }
 if (!/Noto\+Sans\+JP/.test(indexHtml)) { console.error("Japanese font support missing"); ok=false; }
-if (!/\/i18n\.js/.test(sw) || !/neul-v0\.35\.0/.test(sw)) { console.error("PWA multilingual cache update missing"); ok=false; }
+if (!/\/i18n\.js/.test(sw) || !/neul-v0\.37\.0/.test(sw)) { console.error("PWA multilingual cache update missing"); ok=false; }
 if (!/uiLocale/.test(app) || !/neul:languagechange/.test(app)) { console.error("locale-aware dynamic render hook missing"); ok=false; }
 
 
@@ -247,7 +247,7 @@ const taipeiModel=venueModels["taipei-arena"];
 const arena3f=taipeiModel.sections.filter(s=>String(s.id).match(/^[紅黃紫藍]3/));
 if (arena3f.length < 40) { console.error("Taipei Arena complete 3F structural bowl missing",arena3f.length); ok=false; }
 if (!/eventActive:false/.test(fs.readFileSync(new URL("../data/multi-venue-geometry.js", import.meta.url), "utf8"))) { console.error("event/base venue merge guard missing"); ok=false; }
-if (!/hero-crowd-hd\.webp/.test(css) || !/FEATURED_IMAGES/.test(app) || !/featuredImageFor/.test(app)) { console.error("HD hero or distinct Featured images missing"); ok=false; }
+if (!/hero-crowd-crisp\.webp/.test(css) || !/FEATURED_IMAGES/.test(app) || !/featuredImageFor/.test(app)) { console.error("HD hero or distinct Featured images missing"); ok=false; }
 if (!/eventsAreaSearch/.test(app) || !/eventsCityFilter/.test(app) || !/refreshEventsCityFilter/.test(app)) { console.error("scalable Upcoming region search missing"); ok=false; }
 if (!/discoverTaiwanTicketPlatforms/.test(apiEventsCode)) { console.error("Taiwan ticket-platform discovery not wired"); ok=false; }
 const lsf=seedEvents.find(e=>e.id==="le-sserafim-pureflow-taipei-2026");
@@ -258,7 +258,7 @@ if (!lsf || !kjw) { console.error("known tixCraft gap regression",{lsf,kjw}); ok
 const skz34=seedEvents.find(e=>e.id==="skz-run-it-taipei-2026");
 const aaa=seedEvents.find(e=>e.id==="aaa-2026-kaohsiung");
 if (!skz34 || sectionTicketLabel("skz-run-it-2026","106") !== "NT$6,880" || sectionTicketLabel("skz-run-it-2026","111")) { console.error("Stray Kids fixed-stand 3D ticket price mapping missing/over-guessed",skz34,sectionTicketLabel("skz-run-it-2026","106"),sectionTicketLabel("skz-run-it-2026","111")); ok=false; }
-if (!indexHtml.includes('id="selectedPrice"') || !indexHtml.includes('id="viewerPriceChip"') || !/本場票價/.test(app) || !/optionLabel=ticket/.test(app)) { console.error("3D price chips/section labels missing"); ok=false; }
+if (!indexHtml.includes('id="selectedPrice"') || !indexHtml.includes('id="viewerPriceChip"') || !/optionLabel=ticket/.test(app) || /本場票價 \$\{layout\.priceSummary\}/.test(app)) { console.error("3D exact-section price chip logic missing or broad fallback regressed"); ok=false; }
 if (!aaa || !aaa.start.startsWith("2026-12-05") || aaa.city!=="Kaohsiung" || aaa.type!=="AWARDS" || !indexHtml.includes('data-type="AWARDS"')) { console.error("AAA official seed/filter missing",aaa); ok=false; }
 const aaaLayoutId=ensureAutoEventLayout(aaa);
 const aaaLayout=getVenueLayout(aaaLayoutId);
@@ -284,7 +284,53 @@ const syncProbe={...skz34,sectionPriceRules:[{label:"106",price:"NT$6,880"}],sea
 const syncLayoutId=ensureAutoEventLayout(syncProbe); const syncLayout=getVenueLayout(syncLayoutId);
 if (!syncLayout?.ticketSyncSignature || syncLayout.latestSeatLayoutSourceUrl!==syncProbe.seatLayoutSourceUrl || sectionTicketLabel(syncLayoutId,"106")!=="NT$6,880") { console.error("calibrated 3D official metadata sync failed",syncLayout); ok=false; }
 if (!/event-tag\{display:block;max-width:88px;overflow:hidden;text-overflow:ellipsis/.test(css) || !/html,body\{max-width:100%;overflow-x:hidden/.test(css)) { console.error("responsive overflow guard missing"); ok=false; }
-if (!/hero-crowd-hd2\.webp/.test(css) || !/featured-1-hd\.webp/.test(app)) { console.error("retina hero/featured assets not wired"); ok=false; }
+if (!/hero-crowd-crisp\.webp/.test(css) || !/featured-1-crisp\.webp/.test(app)) { console.error("retina hero/featured assets not wired"); ok=false; }
+
+
+// v0.36 source coverage + crisp media + complete Taipei Arena B1 layer
+const artistHopFixture=`<html><body><a href="/artist/bruno-mars">Bruno Mars</a><a href="https://www.livenation.com.tw/artist/bts">BTS</a></body></html>`;
+const artistHopUrls=extractLiveNationArtistUrls(artistHopFixture,"https://www.livenation.com.tw");
+if (artistHopUrls.length < 2 || !artistHopUrls.some(x=>/bruno-mars/i.test(x))) { console.error("Live Nation artist-page hop parser missing",artistHopUrls); ok=false; }
+const bigbangFixture=`<main>TAIPEI TAIPEI DOME 2026.10.09 FRI 2026.10.10 SAT 2026.10.11 SUN KAOHSIUNG KAOHSIUNG NATIONAL STADIUM 2027.02.27 SAT 2027.02.28 SUN</main>`;
+const bigbangOfficial=parseBigBangCosmosTaiwan(bigbangFixture);
+if (!Array.isArray(bigbangOfficial) || bigbangOfficial.length<2 || !bigbangOfficial.some(x=>x.city==="Taipei") || !bigbangOfficial.some(x=>x.city==="Kaohsiung")) { console.error("BIGBANG YG Taiwan parser failed",bigbangOfficial); ok=false; }
+for (const id of ["bruno-mars-romantic-kaohsiung-2027","bts-arirang-kaohsiung-2026","bigbang-cosmos-taipei-2026","bigbang-cosmos-kaohsiung-2027"]) {
+  if (!seedEvents.some(e=>e.id===id)) { console.error("v0.36 verified fallback missing",id); ok=false; }
+}
+if (seedEvents.length !== 57 || seedEvents.some(e=>!e)) { console.error("v0.37 seed regression",{count:seedEvents.length,hasHole:seedEvents.some(e=>!e)}); ok=false; }
+const ticketDiscoveryCode=fs.readFileSync(new URL("../lib/taiwan-ticket-platform-discovery.js", import.meta.url),"utf8");
+for (const source of ["tixCraft","KKTIX","Ticket Plus","FamiTicket","udn","ibon"]) if (!ticketDiscoveryCode.includes(source)) { console.error("ticket discovery source missing",source); ok=false; }
+if (!/寬宏|KHAM/.test(ticketDiscoveryCode)) { console.error("KHAM ticket discovery source missing"); ok=false; }
+const arenaB1=taipeiModel.sections.filter(s=>s.tier==="B1");
+if (arenaB1.length!==5 || !arenaB1.every(s=>s.structuralOnly===true && s.eventFlexible===true) || !taipeiModel.sections.some(s=>s.tier==="2F") || !taipeiModel.sections.some(s=>s.tier==="3F")) { console.error("Taipei Arena B1/2F/3F structural completeness missing",arenaB1); ok=false; }
+if (!/hero-crowd-crisp\.webp/.test(css) || !/filter:none/.test(css) || /neul-feature-photo-swap\{[^}]*transform/.test(css)) { console.error("Hero/Featured crisp no-blur/no-zoom regression"); ok=false; }
+if (!/#3b424a/.test(webgl) || !/quality==='high'\?1\.9/.test(webgl) || !/Simulated live-feed content/.test(webgl)) { console.error("v0.36 stage/floor/LED clarity regression"); ok=false; }
+
+
+// v0.37 auto-source completeness + base-venue invariant + UI audit
+for (const source of ["MNA","年代售票","ticket.mna.com.tw","ticket.com.tw"]) {
+  if (!ticketDiscoveryCode.includes(source)) { console.error("v0.37 ticket discovery source/pattern missing",source); ok=false; }
+}
+if (!/ActivityInfo\\\/Details/.test(ticketDiscoveryCode)) { console.error("v0.37 ibon detail URL pattern missing"); ok=false; }
+for (const id of [
+  "aov-10th-anniversary-taipei-dome-2026","silica-gel-asia-tour-taipei-2026","charlie-puth-clever-taipei-2026","post-malone-big-ass-kaohsiung-2026","bts-arirang-kaohsiung-2026","mamamoo-4ward-taipei-2026","yoasobi-super-planet-taipei-2027","bigbang-cosmos-taipei-2026","bigbang-cosmos-kaohsiung-2027"
+]) if (!seedEvents.some(e=>e.id===id)) { console.error("user-requested verified Taiwan event missing",id); ok=false; }
+const bm37=seedEvents.find(e=>e.id==="babymonster-choom-taipei-2026");
+if (!bm37 || bm37.ticketing!=="Ticket Plus 遠大售票" || !String(bm37.price).includes("6,780") || !bm37.generalSale?.startsWith("2026-10-14T12:00")) { console.error("BABYMONSTER current price/sale fallback missing",bm37); ok=false; }
+const bmLayoutId=ensureAutoEventLayout(bm37);
+if (sectionTicketLabel(bmLayoutId,"紅2B")!=="NT$6,780" || sectionTicketLabel(bmLayoutId,"紅2D")) { console.error("BABYMONSTER exact known-zone pricing / unknown-zone guard failed",sectionTicketLabel(bmLayoutId,"紅2B"),sectionTicketLabel(bmLayoutId,"紅2D")); ok=false; }
+const ntsu=venueModels["ntsu-arena"];
+const ntsuTiers=[...new Set(ntsu.sections.map(s=>s.tier))];
+if (!["FLOOR","LOWER","MIDDLE","UPPER"].every(x=>ntsuTiers.includes(x))) { console.error("NTSU complete base-tier structure missing",ntsuTiers); ok=false; }
+const plaveTiers=effectiveTiers("ntsu-arena","plave-keep-it-manic-2026").map(t=>t.id);
+if (!["FLOOR","LOWER","MIDDLE","UPPER","VIP","BOWL","REAR"].every(x=>plaveTiers.includes(x))) { console.error("event layout is hiding base NTSU tiers",plaveTiers); ok=false; }
+const khTiers=[...new Set(venueModels["kaohsiung-arena"].sections.map(s=>s.tier))];
+if (!khTiers.includes("FLOOR")) { console.error("Kaohsiung Arena 1F structural/activity layer missing",khTiers); ok=false; }
+if (/const\s+fallbackPrice/.test(app) || /本場票價\s*\$\{layout\.priceSummary\}/.test(app)) { console.error("broad all-prices-on-every-section fallback regressed"); ok=false; }
+if (!/event\.historical/.test(app) || !/layout\.eventId/.test(app) || !/now-6\*3600000/.test(app)) { console.error("expired venue-event layout cleanup missing"); ok=false; }
+if (indexHtml.includes('id="searchScopeNote"') || /查看更多活動（\$\{list\.length - 5\}）/.test(app)) { console.error("deprecated search helper / volatile more-count regressed"); ok=false; }
+if (!/artist-name/.test(app) || !/\.artist-bubble \.artist-name/.test(css) || !/overflow-wrap:anywhere/.test(css)) { console.error("My List / long-name overflow audit missing"); ok=false; }
+if (!/title\.title = model\.name/.test(app) || !/\.venue-intro h2/.test(css)) { console.error("VENUE long-name full-title support missing"); ok=false; }
 
 if (!ok) process.exit(1);
-console.log(`NEUL v0.35 checks passed · Taiwan-only · ${seedEvents.length} seed events · ${Object.keys(venueModels).length} venue models · WebGL + Canvas fallback · PWA + IndexedDB · day mode · archive · calendar/reminders · seat compare · Web Push foundation · Taipei Dome Calibration 2.0 · TICC / TMC / KMC precision pass`);
+console.log(`NEUL v0.37 checks passed · Taiwan-only · ${seedEvents.length} seed events · ${Object.keys(venueModels).length} venue models · 9 ticket sources + official artist/venue feeds · complete base-tier 3D merge · exact-section pricing · expired-layout cleanup · UI overflow audit · WebGL + Canvas fallback · PWA + IndexedDB`);

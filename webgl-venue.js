@@ -190,16 +190,16 @@ function rectLine(top,yOffset=.6){const a=[];for(let i=0;i<=top.length;i++){cons
 function buildCPUScene(config,quality){
   const {model,layout,sections,selectedId}=config,solids=[],lines=[],seatMats=[],seatColors=[],theme=config.theme||'dark';
   const lightTheme=theme==='light';
-  solids.push(boxItem({x:0,y:-27,z:0,width:model.field.x*2.15,depth:model.field.z*2.2},lightTheme?'#26303a':'#151b20','#000000',3));
+  solids.push(boxItem({x:0,y:-27,z:0,width:model.field.x*2.15,depth:model.field.z*2.2},lightTheme?'#7c858f':'#3b424a','#000000',3));
   for(const sec of sections){const selected=String(sec.id)===selectedId,top=sectionTop(sec);solids.push({mesh:prism(top,selected?9:6.5),model:mat4Identity(),color:sectionColor(layout,sec,selected,theme),emissive:selected?(lightTheme?'#7c237f':'#5e1f75'):'#06080b'});if(selected)lines.push({vertices:rectLine(top),color:lightTheme?[1,.88,1,1]:[.96,.83,1,1]});const arch=sectionArchitecture(sec,selected,quality,theme);solids.push(...arch.solids);lines.push(...arch.lines);for(const seat of seatSamples(sec,selected,quality)){seatMats.push(mat4TRS(seat.x,seat.y,seat.z,seat.rot,2.15,1.8,1.8));seatColors.push(...color3(selected?(lightTheme?'#ffd0ff':'#f2b7ff'):sectionColor(layout,sec,false,theme)));}}
-  const stage=layout.stage||model.stage;solids.push(boxItem(stage.main,'#090a0e','#251427',7));
+  const stage=layout.stage||model.stage;solids.push(boxItem(stage.main,lightTheme?'#565b64':'#2b2f36',lightTheme?'#5e3762':'#512a58',7.6));
   // Runway edge lights add depth cues for long catwalks.
   if(stage.runway){
-    const r=stage.runway;solids.push(boxItem({x:r.x,y:r.y,z:(r.z1+r.z2)/2,width:r.width,depth:Math.abs(r.z2-r.z1)},'#15131a','#29152d',4.4));
+    const r=stage.runway;solids.push(boxItem({x:r.x,y:r.y,z:(r.z1+r.z2)/2,width:r.width,depth:Math.abs(r.z2-r.z1)},lightTheme?'#60636a':'#32343b',lightTheme?'#704776':'#5a2f62',4.6));
     const steps=quality==='high'?12:7;
     for(let i=0;i<steps;i++){const z=r.z1+(r.z2-r.z1)*(i+.5)/steps;[-1,1].forEach(side=>solids.push(boxItem({x:r.x+side*r.width*.43,y:r.y+3.6,z,width:.55,depth:1.5},'#ffeaff',side<0?'#786cff':'#e15ce6',.65)));}
   }
-  if(stage.bStage){const r=stage.bStage.radius;const pts=[];const n=40;for(let i=0;i<n;i++){const a=i/n*Math.PI*2,b=(i+1)/n*Math.PI*2;const y=stage.bStage.y;pts.push([[stage.bStage.x,y+4,stage.bStage.z],[stage.bStage.x+Math.cos(a)*r,y+4,stage.bStage.z+Math.sin(a)*r],[stage.bStage.x+Math.cos(b)*r,y+4,stage.bStage.z+Math.sin(b)*r]]);}solids.push({mesh:meshFromFaces(pts),model:mat4Identity(),color:'#18131c',emissive:'#28142f'});}
+  if(stage.bStage){const r=stage.bStage.radius;const pts=[];const n=40;for(let i=0;i<n;i++){const a=i/n*Math.PI*2,b=(i+1)/n*Math.PI*2;const y=stage.bStage.y;pts.push([[stage.bStage.x,y+4,stage.bStage.z],[stage.bStage.x+Math.cos(a)*r,y+4,stage.bStage.z+Math.sin(a)*r],[stage.bStage.x+Math.cos(b)*r,y+4,stage.bStage.z+Math.sin(b)*r]]);}solids.push({mesh:meshFromFaces(pts),model:mat4Identity(),color:lightTheme?'#60636a':'#343039',emissive:lightTheme?'#704776':'#55295e'});}
   for(const r of layout.extraStageRects||[])solids.push(boxItem(r,'#14131a','#24172a',4.2));
   if(layout.foh)solids.push(boxItem(layout.foh,'#373d43','#101214',3.2));
   const m=stage.main;
@@ -215,6 +215,15 @@ function buildCPUScene(config,quality){
   solids.push(boxItem({x:m.x,y:screenY,z:screenZ,width:m.width*.72,depth:1.15},ledMain[0],ledMain[1],screenH));
   solids.push(boxItem({x:m.x-m.width*.60,y:screenY-1,z:screenZ+1,width:m.width*.18,depth:1.05},ledLeft[0],ledLeft[1],screenH*.78));
   solids.push(boxItem({x:m.x+m.width*.60,y:screenY-1,z:screenZ+1,width:m.width*.18,depth:1.05},ledRight[0],ledRight[1],screenH*.78));
+  // Simulated live-feed content: layered emissive geometry gives the LED wall a photographic
+  // sense of depth without shipping a blurry bitmap or pretending to show a real artist feed.
+  if(!rearView){
+    const feedPalette=['#6d86ff','#d873f1','#8fb9ff','#f5a2dc','#705ff0','#c6d7ff','#8d72ef'];
+    const feedW=m.width*.70/feedPalette.length;
+    feedPalette.forEach((c,i)=>solids.push(boxItem({x:m.x-m.width*.35+feedW*(i+.5),y:screenY,z:screenZ-0.78,width:feedW*.97,depth:.18},c,c,screenH*.92)));
+    solids.push(boxItem({x:m.x,y:screenY-screenH*.27,z:screenZ-1.02,width:m.width*.49,depth:.12},'#171a25','#383b6d',screenH*.22));
+    solids.push(boxItem({x:m.x,y:screenY+screenH*.18,z:screenZ-1.03,width:m.width*.23,depth:.10},'#f4edff','#a267ff',screenH*.28));
+  }
   // LED panel seams and light bars: true geometry in WebGL, not an image overlay.
   if(!rearView){
     const gridColor=[.94,.90,1,.20];
@@ -271,7 +280,7 @@ class Renderer{
   uploadLine(vertices){const gl=this.gl,vao=gl.createVertexArray();gl.bindVertexArray(vao);const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,vertices,gl.STATIC_DRAW);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.FLOAT,false,0,0);gl.bindVertexArray(null);return{vao,b,count:vertices.length/3};}
   uploadSeats(cpu){const gl=this.gl,vao=gl.createVertexArray();gl.bindVertexArray(vao);const p=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,p);gl.bufferData(gl.ARRAY_BUFFER,CUBE.positions,gl.STATIC_DRAW);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.FLOAT,false,0,0);const n=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,n);gl.bufferData(gl.ARRAY_BUFFER,CUBE.normals,gl.STATIC_DRAW);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,3,gl.FLOAT,false,0,0);const mats=new Float32Array(cpu.seatCount*16);cpu.seatMats.forEach((m,i)=>mats.set(m,i*16));const mb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,mb);gl.bufferData(gl.ARRAY_BUFFER,mats,gl.STATIC_DRAW);for(let i=0;i<4;i++){gl.enableVertexAttribArray(2+i);gl.vertexAttribPointer(2+i,4,gl.FLOAT,false,64,i*16);gl.vertexAttribDivisor(2+i,1);}const cb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,cb);gl.bufferData(gl.ARRAY_BUFFER,cpu.seatColors,gl.STATIC_DRAW);gl.enableVertexAttribArray(6);gl.vertexAttribPointer(6,3,gl.FLOAT,false,0,0);gl.vertexAttribDivisor(6,1);gl.bindVertexArray(null);return{vao,count:CUBE.count,instances:cpu.seatCount,buffers:{p,n,mb,cb}};}
   sync(config){const key=[config.venueId,config.layoutId,config.selectedId,config.row,config.seatNumber,config.viewerHeight,config.posture,config.viewFov,config.theme,(config.occluders||[]).map(o=>o.kind).join(','),config.sections.length].join('|');if(key===this.key)return;this.key=key;this.disposeScene();this.cpu=buildCPUScene(config,this.quality);this.gpu=this.cpu.solids.map(x=>({...this.uploadMesh(x.mesh),model:x.model,color:color3(x.color),emissive:color3(x.emissive)}));this.lineGpu=this.cpu.lines.map(x=>({...this.uploadLine(x.vertices),color:x.color}));if(this.cpu.seatCount)this.seatGpu=this.uploadSeats(this.cpu);}
-  resize(){const gl=this.gl,rect=this.canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,this.quality==='high'?1.6:1.15),w=Math.max(2,Math.floor(rect.width*dpr)),h=Math.max(2,Math.floor(rect.height*dpr));if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}gl.viewport(0,0,w,h);return{w,h};}
+  resize(){const gl=this.gl,rect=this.canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,this.quality==='high'?1.9:1.30),w=Math.max(2,Math.floor(rect.width*dpr)),h=Math.max(2,Math.floor(rect.height*dpr));if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}gl.viewport(0,0,w,h);return{w,h};}
   render(config,{seatMode=false,yaw=-.45,pitch=.72,zoom=1}={}){this.sync(config);const gl=this.gl,{w,h}=this.resize();if(config.theme==='light')gl.clearColor(.035,.047,.061,1);else gl.clearColor(.012,.018,.03,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);let eye,target,fov;
     if(seatMode){const p=config.seatPosition,t=config.target,base=vNorm([t[0]-p[0],t[1]-p[1],t[2]-p[2]]),by=Math.atan2(base[0],base[2]),bp=Math.asin(clamp(base[1],-1,1)),ay=by+yaw,ap=bp+pitch,forward=[Math.sin(ay)*Math.cos(ap),Math.sin(ap),Math.cos(ay)*Math.cos(ap)];eye=[p[0],p[1],p[2]];target=[eye[0]+forward[0]*160,eye[1]+forward[1]*160,eye[2]+forward[2]*160];fov=rad(clamp((config.viewFov||58)/Math.max(.55,zoom),12,82));}
     else{const model=config.model,r=Math.max(model.field.x*3.2,model.field.z*4.1)/clamp(zoom,.55,1.9),el=clamp(pitch,.12,1.34);eye=[Math.sin(yaw)*Math.cos(el)*r,Math.sin(el)*r+28,Math.cos(yaw)*Math.cos(el)*r];target=[0,18,0];fov=rad(42);}
