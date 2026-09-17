@@ -582,6 +582,12 @@ function detailList(title, arr = []) {
   if (!arr.length) return "";
   return `<section class="detail-section"><h3>${escapeHtml(title)}</h3><ul class="detail-list">${arr.map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul></section>`;
 }
+function sectionPriceRulesMarkup(rules = []) {
+  if (!Array.isArray(rules) || !rules.length) return "";
+  const clean = rules.slice(0, 16).filter(x => x?.label && x?.price);
+  if (!clean.length) return "";
+  return `<section class="detail-section"><h3>官方票區價位</h3><div class="section-price-grid">${clean.map(x => `<div><span>${escapeHtml(x.label)}</span><strong>${escapeHtml(x.price)}</strong></div>`).join("")}</div><p class="section-price-note">能與 NEUL 票區名稱可靠對上的價位會自動顯示在 3D；名稱不一致時只保留官方價位，不會猜測配對。</p></section>`;
+}
 
 function eventVenueModelId(event) { return event?.venueModelId || venueIdFromName(event?.venue || ""); }
 function eventBaseLayoutId(event) {
@@ -626,6 +632,7 @@ function openDetail(id) {
       <div><span>TICKETING</span><strong>${escapeHtml(e.ticketing || "TBA")}</strong></div>
       <div><span>PRICE</span><strong>${escapeHtml(e.price || "TBA")}</strong></div>
     </div>
+    ${sectionPriceRulesMarkup(e.sectionPriceRules)}
     ${e.sessions?.length ? `<section class="detail-section"><h3>場次</h3><div class="timeline">${e.sessions.map(s => `<div class="timeline-item"><span class="timeline-dot"></span><div><b>${escapeHtml(s.date)} · ${escapeHtml(s.time)}</b><span>${escapeHtml(s.note || "")}</span></div></div>`).join("")}</div></section>` : ""}
     <section class="detail-section"><h3>售票時間軸</h3><div class="timeline">${timelineHtml(e.ticketTimeline || [])}</div></section>
     ${detailList("粉絲福利", e.benefits)}
@@ -852,6 +859,7 @@ function applyTheme(mode, persist = true) {
   if (meta) meta.setAttribute("content", light ? "#f5f2ef" : "#0b0d10");
   document.querySelectorAll(".theme-choice button").forEach(btn => btn.classList.toggle("active", btn.dataset.theme === (light ? "light" : "dark")));
   if (persist) saveMode(light ? "light" : "dark");
+  if (typeof renderVenue === "function") requestAnimationFrame(() => { try { renderVenue(); drawSeatPreview(); } catch {} });
 }
 const savedTheme = localStorage.getItem("neul-mode") || localStorage.getItem("stan-mode") || "dark";
 applyTheme(savedTheme, false);
@@ -1176,8 +1184,9 @@ function renderVenueScene(targetCanvas, opts = {}) {
   const poly=(points,fill,stroke="#343942",width=1)=>{const pp=points.map(project).filter(Boolean);if(pp.length!==points.length)return;context.beginPath();pp.forEach((q,i)=>i?context.lineTo(q[0],q[1]):context.moveTo(q[0],q[1]));context.closePath();context.fillStyle=fill;context.fill();context.strokeStyle=stroke;context.lineWidth=width;context.stroke();};
   const line=(points,stroke,width=1)=>{const pp=points.map(project).filter(Boolean);if(pp.length<2)return;context.beginPath();pp.forEach((q,i)=>i?context.lineTo(q[0],q[1]):context.moveTo(q[0],q[1]));context.strokeStyle=stroke;context.lineWidth=width;context.stroke();};
   poly([[-model.field.x,-25,-model.field.z],[model.field.x,-25,-model.field.z],[model.field.x,-25,model.field.z],[-model.field.x,-25,model.field.z]],"#171d22","#26303a");
-  const selectedId=String(state.section), allowedTiers=availableVenueTiers(), palette=["#27313b","#313945","#3b3340","#2f3740","#333b45","#303943"];
-  for(const tier of allowedTiers) for(const id of tier.sections){const sec=getVenueSection(state.venueId,id,state.layoutId);if(!sec)continue;const selected=id===selectedId,restricted=layout.restrictedViewSections?.includes(id),floorFacing=layout.bStageFacingSections?.includes(id);let fill=(sec.tier==="FLOOR"||sec.shape==="block")?"#252a31":palette[Math.max(0,allowedTiers.findIndex(t=>t.id===sec.tier))%palette.length];if(layout.id==="plave-keep-it-manic-2026"){const groupFill={vip6300:"#4a262d","5300":"#24433d","3800":"#47442a","2900":"#253b29"};fill=groupFill[sec.group]||fill;}if(layout.id==="ive-show-what-i-am-2026"){const groupFill={vip7800:"#b44785","5800":"#426b86","4800":"#9b5c62","3800":"#3f827f",side2f:"#52657d","3fRange":"#66507c",box4800:"#76545d"};fill=groupFill[sec.group]||fill;}if(restricted)fill="#5a4334";if(floorFacing&&!restricted)fill="#343042";if(selected)fill="#c47ae3";poly(sectionPoly(sec),fill,selected?"#f4daf2":restricted?"#c29a69":"#4a5661",selected?1.8:.8);}
+  const isLight=document.body.classList.contains("light-mode");
+  const selectedId=String(state.section), allowedTiers=availableVenueTiers(), palette=isLight?["#69859a","#7890a3","#8d789b","#71889a","#7c92a2","#657f96"]:["#27313b","#313945","#3b3340","#2f3740","#333b45","#303943"];
+  for(const tier of allowedTiers) for(const id of tier.sections){const sec=getVenueSection(state.venueId,id,state.layoutId);if(!sec)continue;const selected=id===selectedId,restricted=layout.restrictedViewSections?.includes(id),floorFacing=layout.bStageFacingSections?.includes(id);let fill=(sec.tier==="FLOOR"||sec.shape==="block")?"#252a31":palette[Math.max(0,allowedTiers.findIndex(t=>t.id===sec.tier))%palette.length];if(layout.id==="plave-keep-it-manic-2026"){const groupFill={vip6300:"#4a262d","5300":"#24433d","3800":"#47442a","2900":"#253b29"};fill=groupFill[sec.group]||fill;}if(layout.id==="ive-show-what-i-am-2026"){const groupFill={vip7800:"#b44785","5800":"#426b86","4800":"#9b5c62","3800":"#3f827f",side2f:"#52657d","3fRange":"#66507c",box4800:"#76545d"};fill=groupFill[sec.group]||fill;}if(restricted)fill=isLight?"#b97837":"#5a4334";if(floorFacing&&!restricted)fill=isLight?"#7c708c":"#343042";if(selected)fill=isLight?"#dc55e8":"#c47ae3";poly(sectionPoly(sec),fill,selected?(isLight?"#fff1ff":"#f4daf2"):restricted?(isLight?"#f2c27a":"#c29a69"):(isLight?"#9db1c0":"#4a5661"),selected?2.2:.95);}
   const stage=activeStage(),m=stage.main;
   poly([[m.x-m.width/2,m.y,m.z-m.depth/2],[m.x+m.width/2,m.y,m.z-m.depth/2],[m.x+m.width/2,m.y,m.z+m.depth/2],[m.x-m.width/2,m.y,m.z+m.depth/2]],"#090b0f","#d2b4cd",1.2);
   if(Array.isArray(layout.extraStageRects)) for(const r of layout.extraStageRects){poly([[r.x-r.width/2,r.y,r.z-r.depth/2],[r.x+r.width/2,r.y,r.z-r.depth/2],[r.x+r.width/2,r.y,r.z+r.depth/2],[r.x-r.width/2,r.y,r.z+r.depth/2]],"#11131a","#a78da2",1.05);}
@@ -1211,6 +1220,7 @@ function venueWebGLConfig(){
     seatPosition: seatCameraPosition(),
     target: activeSeatTarget(),
     viewFov: lensFov(),
+    theme: document.body.classList.contains("light-mode") ? "light" : "dark",
     viewerHeight: state.viewerHeight,
     posture: state.posture,
     occluders: activeOccluders()

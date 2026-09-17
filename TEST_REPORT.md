@@ -1,29 +1,17 @@
-# NEUL v0.27 Test Report
+# NEUL v0.29 Test Report
 
-## Multilingual UI
-- Traditional Chinese selector present: PASS
-- English selector present: PASS
-- Japanese selector present: PASS
-- Korean selector present: PASS
-- Language selection persisted via `neul-language`: PASS
-- `<html lang>` changes with selected language: PASS
-- Locale-aware date / weekday formatting hooked into app.js: PASS
-- Dynamic DOM translation observer present: PASS
-- Search placeholder / interface labels translated: PASS
-- Event / artist proper nouns remain source-driven: PASS
-- Japanese font family loaded: PASS
+- JavaScript syntax: PASS
+- Project check: PASS
+- Taiwan seed events: 24
+- Venue models: 11
+- Light/dark venue palette split: PASS
+- Theme-switch venue rerender hook: PASS
+- WebGL selected/restricted/normal section contrast: PASS
+- Canvas fallback light palette: PASS
+- Official section-price parser: PASS
+- Auto 3D section-price rule propagation: PASS
+- Exact section price match smoke test (紅2A -> NT$4,800): PASS
+- Ambiguous section labels remain unmatched by design: PASS
+- Upcoming Explorer / settings / multilingual / PWA regression checks: PASS
 
-## PWA
-- `i18n.js` included in app shell: PASS
-- Service Worker cache version v0.27: PASS
-- Offline UI translation code cached: PASS
-
-## Regression
-- JS syntax: PASS
-- npm project checks: PASS
-- 24 seed events retained: PASS
-- 11 venue models retained: PASS
-- WebGL2 + Canvas fallback retained: PASS
-- Dark / Light mode retained: PASS
-- Alerts remain separate from Settings: PASS
-- Auto 3D and venue baseline 3D retained: PASS
+Important limitation: prices embedded only inside a seat-map image are not OCR/CV parsed in this lightweight build. NEUL only auto-maps zone prices when the official public page exposes recognizable text labels and prices.

@@ -1,12 +1,9 @@
-# NEUL v0.28 — Settings + Upcoming Explorer
+# NEUL v0.29 — Venue Contrast + Auto Section Pricing
 
-Taiwan-focused K-pop concert companion for Vercel/PWA.
-
-## v0.28 changes
-- Fixed the settings gear with delegated click handling and explicit dialog state.
-- Homepage Upcoming stays capped at 5 cards.
-- “View more” now opens a dedicated modal instead of expanding the homepage.
-- Upcoming modal supports month, start date, end date, next 30 days and next 90 days filtering.
-- Event rows in the modal open the existing activity detail drawer.
-- Dark/light themes and zh-Hant / English / Japanese / Korean UI remain supported.
-- Existing WebGL venue 3D, PWA, alerts and archive features are retained.
+## Changes
+- Light / dark themes now use separate high-contrast venue palettes.
+- WebGL and Canvas fallback both re-render immediately when the theme changes.
+- Official public pages are checked for recognizable section/zone price pairs.
+- Auto 3D layouts carry detected section price rules; reliable name matches display the price in 3D.
+- If an official page only provides a seat-map image or ambiguous labels, NEUL keeps the event-level price and does not guess section mapping.
+- Upcoming Explorer, 11 calibrated venues, PWA and multilingual UI remain intact.

@@ -24,7 +24,7 @@ function normalizeText(value = "") {
 }
 
 function mergeDiscovered(seed, live) {
-  const updateFields = ["start", "end", "venue", "city", "ticketStatus", "generalSale", "ticketing", "price", "seatLayoutSourceUrl", "checkedAt"];
+  const updateFields = ["start", "end", "venue", "city", "ticketStatus", "generalSale", "ticketing", "price", "sectionPriceRules", "seatLayoutSourceUrl", "checkedAt"];
   const out = { ...seed };
   for (const key of updateFields) {
     if (live[key] == null || live[key] === "") continue;
