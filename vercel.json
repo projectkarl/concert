@@ -1,55 +1,12 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "functions": {
-    "api/*.mjs": {
-      "maxDuration": 60
-    }
-  },
-  "rewrites": [
-    {
-      "source": "/api/events",
-      "destination": "/api/events.mjs"
-    },
-    {
-      "source": "/api/health",
-      "destination": "/api/health.mjs"
-    },
-    {
-      "source": "/api/seatmap-image",
-      "destination": "/api/seatmap-image.mjs"
-    },
-    {
-      "source": "/api/venue-geometry",
-      "destination": "/api/venue-geometry.mjs"
-    },
-    {
-      "source": "/api/automation-scan",
-      "destination": "/api/automation-scan.mjs"
-    }
-  ],
-  "crons": [
-    {
-      "path": "/api/automation-scan",
-      "schedule": "0 0 * * *"
-    }
-  ],
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "strict-origin-when-cross-origin"
-        },
-        {
-          "key": "Permissions-Policy",
-          "value": "camera=(), microphone=(), geolocation=()"
-        }
-      ]
-    }
+  "$schema":"https://openapi.vercel.sh/vercel.json",
+  "functions":{"api/*.mjs":{"maxDuration":60}},
+  "rewrites":[{"source":"/api/events","destination":"/api/events.mjs"},{"source":"/api/health","destination":"/api/health.mjs"}],
+  "headers":[
+    {"source":"/(.*)","headers":[
+      {"key":"X-Content-Type-Options","value":"nosniff"},
+      {"key":"Referrer-Policy","value":"strict-origin-when-cross-origin"},
+      {"key":"Permissions-Policy","value":"camera=(), microphone=(), geolocation=()"}
+    ]}
   ]
 }
