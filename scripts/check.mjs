@@ -166,7 +166,7 @@ if (!/zh-Hant/.test(i18n) || !/locale: 'en-US'/.test(i18n) || !/locale: 'ja-JP'/
 if (!/data-lang="zh-Hant"/.test(indexHtml) || !/data-lang="en"/.test(indexHtml) || !/data-lang="ja"/.test(indexHtml) || !/data-lang="ko"/.test(indexHtml)) { console.error("language selector buttons missing"); ok=false; }
 if (!/neul-language/.test(i18n) || !/neul:languagechange/.test(i18n) || !/MutationObserver/.test(i18n)) { console.error("dynamic language switching incomplete"); ok=false; }
 if (!/Noto\+Sans\+JP/.test(indexHtml)) { console.error("Japanese font support missing"); ok=false; }
-if (!/\/i18n\.js/.test(sw) || !/neul-v0\.29\.0/.test(sw)) { console.error("PWA multilingual cache update missing"); ok=false; }
+if (!/\/i18n\.js/.test(sw) || !/neul-v0\.30\.0/.test(sw)) { console.error("PWA multilingual cache update missing"); ok=false; }
 if (!/uiLocale/.test(app) || !/neul:languagechange/.test(app)) { console.error("locale-aware dynamic render hook missing"); ok=false; }
 
 
@@ -178,5 +178,26 @@ if (!/openAllEventsModal/.test(app) || !/modalFilteredEvents/.test(app) || !/eve
 if (!/document\.addEventListener\("click"/.test(pwa) || !/closest\("#settingsBtn"\)/.test(pwa) || !/aria-expanded/.test(indexHtml)) { console.error("settings gear delegated click fix missing"); ok=false; }
 if (!/events-modal-card/.test(css) || !/body\.events-modal-open/.test(css)) { console.error("Upcoming modal styles missing"); ok=false; }
 
+// v0.30 venue calibration + realism audit
+const kh219=getVenueSection("kaohsiung-arena","219");
+if (!kh219 || kh219.rowMax < 41) { console.error("Kaohsiung Arena 219 rear-row calibration missing",kh219); ok=false; }
+const ntsuUpperProbe=getVenueSection("ntsu-arena","黃2上");
+if (!ntsuUpperProbe || ntsuUpperProbe.rowMax < 16) { console.error("NTSU upper row-depth extension missing",ntsuUpperProbe); ok=false; }
+let collapsedRows=[];
+for (const [venueId,model] of Object.entries(venueModels)) {
+  for (const sec of model.sections) {
+    const min=Number(sec.rowMin ?? 1), max=Number(sec.rowMax ?? min);
+    if (!(max>min)) continue;
+    const a=venueSectionPosition(venueId,sec,min,10), b=venueSectionPosition(venueId,sec,max,10);
+    const delta=Math.hypot(b.x-a.x,b.y-a.y,b.z-a.z);
+    if (delta < .75) collapsedRows.push(`${venueId}:${sec.id}:${delta.toFixed(2)}`);
+  }
+}
+if (collapsedRows.length) { console.error("row-depth calibration collapsed",collapsedRows.slice(0,20)); ok=false; }
+if (!/rearView/.test(webgl) || !/Cross-truss grid/.test(webgl) || !/Sparse audience silhouettes/.test(webgl) || !/Runway edge/.test(webgl)) { console.error("v0.30 live-atmosphere / rear-screen pass incomplete"); ok=false; }
+if (!/behindStage/.test(app) || !/performance surface/.test(app)) { console.error("stage-facing target sanity correction missing"); ok=false; }
+const rearWarn=venueSectionWarning("taipei-arena","紅2A",10,"taipei-arena-far");
+if (!Array.isArray(rearWarn.messages)) { console.error("generic rear-stage warning path failed",rearWarn); ok=false; }
+
 if (!ok) process.exit(1);
-console.log(`NEUL v0.29 checks passed · Taiwan-only · ${seedEvents.length} seed events · ${Object.keys(venueModels).length} venue models · WebGL + Canvas fallback · PWA + IndexedDB · day mode · archive · calendar/reminders · seat compare · Web Push foundation · Taipei Dome Calibration 2.0 · TICC / TMC / KMC precision pass`);
+console.log(`NEUL v0.30 checks passed · Taiwan-only · ${seedEvents.length} seed events · ${Object.keys(venueModels).length} venue models · WebGL + Canvas fallback · PWA + IndexedDB · day mode · archive · calendar/reminders · seat compare · Web Push foundation · Taipei Dome Calibration 2.0 · TICC / TMC / KMC precision pass`);

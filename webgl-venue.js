@@ -27,9 +27,12 @@ uniform vec3 uLightDir;
 out vec4 outColor;
 void main(){
   vec3 n=normalize(vNormal);
-  float lam=max(dot(n,normalize(uLightDir)),0.0);
-  float rim=pow(1.0-max(dot(n,normalize(uCamera-vWorld)),0.0),2.0)*0.16;
-  vec3 col=uColor*(0.34+0.72*lam+rim)+uEmissive;
+  vec3 l=normalize(uLightDir);
+  vec3 v=normalize(uCamera-vWorld);
+  float lam=max(dot(n,l),0.0);
+  float rim=pow(1.0-max(dot(n,v),0.0),2.0)*0.16;
+  float spec=pow(max(dot(n,normalize(l+v)),0.0),26.0)*0.14;
+  vec3 col=uColor*(0.31+0.70*lam+rim)+uEmissive+vec3(spec);
   float dist=length(uCamera-vWorld);
   float fog=1.0-exp(-dist*0.0018);
   outColor=vec4(mix(col,vec3(0.025,0.035,0.05),clamp(fog,0.0,0.82)),1.0);
@@ -67,10 +70,13 @@ uniform vec3 uLightDir;
 out vec4 outColor;
 void main(){
   vec3 n=normalize(vNormal);
-  float lam=max(dot(n,normalize(uLightDir)),0.0);
+  vec3 l=normalize(uLightDir);
+  vec3 v=normalize(uCamera-vWorld);
+  float lam=max(dot(n,l),0.0);
+  float spec=pow(max(dot(n,normalize(l+v)),0.0),18.0)*0.06;
   float dist=length(uCamera-vWorld);
   float fog=1.0-exp(-dist*0.0018);
-  vec3 col=vColor*(0.38+0.7*lam);
+  vec3 col=vColor*(0.36+0.68*lam)+vec3(spec);
   outColor=vec4(mix(col,vec3(0.025,0.035,0.05),clamp(fog,0.0,0.82)),1.0);
 }`;
 
@@ -163,16 +169,28 @@ function buildCPUScene(config,quality){
   solids.push(boxItem({x:0,y:-27,z:0,width:model.field.x*2.15,depth:model.field.z*2.2},lightTheme?'#26303a':'#151b20','#000000',3));
   for(const sec of sections){const selected=String(sec.id)===selectedId,top=sectionTop(sec);solids.push({mesh:prism(top,selected?9:6.5),model:mat4Identity(),color:sectionColor(layout,sec,selected,theme),emissive:selected?(lightTheme?'#7c237f':'#5e1f75'):'#06080b'});if(selected)lines.push({vertices:rectLine(top),color:lightTheme?[1,.88,1,1]:[.96,.83,1,1]});for(const s of seatSamples(sec,selected,quality)){seatMats.push(mat4TRS(s.x,s.y,s.z,s.rot,2.15,1.8,1.8));seatColors.push(...color3(selected?(lightTheme?'#ffd0ff':'#f2b7ff'):sectionColor(layout,sec,false,theme)));}}
   const stage=layout.stage||model.stage;solids.push(boxItem(stage.main,'#090a0e','#251427',7));
-  if(stage.runway){const r=stage.runway;solids.push(boxItem({x:r.x,y:r.y,z:(r.z1+r.z2)/2,width:r.width,depth:Math.abs(r.z2-r.z1)},'#15131a','#29152d',4.4));}
+  // Runway edge lights add depth cues for long catwalks.
+  if(stage.runway){
+    const r=stage.runway;solids.push(boxItem({x:r.x,y:r.y,z:(r.z1+r.z2)/2,width:r.width,depth:Math.abs(r.z2-r.z1)},'#15131a','#29152d',4.4));
+    const steps=quality==='high'?12:7;
+    for(let i=0;i<steps;i++){const z=r.z1+(r.z2-r.z1)*(i+.5)/steps;[-1,1].forEach(side=>solids.push(boxItem({x:r.x+side*r.width*.43,y:r.y+3.6,z,width:.55,depth:1.5},'#ffeaff',side<0?'#786cff':'#e15ce6',.65)));}
+  }
   if(stage.bStage){const r=stage.bStage.radius;const pts=[];const n=40;for(let i=0;i<n;i++){const a=i/n*Math.PI*2,b=(i+1)/n*Math.PI*2;const y=stage.bStage.y;pts.push([[stage.bStage.x,y+4,stage.bStage.z],[stage.bStage.x+Math.cos(a)*r,y+4,stage.bStage.z+Math.sin(a)*r],[stage.bStage.x+Math.cos(b)*r,y+4,stage.bStage.z+Math.sin(b)*r]]);}solids.push({mesh:meshFromFaces(pts),model:mat4Identity(),color:'#18131c',emissive:'#28142f'});}
   for(const r of layout.extraStageRects||[])solids.push(boxItem(r,'#14131a','#24172a',4.2));
   if(layout.foh)solids.push(boxItem(layout.foh,'#373d43','#101214',3.2));
   const m=stage.main;
   const screenH=Math.max(26,m.width*.22),screenZ=m.z-m.depth/2+2,screenY=m.y+Math.max(16,m.width*.13);
-  // Main LED wall + side IMAG screens. These are original geometry, not copied venue assets.
-  solids.push(boxItem({x:m.x,y:screenY,z:screenZ,width:m.width*.72,depth:1.8},'#d8d4ff','#8068ff',screenH));
-  solids.push(boxItem({x:m.x-m.width*.60,y:screenY-1,z:screenZ+1,width:m.width*.18,depth:1.6},'#d9d5ff','#5d7dff',screenH*.78));
-  solids.push(boxItem({x:m.x+m.width*.60,y:screenY-1,z:screenZ+1,width:m.width*.18,depth:1.6},'#f1d9ff','#8b58c9',screenH*.78));
+  // Main LED wall + side IMAG screens. If a selected reference position falls behind the
+  // generic stage, render the rear of the screen as a dark technical panel instead of an
+  // impossible glowing "screen backside". Event-specific closed sections should still be
+  // treated as unavailable by the ticket map.
+  const rearView = Math.abs(m.z)>20 && Array.isArray(config.seatPosition) && config.seatPosition[2] < screenZ-3;
+  const ledMain = rearView ? ['#11161b','#020305'] : ['#d8d4ff','#8068ff'];
+  const ledLeft = rearView ? ['#10151a','#020305'] : ['#d9d5ff','#5d7dff'];
+  const ledRight = rearView ? ['#10151a','#020305'] : ['#f1d9ff','#8b58c9'];
+  solids.push(boxItem({x:m.x,y:screenY,z:screenZ,width:m.width*.72,depth:1.15},ledMain[0],ledMain[1],screenH));
+  solids.push(boxItem({x:m.x-m.width*.60,y:screenY-1,z:screenZ+1,width:m.width*.18,depth:1.05},ledLeft[0],ledLeft[1],screenH*.78));
+  solids.push(boxItem({x:m.x+m.width*.60,y:screenY-1,z:screenZ+1,width:m.width*.18,depth:1.05},ledRight[0],ledRight[1],screenH*.78));
   // Truss and hanging speaker arrays make the venue feel more like a live concert without pretending to be an exact rig.
   const trussY=m.y+screenH+18;
   solids.push(boxItem({x:m.x,y:trussY,z:m.z,width:m.width*1.24,depth:2.4},'#29313a','#111923',2.4));
@@ -181,9 +199,23 @@ function buildCPUScene(config,quality){
   solids.push(boxItem({x:m.x-m.width*.76,y:m.y+screenH*.48,z:m.z+3,width:4.8,depth:5.5},'#10151b','#050608',screenH*.72));
   solids.push(boxItem({x:m.x+m.width*.76,y:m.y+screenH*.48,z:m.z+3,width:4.8,depth:5.5},'#10151b','#050608',screenH*.72));
   for(let i=0;i<9;i++){const u=i/8,px=m.x-m.width*.42+u*m.width*.84;solids.push(boxItem({x:px,y:m.y+5,z:m.z+m.depth*.42,width:1.1,depth:1.1},'#fff1ff',i%2?'#7c63ff':'#d85bff',1.4));}
+  // Sparse audience silhouettes on the floor add scale without loading character assets.
+  const crowdCount=quality==='high'?38:18;
+  for(let i=0;i<crowdCount;i++){
+    const gx=((i*37)%100)/100*model.field.x*1.65-model.field.x*.825;
+    const gz=((i*61)%100)/100*model.field.z*1.35-model.field.z*.12;
+    if(Math.abs(gx-m.x)<m.width*.64 && gz < m.z+m.depth*1.9) continue;
+    solids.push(boxItem({x:gx,y:-23.5,z:gz,width:.75,depth:.75},'#101319',i%5===0?'#302044':'#080a0d',4.6+(i%3)*.3));
+  }
   // Deterministic audience light points. Kept sparse so low-end phones remain smooth.
   const glowCount=quality==='high'?42:20;
   for(let i=0;i<glowCount;i++){const a=(i*2.3999632297)% (Math.PI*2), ring=.22+(i%11)/13, gx=Math.cos(a)*model.field.x*1.45*ring, gz=Math.sin(a)*model.field.z*1.5*ring;if(Math.abs(gx-m.x)<m.width*.7 && Math.abs(gz-m.z)<m.depth*1.8)continue;const gy=-18+(i%4)*.35;solids.push(boxItem({x:gx,y:gy,z:gz,width:.42,depth:.42},'#f5e8ff',i%3===0?'#6c76ff':i%3===1?'#d158e7':'#53a6ff',1.7));}
+  // Cross-truss grid above the stage creates more believable depth and scale.
+  for(let i=-2;i<=2;i++){
+    const tx=m.x+i*m.width*.23;
+    lines.push({vertices:new Float32Array([tx,trussY,m.z-m.depth*.35,tx,trussY,m.z+m.depth*.58]),color:[.40,.46,.53,.46]});
+  }
+  lines.push({vertices:new Float32Array([m.x-m.width*.58,trussY,m.z+m.depth*.20,m.x+m.width*.58,trussY,m.z+m.depth*.20]),color:[.42,.48,.55,.48]});
   // Soft spotlight beams are rendered as translucent lines to suggest concert atmosphere.
   const beamOrigins=[m.x-m.width*.35,m.x-m.width*.12,m.x+m.width*.12,m.x+m.width*.35];
   beamOrigins.forEach((bx,i)=>{const tx=(i-1.5)*model.field.x*.32,tz=model.field.z*(.35+(i%2)*.25);lines.push({vertices:new Float32Array([bx,trussY,m.z+2,tx,6,tz]),color:i%2?[.58,.48,1,.20]:[1,.48,.88,.18]});});

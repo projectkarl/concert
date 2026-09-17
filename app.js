@@ -1021,17 +1021,22 @@ function activeSeatTarget() {
   const layout = currentVenueLayout();
   const section = activeSection();
   if (stage.bStage && layout.bStageFacingSections?.includes(id)) return [stage.bStage.x, stage.bStage.y + 8, stage.bStage.z];
-  // Always aim at the audience-facing front edge of the stage instead of the LED/back-wall plane.
-  // Side seats therefore look across the performance area, never artificially at the back of a screen.
   const m=stage.main;
-  const frontZ=m.z + Math.max(8,(m.depth||24)*.58);
   const seat=venueSectionPosition(state.venueId, section, Number(state.row), state.seatNumber);
-  const sideSeat=Math.abs(seat.x-m.x) > Math.max(55,(m.width||80)*.52);
+  const isCenterStage = Math.abs(m.z) < Math.max(18,(m.depth||24)*.45) && !stage.runway;
+  if (isCenterStage) return [m.x, m.y + 12, m.z];
+  // Aim at the performance surface, not the LED/back-wall plane. Side seats get a slightly
+  // biased target so they look across the stage naturally instead of "through" the screen.
+  const frontZ=m.z + Math.max(9,(m.depth||24)*.60);
+  const sideSeat=Math.abs(seat.x-m.x) > Math.max(48,(m.width||80)*.46);
+  const targetX=Math.max(m.x-(m.width||80)*.30,Math.min(m.x+(m.width||80)*.30,m.x+(seat.x-m.x)*.18));
+  const behindStage=seat.z < m.z-Math.max(8,(m.depth||24)*.30);
   if (stage.runway && (sideSeat || /^(紅2|紫2)/.test(id))) {
-    const nearRunwayZ=Math.min(stage.runway.z2, Math.max(stage.runway.z1, frontZ + Math.abs(stage.runway.z2-stage.runway.z1)*.18));
-    return [stage.runway.x, m.y + 10, nearRunwayZ];
+    const nearRunwayZ=Math.min(stage.runway.z2, Math.max(stage.runway.z1, frontZ + Math.abs(stage.runway.z2-stage.runway.z1)*.20));
+    return [stage.runway.x + (targetX-m.x)*.22, m.y + 10, nearRunwayZ];
   }
-  return [m.x, m.y + 16, frontZ];
+  if (behindStage) return [targetX, m.y + 10, frontZ + Math.max(6,(m.depth||24)*.18)];
+  return [targetX, m.y + 15, frontZ];
 }
 function viewerEyeOffset() {
   const h = Math.max(140,Math.min(195,Number(state.viewerHeight)||160));
