@@ -1,0 +1,11 @@
+{
+  "台北小巨蛋":{"width":78,"depth":64,"height":34,"tiers":3,"shape":"oval","capacity":15000},
+  "台北大巨蛋":{"width":122,"depth":102,"height":48,"tiers":4,"shape":"oval","capacity":40000},
+  "高雄國家體育場":{"width":155,"depth":118,"height":46,"tiers":3,"shape":"horseshoe","capacity":55000},
+  "高雄流行音樂中心 海音館":{"width":56,"depth":42,"height":22,"tiers":2,"shape":"fan","capacity":6000},
+  "台北流行音樂中心表演廳":{"width":62,"depth":48,"height":25,"tiers":3,"shape":"fan","capacity":5000},
+  "國立體育大學綜合體育館":{"width":86,"depth":70,"height":34,"tiers":3,"shape":"oval","capacity":15000},
+  "高雄巨蛋":{"width":88,"depth":70,"height":35,"tiers":3,"shape":"oval","capacity":15000},
+  "TICC 台北國際會議中心":{"width":46,"depth":38,"height":19,"tiers":2,"shape":"fan","capacity":3000},
+  "Zepp New Taipei":{"width":38,"depth":30,"height":15,"tiers":2,"shape":"fan","capacity":2200}
+}

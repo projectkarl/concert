@@ -1,0 +1,226 @@
+{
+  "schemaVersion": "1.1",
+  "updatedAt": "2026-09-17",
+  "policy": {
+    "verifiedFacts": "Only official/public venue facts are stored as verified.",
+    "renderingEstimates": "3D dimensions below are rendering coordinates, not claimed architectural measurements.",
+    "eventOverlay": "Concert stage/floor/closed sections/prices must come from event-specific seat-map evidence before customized status."
+  },
+  "venues": {
+    "taipei-dome": {
+      "aliases": [
+        "臺北大巨蛋",
+        "台北大巨蛋",
+        "Taipei Dome"
+      ],
+      "verified": {
+        "capacity": 40000,
+        "fixedSeatDistribution": {
+          "infieldApprox": 30000,
+          "outfieldApprox": 10000
+        },
+        "fieldLevel": "B2",
+        "gateGroups": {
+          "infield": [
+            "Gate 1",
+            "Gate 2",
+            "Gate 3",
+            "Gate 4",
+            "Gate 5"
+          ],
+          "outfield": [
+            "Gate 6",
+            "Gate 7",
+            "Gate 8",
+            "Gate 9"
+          ]
+        },
+        "sources": [
+          "https://www.farglorydome.com.tw/park-detail/map/",
+          "https://www.farglorydome.com.tw/park-detail/Introduction__1/"
+        ]
+      },
+      "rendering": {
+        "shape": "baseball-bowl",
+        "bowlRadius": 88,
+        "bowlDepth": 64,
+        "tiers": [
+          {
+            "id": "lower",
+            "y": 4.8,
+            "radius": 58,
+            "slope": 0.24,
+            "rowRise": 0.31
+          },
+          {
+            "id": "middle",
+            "y": 12.5,
+            "radius": 72,
+            "slope": 0.29,
+            "rowRise": 0.34
+          },
+          {
+            "id": "upper",
+            "y": 21.0,
+            "radius": 87,
+            "slope": 0.34,
+            "rowRise": 0.37
+          }
+        ],
+        "aisleEverySeats": 18,
+        "eyeHeight": 1.18,
+        "seatMapping": {
+          "sectionFamilies": [
+            {
+              "id": "infield-lower",
+              "tier": "lower",
+              "angleRange": [
+                -112,
+                112
+              ],
+              "distanceRange": [
+                52,
+                66
+              ],
+              "confidence": "estimated"
+            },
+            {
+              "id": "infield-middle",
+              "tier": "middle",
+              "angleRange": [
+                -118,
+                118
+              ],
+              "distanceRange": [
+                66,
+                79
+              ],
+              "confidence": "estimated"
+            },
+            {
+              "id": "outfield-upper",
+              "tier": "upper",
+              "angleRange": [
+                -155,
+                155
+              ],
+              "distanceRange": [
+                79,
+                94
+              ],
+              "confidence": "estimated"
+            }
+          ],
+          "rowModel": {
+            "direction": "away-from-field",
+            "defaultRows": 30,
+            "rowDepth": 0.82
+          },
+          "seatModel": {
+            "direction": "left-to-right-facing-field",
+            "defaultSeatsPerBlock": 40,
+            "seatPitch": 0.52
+          }
+        }
+      }
+    },
+    "taipei-arena": {
+      "aliases": [
+        "臺北小巨蛋",
+        "台北小巨蛋",
+        "Taipei Arena"
+      ],
+      "verified": {
+        "mainArenaLevels": [
+          "B1 event floor",
+          "2F seating",
+          "3F seating / suites",
+          "4F suites"
+        ],
+        "b1FlexibleUse": [
+          "stage",
+          "temporary seating",
+          "standing area"
+        ],
+        "sources": [
+          "https://www.arena.taipei/News.aspx?n=63861D92D18F4E33&sms=E584E129E6660ED9",
+          "https://www.arena.taipei/cp.aspx?n=95731497B5FCEDDB",
+          "https://www.arena.taipei/News_Content.aspx?n=63861D92D18F4E33&s=6CA3296D17F565FA"
+        ]
+      },
+      "rendering": {
+        "shape": "arena-bowl",
+        "bowlRadius": 57,
+        "bowlDepth": 43,
+        "tiers": [
+          {
+            "id": "lower",
+            "y": 4.2,
+            "radius": 39,
+            "slope": 0.25,
+            "rowRise": 0.3
+          },
+          {
+            "id": "upper",
+            "y": 12.8,
+            "radius": 55,
+            "slope": 0.33,
+            "rowRise": 0.36
+          }
+        ],
+        "aisleEverySeats": 16,
+        "eyeHeight": 1.18,
+        "seatMapping": {
+          "sectionFamilies": [
+            {
+              "id": "2f-lower",
+              "tier": "lower",
+              "angleRange": [
+                -150,
+                150
+              ],
+              "distanceRange": [
+                37,
+                46
+              ],
+              "confidence": "estimated"
+            },
+            {
+              "id": "3f-upper",
+              "tier": "upper",
+              "angleRange": [
+                -160,
+                160
+              ],
+              "distanceRange": [
+                49,
+                59
+              ],
+              "confidence": "estimated"
+            }
+          ],
+          "rowModel": {
+            "direction": "away-from-event-floor",
+            "defaultRows": 28,
+            "rowDepth": 0.78
+          },
+          "seatModel": {
+            "direction": "left-to-right-facing-event-floor",
+            "defaultSeatsPerBlock": 36,
+            "seatPitch": 0.5
+          }
+        }
+      }
+    }
+  },
+  "mappingPolicy": {
+    "seatCoordinateModel": "section anchor + row radial offset + seat tangential offset + tier row rise",
+    "confidenceLevels": [
+      "official",
+      "calibrated",
+      "estimated"
+    ],
+    "eventSeatMapOverride": "Event-specific section availability, floor blocks, stage orientation and prices always override venue baseline.",
+    "viewWarning": "Actual sightline depends on event stage, production equipment and temporary structures."
+  }
+}
