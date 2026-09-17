@@ -183,7 +183,7 @@ if (!/zh-Hant/.test(i18n) || !/locale: 'en-US'/.test(i18n) || !/locale: 'ja-JP'/
 if (!/data-lang="zh-Hant"/.test(indexHtml) || !/data-lang="en"/.test(indexHtml) || !/data-lang="ja"/.test(indexHtml) || !/data-lang="ko"/.test(indexHtml)) { console.error("language selector buttons missing"); ok=false; }
 if (!/neul-language/.test(i18n) || !/neul:languagechange/.test(i18n) || !/MutationObserver/.test(i18n)) { console.error("dynamic language switching incomplete"); ok=false; }
 if (!/Noto\+Sans\+JP/.test(indexHtml)) { console.error("Japanese font support missing"); ok=false; }
-if (!/\/i18n\.js/.test(sw) || !/neul-v0\.37\.0/.test(sw)) { console.error("PWA multilingual cache update missing"); ok=false; }
+if (!/\/i18n\.js/.test(sw) || !/neul-v0\.38\.0/.test(sw)) { console.error("PWA multilingual cache update missing"); ok=false; }
 if (!/uiLocale/.test(app) || !/neul:languagechange/.test(app)) { console.error("locale-aware dynamic render hook missing"); ok=false; }
 
 
@@ -297,7 +297,7 @@ if (!Array.isArray(bigbangOfficial) || bigbangOfficial.length<2 || !bigbangOffic
 for (const id of ["bruno-mars-romantic-kaohsiung-2027","bts-arirang-kaohsiung-2026","bigbang-cosmos-taipei-2026","bigbang-cosmos-kaohsiung-2027"]) {
   if (!seedEvents.some(e=>e.id===id)) { console.error("v0.36 verified fallback missing",id); ok=false; }
 }
-if (seedEvents.length !== 57 || seedEvents.some(e=>!e)) { console.error("v0.37 seed regression",{count:seedEvents.length,hasHole:seedEvents.some(e=>!e)}); ok=false; }
+if (seedEvents.length !== 57 || seedEvents.some(e=>!e)) { console.error("v0.38 seed regression",{count:seedEvents.length,hasHole:seedEvents.some(e=>!e)}); ok=false; }
 const ticketDiscoveryCode=fs.readFileSync(new URL("../lib/taiwan-ticket-platform-discovery.js", import.meta.url),"utf8");
 for (const source of ["tixCraft","KKTIX","Ticket Plus","FamiTicket","udn","ibon"]) if (!ticketDiscoveryCode.includes(source)) { console.error("ticket discovery source missing",source); ok=false; }
 if (!/寬宏|KHAM/.test(ticketDiscoveryCode)) { console.error("KHAM ticket discovery source missing"); ok=false; }
@@ -307,11 +307,11 @@ if (!/hero-crowd-crisp\.webp/.test(css) || !/filter:none/.test(css) || /neul-fea
 if (!/#3b424a/.test(webgl) || !/quality==='high'\?1\.9/.test(webgl) || !/Simulated live-feed content/.test(webgl)) { console.error("v0.36 stage/floor/LED clarity regression"); ok=false; }
 
 
-// v0.37 auto-source completeness + base-venue invariant + UI audit
+// v0.37 auto-source completeness + base-venue invariant + UI audit (retained)
 for (const source of ["MNA","年代售票","ticket.mna.com.tw","ticket.com.tw"]) {
-  if (!ticketDiscoveryCode.includes(source)) { console.error("v0.37 ticket discovery source/pattern missing",source); ok=false; }
+  if (!ticketDiscoveryCode.includes(source)) { console.error("v0.38 ticket discovery source/pattern missing",source); ok=false; }
 }
-if (!/ActivityInfo\\\/Details/.test(ticketDiscoveryCode)) { console.error("v0.37 ibon detail URL pattern missing"); ok=false; }
+if (!/ActivityInfo\\\/Details/.test(ticketDiscoveryCode)) { console.error("v0.38 ibon detail URL pattern missing"); ok=false; }
 for (const id of [
   "aov-10th-anniversary-taipei-dome-2026","silica-gel-asia-tour-taipei-2026","charlie-puth-clever-taipei-2026","post-malone-big-ass-kaohsiung-2026","bts-arirang-kaohsiung-2026","mamamoo-4ward-taipei-2026","yoasobi-super-planet-taipei-2027","bigbang-cosmos-taipei-2026","bigbang-cosmos-kaohsiung-2027"
 ]) if (!seedEvents.some(e=>e.id===id)) { console.error("user-requested verified Taiwan event missing",id); ok=false; }
@@ -332,5 +332,21 @@ if (indexHtml.includes('id="searchScopeNote"') || /查看更多活動（\$\{list
 if (!/artist-name/.test(app) || !/\.artist-bubble \.artist-name/.test(css) || !/overflow-wrap:anywhere/.test(css)) { console.error("My List / long-name overflow audit missing"); ok=false; }
 if (!/title\.title = model\.name/.test(app) || !/\.venue-intro h2/.test(css)) { console.error("VENUE long-name full-title support missing"); ok=false; }
 
+
+// v0.38 LE SSERAFIM official-map calibration + systemic stage/seat exclusion
+const lsf38=seedEvents.find(e=>e.id==="le-sserafim-pureflow-taipei-2026");
+const lsfLayout=getVenueLayout("le-sserafim-pureflow-2026");
+if (!lsf38 || lsf38.venueLayoutId!=="le-sserafim-pureflow-2026" || !/activity\/field\/26_lsf_/i.test(lsf38.seatLayoutSourceUrl||"")) { console.error("LE SSERAFIM official seat-map wiring missing",lsf38); ok=false; }
+for (const vipId of ["VIP A","VIP B","VIP C"]) {
+  const sec=getVenueSection("ntsu-arena",vipId,"le-sserafim-pureflow-2026");
+  if (!sec?.standingOnly || sectionTicketLabel("le-sserafim-pureflow-2026",vipId)!=="VIP NT$6,980 · 站席") { console.error("LE SSERAFIM VIP standing/price mapping missing",vipId,sec,sectionTicketLabel("le-sserafim-pureflow-2026",vipId)); ok=false; }
+}
+const lsfEffectiveTiers=effectiveTiers("ntsu-arena","le-sserafim-pureflow-2026").map(t=>t.id);
+if (lsfEffectiveTiers.join(",")!=="VIP,2F,3F" || !lsfLayout?.stage?.runway || lsfLayout.stage?.bStage?.shape!=="octagon" || !lsfLayout.foh) { console.error("LE SSERAFIM official layout geometry mismatch",lsfEffectiveTiers,lsfLayout); ok=false; }
+if (sectionTicketLabel("le-sserafim-pureflow-2026","黃1B-1")!=="NT$6,380" || sectionTicketLabel("le-sserafim-pureflow-2026","藍5B-1")!=="NT$5,880" || !String(sectionTicketLabel("le-sserafim-pureflow-2026","黃2A-2")).includes("3,680–4,680")) { console.error("LE SSERAFIM bowl price mapping missing",sectionTicketLabel("le-sserafim-pureflow-2026","黃1B-1"),sectionTicketLabel("le-sserafim-pureflow-2026","藍5B-1"),sectionTicketLabel("le-sserafim-pureflow-2026","黃2A-2")); ok=false; }
+if (!/pointInProduction/.test(webgl) || !/section\.structuralOnly \|\| section\.standingOnly/.test(webgl) || !/shape==='octagon'/.test(webgl)) { console.error("systemic no-seats-on-stage / standing-zone renderer guard missing"); ok=false; }
+const tixSeatPriority=extractOfficialSeatLayoutUrl('<img src="https://static.tixcraft.com/images/activity/upload/poster.jpg"><img src="https://static.tixcraft.com/images/activity/field/26_lsf_map.jpg">','https://tixcraft.com/activity/detail/26_lsf');
+if (!/activity\/field\//.test(tixSeatPriority||'')) { console.error("tixCraft official field-map priority regression",tixSeatPriority); ok=false; }
+
 if (!ok) process.exit(1);
-console.log(`NEUL v0.37 checks passed · Taiwan-only · ${seedEvents.length} seed events · ${Object.keys(venueModels).length} venue models · 9 ticket sources + official artist/venue feeds · complete base-tier 3D merge · exact-section pricing · expired-layout cleanup · UI overflow audit · WebGL + Canvas fallback · PWA + IndexedDB`);
+console.log(`NEUL v0.38 checks passed · Taiwan-only · ${seedEvents.length} seed events · ${Object.keys(venueModels).length} venue models · 9 ticket sources + official artist/venue feeds · complete base-tier 3D merge · exact-section pricing · expired-layout cleanup · UI overflow audit · WebGL + Canvas fallback · PWA + IndexedDB`);

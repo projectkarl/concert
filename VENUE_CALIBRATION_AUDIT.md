@@ -1,4 +1,4 @@
-# NEUL v0.37 Venue Calibration Audit
+# NEUL v0.38 Venue Calibration Audit
 
 Audit date: 2026-09-17
 
@@ -16,7 +16,15 @@ Likewise, generic auto-generation no longer invents a runway or B-stage unless e
 
 ## NTSU Arena / 林口體育館
 
-The previous model only exposed MIDDLE / UPPER visual tiers, which made concert layouts look physically incomplete. v0.37 retains four structural layers:
+### LE SSERAFIM PUREFLOW event calibration (v0.38)
+- Uses the official tixCraft event field map rather than `ntsu-base`.
+- VIP A / B / C are standing-only 1F zones; no chair mesh is generated.
+- Main stage, center runway, octagonal center platform and FOH are protected production footprints.
+- Event ticket zones replace generic NTSU structural placeholders for this calibrated event only; the general venue model still retains FLOOR / LOWER / MIDDLE / UPPER.
+- Production-footprint exclusion is also enforced globally so future automatic drafts cannot place generated chair instances on a stage or FOH.
+
+
+The previous model only exposed MIDDLE / UPPER visual tiers, which made concert layouts look physically incomplete. v0.38 retains four structural layers:
 - FLOOR — configurable activity-floor envelope
 - LOWER — lower / event-configurable stepped seating envelope
 - MIDDLE — retained bowl

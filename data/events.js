@@ -18,12 +18,20 @@ export const seedEvents = [
     sourceName: "tixCraft 官方售票頁",
     sourceUrl: "https://tixcraft.com/activity/detail/26_lsf",
     verified: true,
-    checkedAt: "2026-09-17T13:10:00+08:00",
+    checkedAt: "2026-09-17T16:25:00+08:00",
     tags: ["K-POP","TAOYUAN","LINKOU","2 DAYS"],
     venueModelId: "ntsu-arena",
-    venueLayoutId: "ntsu-base",
-    summary: "11/14–15 於林口體育館演出；1F VIP 為站席，官方頁另提醒部分看台前排安全欄杆與特定區域視線限制。",
-    notes: ["官方頁已公布兩日場次、票價與一般售票時間。", "活動專屬票區配置若後續解析成功，3D 可再覆寫場館基準配置。"]
+    venueLayoutId: "le-sserafim-pureflow-2026",
+    seatLayoutSourceUrl: "https://static.tixcraft.com/images/activity/field/26_lsf_2346a9e447c58490112b8fda1aacef0c.jpg",
+    sectionPriceRules: [
+      {label:"VIP A／VIP B／VIP C",price:"NT$6,980"},
+      {label:"2F 6380票區",price:"NT$6,380"},
+      {label:"2F 5880票區",price:"NT$5,880"},
+      {label:"3F 4680票區",price:"NT$4,680"},
+      {label:"3F 部分橙／黃A區",price:"NT$3,680–4,680（依位置）"}
+    ],
+    summary: "11/14–15 於林口體育館演出；官方票區圖確認 1F VIP A／B／C 為站席，並設中央延伸舞台與 FOH。",
+    notes: ["官方頁已公布兩日場次、票價、一般售票時間與票區圖。", "VIP 站席不生成固定座椅；部分 3F 區域依官方圖跨不同價位。"]
   },
   {
     id: "kim-ji-won-wonederland-taipei-2026",

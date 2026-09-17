@@ -119,6 +119,40 @@ const plavePriceLabels = {
   vip6300:'NT$6,300', '5300':'NT$5,300', '3800':'NT$3,800', '2900':'NT$2,900'
 };
 
+// LE SSERAFIM 2026 PUREFLOW — official tixCraft seating-map reconstruction.
+// The official map clearly separates 1F VIP A/B/C standing zones, a long center runway,
+// a polygonal center performance platform, FOH, inner 2F B blocks and outer 3F A blocks.
+// Do not substitute the generic NTSU floor blocks for this event.
+const lsfVip = [
+  {...block('VIP A','VIP',-50,-55,38,70,'6980'),standingOnly:true,rowMin:1,rowMax:1,label:'VIP A · 1F站席'},
+  {...block('VIP B','VIP', 50,-55,38,70,'6980'),standingOnly:true,rowMin:1,rowMax:1,label:'VIP B · 1F站席'},
+  {...block('VIP C','VIP',  0, 22,108,28,'6980'),standingOnly:true,rowMin:1,rowMax:1,label:'VIP C · 1F站席'}
+];
+const lsfInnerLeftIds=['黃1B-2','黃1B-1','黃2B-2','黃2B-1','黃4B-2','黃4B-1','藍5B-2','藍5B-1','藍4B-2','藍4B-1','藍3B-2'];
+const lsfInnerRightIds=['橙1B-1','橙1B-2','橙2B-1','橙2B-2','橙4B-1','橙4B-2','藍1B-1','藍1B-2','藍2B-1','藍2B-2','藍3B-1'];
+const lsf6380=new Set(['橙1B-1','橙1B-2','橙2B-1','橙2B-2','橙4B-1','藍2B-1','藍2B-2','藍3B-1','藍3B-2','藍4B-1','藍4B-2','黃4B-2','黃2B-1','黃2B-2','黃1B-1','黃1B-2']);
+const lsf5880=new Set(['橙4B-2','藍1B-1','藍1B-2','藍5B-1','藍5B-2','黃4B-1']);
+const lsfInner=[
+  ...arcGroup(lsfInnerLeftIds,'2F',154,116,18,3.86,1.68),
+  ...arcGroup(lsfInnerRightIds,'2F',154,116,18,-.72,1.46)
+].map(s=>({...s,group:lsf5880.has(s.id)?'5880':'6380',rowMin:1,rowMax:15,rowDirection:lsf6380.has(s.id)?'reverse':undefined,depthX:22,depthZ:17,rise:10,rowCurve:1.04}));
+const lsfOuterLeftIds=['黃2A-2','黃2A-1','黃4A-2','黃4A-1','藍5A-3','藍5A-2','藍5A-1','藍4A-2','藍4A-1','藍3A-1'];
+const lsfOuterRightIds=['橙2A-1','橙2A-2','橙4A-2','橙4A-1','藍1A-1','藍1A-2','藍2A-1','藍2A-2','藍3A-1'];
+const lsfSplit3680=new Set(['橙2A-1','橙2A-2','橙4A-2','橙4A-1','黃4A-1','黃4A-2','黃2A-1','黃2A-2']);
+const lsfOuter=[
+  ...arcGroup(lsfOuterLeftIds,'3F',194,148,43,3.90,1.70),
+  ...arcGroup(lsfOuterRightIds,'3F',194,148,43,-.76,1.44)
+].map(s=>({...s,group:lsfSplit3680.has(s.id)?'3680-4680':'4680',rowMin:0,rowMax:16,depthX:28,depthZ:22,rise:15,rowCurve:1.06}));
+const lsfSections=[...lsfVip,...lsfInner,...lsfOuter];
+const lsfTiers=[
+  {id:'VIP',label:'1F VIP 站席',short:'VIP',sections:lsfVip.map(x=>x.id)},
+  {id:'2F',label:'2F 看台',short:'2F',sections:lsfInner.map(x=>x.id)},
+  {id:'3F',label:'3F 看台',short:'3F',sections:lsfOuter.map(x=>x.id)}
+];
+const lsfPriceLabels={
+  '6980':'VIP NT$6,980 · 站席','6380':'NT$6,380','5880':'NT$5,880','4680':'NT$4,680','3680-4680':'NT$3,680–4,680（依官方圖位置）'
+};
+
 
 // IVE 2026 SHOW WHAT I AM — Taipei Arena event-specific reconstruction.
 // Official tixCraft map confirms six VIP floor zones, FOH, selected 2F/3F fixed seating and 3F box seats.
@@ -374,6 +408,24 @@ export const venueLayouts = {
       '2F／3F 看台前方數排可能受固定安全欄杆影響；實際遮擋程度依座位而異。'
     ]
   },
+  'le-sserafim-pureflow-2026': {
+    id:'le-sserafim-pureflow-2026', venueId:'ntsu-arena', eventId:'le-sserafim-pureflow-taipei-2026', label:'LE SSERAFIM · PUREFLOW',
+    stage:{main:{x:0,y:-16,z:-112,width:92,depth:28},runway:{x:0,y:-15,z1:-100,z2:-34,width:18},bStage:{x:0,y:-14,z:-28,radius:24,shape:'octagon'}},
+    foh:{x:0,y:-19,z:69,width:54,depth:18}, sections:lsfSections, tiers:lsfTiers,
+    replaceStructuralTiers:['FLOOR','LOWER','MIDDLE','UPPER'],
+    defaultTier:'VIP', defaultSection:'VIP C', defaultRow:1,
+    sourceName:'tixCraft 2026 LE SSERAFIM 官方票區圖',
+    sourceUrl:'https://tixcraft.com/activity/detail/26_lsf',
+    latestSeatLayoutSourceUrl:'https://static.tixcraft.com/images/activity/field/26_lsf_2346a9e447c58490112b8fda1aacef0c.jpg',
+    verifiedAt:'2026-09-17T16:25:00+08:00', seatMapDetected:true,
+    restrictedViewSections:['黃1B-1','黃2A-2','橙1B-2','橙2A-1'], frontRowRailCaution:true,
+    priceLabels:lsfPriceLabels,
+    notices:[
+      '拓元官方票區圖確認 1F VIP A／B／C 為站席；NEUL 不在站席內生成椅子，並保留中央延伸舞台與 FOH。',
+      '官方提醒橙、藍、黃看台前方數排可能受安全欄杆影響；黃1B-1、黃2A-2、橙1B-2、橙2A-1另有部分視線限制。',
+      '3F 部分橙／黃 A 區在官方圖中跨 NT$3,680 與 NT$4,680 價位，因此不強行把整個區簡化成單一價格。'
+    ]
+  },
   'ive-show-what-i-am-2026': {
     id:'ive-show-what-i-am-2026', venueId:'taipei-arena', eventId:'ive-show-what-i-am-taipei-2026', label:'IVE 2026 · SHOW WHAT I AM', historical:true,
     stage:{main:{x:0,y:-16,z:-105,width:84,depth:24},runway:{x:0,y:-16,z1:-93,z2:-37,width:18},bStage:null},
@@ -537,7 +589,8 @@ export function getVenueModel(venueId) { return venueModels[venueId] || venueMod
 export function getVenueLayout(layoutId) { return venueLayouts[layoutId] || venueLayouts['taipei-dome-base']; }
 export function effectiveTiers(venueId, layoutId) {
   const model=getVenueModel(venueId), layout=getVenueLayout(layoutId);
-  const base=(model.tiers||[]).map(t=>({...t,sections:[...(t.sections||[])]}));
+  const replace=new Set((layout.replaceStructuralTiers||[]).map(String));
+  const base=(model.tiers||[]).filter(t=>!replace.has(String(t.id))).map(t=>({...t,sections:[...(t.sections||[])]}));
   if(layout.venueId!==venueId || !Array.isArray(layout.tiers)) return base;
   const merged=new Map(base.map(t=>[String(t.id),t]));
   for(const eventTier of layout.tiers){
@@ -556,8 +609,10 @@ export function effectiveSections(venueId, layoutId) {
   // corresponding structural sections. This prevents auto-generated events from
   // looking like an incomplete arena.
   const eventById=new Map(layout.sections.map(s=>[String(s.id),{...s,eventActive:true}]));
-  const structural=model.sections.map(s=>eventById.get(String(s.id)) || {...s,eventActive:false});
-  const extras=layout.sections.filter(s=>!model.sections.some(m=>String(m.id)===String(s.id))).map(s=>({...s,eventActive:true}));
+  const replace=new Set((layout.replaceStructuralTiers||[]).map(String));
+  const eligibleBase=model.sections.filter(s=>!replace.has(String(s.tier)));
+  const structural=eligibleBase.map(s=>eventById.get(String(s.id)) || {...s,eventActive:false});
+  const extras=layout.sections.filter(s=>!eligibleBase.some(m=>String(m.id)===String(s.id))).map(s=>({...s,eventActive:true}));
   return [...structural,...extras];
 }
 export function getVenueTier(venueId,tierId,layoutId=null) { const tiers=effectiveTiers(venueId,layoutId); return tiers.find(t=>t.id===tierId)||tiers[0]; }
@@ -644,6 +699,14 @@ export function venueSectionWarning(venueId, sectionId, row, layoutId, viewer={}
     if (id.startsWith('黃3')) messages.push('3F 同一大區內可能依排數落在不同票價帶；本站不把整區簡化成單一票價。');
     messages.push('IVE 2026 台北場為官方票區圖重建；目前校正到舞台與票區相對位置，不宣稱單席精準視角。');
     return {level:'notice',messages};
+  }
+  if (layout.id==='le-sserafim-pureflow-2026') {
+    const price=sectionTicketLabel(layoutId,id); if(price) messages.push(`本場官方票區圖對應：${price}。`);
+    if(/^VIP [ABC]$/.test(id)){messages.push('拓元官方公告：1F VIP 為站席，依票面序號排隊入場；3D 不顯示固定椅。');level='notice';}
+    if(layout.restrictedViewSections?.includes(id)){messages.push('官方將此區列為部分座位可能無法完整觀看主舞台 LED／中後端演出的視線限制區。');level='caution';}
+    else if(layout.frontRowRailCaution && !/^VIP/.test(id)){messages.push('官方提醒橙、藍、黃看台前方數排可能受固定安全欄杆影響。');if(level==='normal')level='notice';}
+    messages.push('本場 3D 依拓元官方票區圖重建到舞台／VIP／FOH／票區相對位置；實際現場設備仍以主辦公告為準。');
+    return {level,messages};
   }
   if (venueId==='ntsu-arena') {
     const sec=getVenueSection(venueId,id,layoutId);

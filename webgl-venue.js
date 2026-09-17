@@ -156,17 +156,30 @@ function prism(top,thickness=7){
   const b=top.map(([x,y,z])=>[x,y-thickness,z]);
   return meshFromFaces([[top[0],top[1],top[2]],[top[0],top[2],top[3]],[b[0],b[2],b[1]],[b[0],b[3],b[2]],[top[0],b[0],b[1]],[top[0],b[1],top[1]],[top[1],b[1],b[2]],[top[1],b[2],top[2]],[top[2],b[2],b[3]],[top[2],b[3],top[3]],[top[3],b[3],b[0]],[top[3],b[0],top[0]]]);
 }
-function seatSamples(section,selected,quality){
+function pointInProduction(x,z,layout){
+  const stage=layout?.stage; if(!stage?.main)return false;
+  const insideRect=(r,margin=2)=>r && Math.abs(x-(r.x||0)) <= (r.width||0)/2+margin && Math.abs(z-(r.z||0)) <= (r.depth||0)/2+margin;
+  if(insideRect(stage.main,4))return true;
+  if(stage.runway){const r=stage.runway,zMin=Math.min(r.z1,r.z2),zMax=Math.max(r.z1,r.z2);if(Math.abs(x-(r.x||0)) <= (r.width||0)/2+3 && z>=zMin-3 && z<=zMax+3)return true;}
+  if(stage.bStage){const dx=x-(stage.bStage.x||0),dz=z-(stage.bStage.z||0),radius=(stage.bStage.radius||0)+3;if(dx*dx+dz*dz<=radius*radius)return true;}
+  for(const r of layout?.extraStageRects||[])if(insideRect(r,3))return true;
+  if(insideRect(layout?.foh,2))return true;
+  return false;
+}
+function seatSamples(section,selected,quality,layout){
   const out=[];
+  // Generic flexible/structural floor envelopes are not ticketed chair rows. Wait for an
+  // official event map before drawing chairs. Official standing zones likewise never get chairs.
+  if(section.structuralOnly || section.standingOnly)return out;
   const actualRows=Math.max(1,Number(section.rowMax??30)-Number(section.rowMin??1)+1);
   const rows=selected?(quality==='high'?Math.min(42,actualRows):Math.min(24,actualRows)):(quality==='high'?Math.min(8,actualRows):Math.min(5,actualRows));
   const seatMax=Math.max(10,Number(section.seatEstimateMax||28));
   const cols=selected?(quality==='high'?Math.min(34,seatMax):Math.min(20,seatMax)):(quality==='high'?9:6);
   if(section.shape==='block'||section.tier==='FLOOR'||Number.isFinite(section.x)){
-    const w=section.width||38,d=section.depth||32;for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const u=(c+.5)/cols,v=(r+.5)/rows;out.push({x:section.x-w/2+u*w,y:(section.y??-20)+2.4+v*Number(section.rise||2),z:section.z-d/2+v*d,rot:Math.atan2(-section.x,-section.z)});}return out;
+    const w=section.width||38,d=section.depth||32;for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const u=(c+.5)/cols,v=(r+.5)/rows;{const seat={x:section.x-w/2+u*w,y:(section.y??-20)+2.4+v*Number(section.rise||2),z:section.z-d/2+v*d,rot:Math.atan2(-section.x,-section.z)};if(!pointInProduction(seat.x,seat.z,layout))out.push(seat);}}return out;
   }
   const span=section.span||.11,dx=Number(section.depthX??24),dz=Number(section.depthZ??18),rise=Number(section.rise??12),curve=Number(section.rowCurve||1);
-  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){let v=(r+.5)/rows;v=Math.pow(v,curve);const u=(c+.5)/cols,a=section.angle-span*.78+u*span*1.56,rx=section.radiusX+v*dx,rz=section.radiusZ+v*dz;out.push({x:Math.cos(a)*rx,y:section.y+2.2+v*rise,z:Math.sin(a)*rz,rot:Math.atan2(-Math.cos(a),-Math.sin(a))});}return out;
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){let v=(r+.5)/rows;v=Math.pow(v,curve);const u=(c+.5)/cols,a=section.angle-span*.78+u*span*1.56,rx=section.radiusX+v*dx,rz=section.radiusZ+v*dz;{const seat={x:Math.cos(a)*rx,y:section.y+2.2+v*rise,z:Math.sin(a)*rz,rot:Math.atan2(-Math.cos(a),-Math.sin(a))};if(!pointInProduction(seat.x,seat.z,layout))out.push(seat);}}return out;
 }
 function sectionArchitecture(section,selected,quality,theme){
   const lines=[],solids=[]; if(section.shape==='block'||section.tier==='FLOOR'||Number.isFinite(section.x))return{lines,solids};
@@ -191,7 +204,8 @@ function buildCPUScene(config,quality){
   const {model,layout,sections,selectedId}=config,solids=[],lines=[],seatMats=[],seatColors=[],theme=config.theme||'dark';
   const lightTheme=theme==='light';
   solids.push(boxItem({x:0,y:-27,z:0,width:model.field.x*2.15,depth:model.field.z*2.2},lightTheme?'#7c858f':'#3b424a','#000000',3));
-  for(const sec of sections){const selected=String(sec.id)===selectedId,top=sectionTop(sec);solids.push({mesh:prism(top,selected?9:6.5),model:mat4Identity(),color:sectionColor(layout,sec,selected,theme),emissive:selected?(lightTheme?'#7c237f':'#5e1f75'):'#06080b'});if(selected)lines.push({vertices:rectLine(top),color:lightTheme?[1,.88,1,1]:[.96,.83,1,1]});const arch=sectionArchitecture(sec,selected,quality,theme);solids.push(...arch.solids);lines.push(...arch.lines);for(const seat of seatSamples(sec,selected,quality)){seatMats.push(mat4TRS(seat.x,seat.y,seat.z,seat.rot,2.15,1.8,1.8));seatColors.push(...color3(selected?(lightTheme?'#ffd0ff':'#f2b7ff'):sectionColor(layout,sec,false,theme)));}}
+  for(const sec of sections){const selected=String(sec.id)===selectedId,top=sectionTop(sec);solids.push({mesh:prism(top,selected?9:6.5),model:mat4Identity(),color:sectionColor(layout,sec,selected,theme),emissive:selected?(lightTheme?'#7c237f':'#5e1f75'):'#06080b'});if(selected)lines.push({vertices:rectLine(top),color:lightTheme?[1,.88,1,1]:[.96,.83,1,1]});const arch=sectionArchitecture(sec,selected,quality,theme);solids.push(...arch.solids);lines.push(...arch.lines);for(const seat of seatSamples(sec,selected,quality,layout)){seatMats.push(mat4TRS(seat.x,seat.y,seat.z,seat.rot,2.15,1.8,1.8));seatColors.push(...color3(selected?(lightTheme?'#ffd0ff':'#f2b7ff'):sectionColor(layout,sec,false,theme)));}
+    if(sec.standingOnly && Number.isFinite(sec.x)){const count=quality==='high'?12:7;for(let i=0;i<count;i++){const u=((i*37)%97)/97,v=((i*61)%89)/89,x=sec.x-(sec.width||30)*.42+u*(sec.width||30)*.84,z=sec.z-(sec.depth||30)*.42+v*(sec.depth||30)*.84;if(pointInProduction(x,z,layout))continue;solids.push(boxItem({x,y:(sec.y??-19)+.4,z,width:.72,depth:.72,height:4.8},selected?'#e9d8ff':'#242a32',selected?'#8b63ff':'#101319',4.8));}}}
   const stage=layout.stage||model.stage;solids.push(boxItem(stage.main,lightTheme?'#565b64':'#2b2f36',lightTheme?'#5e3762':'#512a58',7.6));
   // Runway edge lights add depth cues for long catwalks.
   if(stage.runway){
@@ -199,7 +213,7 @@ function buildCPUScene(config,quality){
     const steps=quality==='high'?12:7;
     for(let i=0;i<steps;i++){const z=r.z1+(r.z2-r.z1)*(i+.5)/steps;[-1,1].forEach(side=>solids.push(boxItem({x:r.x+side*r.width*.43,y:r.y+3.6,z,width:.55,depth:1.5},'#ffeaff',side<0?'#786cff':'#e15ce6',.65)));}
   }
-  if(stage.bStage){const r=stage.bStage.radius;const pts=[];const n=40;for(let i=0;i<n;i++){const a=i/n*Math.PI*2,b=(i+1)/n*Math.PI*2;const y=stage.bStage.y;pts.push([[stage.bStage.x,y+4,stage.bStage.z],[stage.bStage.x+Math.cos(a)*r,y+4,stage.bStage.z+Math.sin(a)*r],[stage.bStage.x+Math.cos(b)*r,y+4,stage.bStage.z+Math.sin(b)*r]]);}solids.push({mesh:meshFromFaces(pts),model:mat4Identity(),color:lightTheme?'#60636a':'#343039',emissive:lightTheme?'#704776':'#55295e'});}
+  if(stage.bStage){const r=stage.bStage.radius;const pts=[];const n=stage.bStage.shape==='octagon'?8:40;for(let i=0;i<n;i++){const a=i/n*Math.PI*2,b=(i+1)/n*Math.PI*2;const y=stage.bStage.y;pts.push([[stage.bStage.x,y+4,stage.bStage.z],[stage.bStage.x+Math.cos(a)*r,y+4,stage.bStage.z+Math.sin(a)*r],[stage.bStage.x+Math.cos(b)*r,y+4,stage.bStage.z+Math.sin(b)*r]]);}solids.push({mesh:meshFromFaces(pts),model:mat4Identity(),color:lightTheme?'#60636a':'#343039',emissive:lightTheme?'#704776':'#55295e'});}
   for(const r of layout.extraStageRects||[])solids.push(boxItem(r,'#14131a','#24172a',4.2));
   if(layout.foh)solids.push(boxItem(layout.foh,'#373d43','#101214',3.2));
   const m=stage.main;
