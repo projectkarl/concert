@@ -1,38 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "functions": {
-    "api/*.mjs": {
-      "maxDuration": 60
-    }
-  },
-  "rewrites": [
-    {
-      "source": "/api/events",
-      "destination": "/api/events.mjs"
-    },
-    {
-      "source": "/api/health",
-      "destination": "/api/health.mjs"
-    },
-    {
-      "source": "/api/seatmap-image",
-      "destination": "/api/seatmap-image.mjs"
-    },
-    {
-      "source": "/api/venue-geometry",
-      "destination": "/api/venue-geometry.mjs"
-    },
-    {
-      "source": "/api/automation-scan",
-      "destination": "/api/automation-scan.mjs"
-    }
-  ],
-  "crons": [
-    {
-      "path": "/api/automation-scan",
-      "schedule": "0 0 * * *"
-    }
-  ],
+  "cleanUrls": true,
+  "trailingSlash": false,
   "headers": [
     {
       "source": "/(.*)",
@@ -50,6 +19,42 @@
           "value": "camera=(), microphone=(), geolocation=()"
         }
       ]
+    },
+    {
+      "source": "/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        },
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/"
+        }
+      ]
+    },
+    {
+      "source": "/manifest.webmanifest",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/manifest+json; charset=utf-8"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
+      ]
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/refresh",
+      "schedule": "15 3 * * *"
+    },
+    {
+      "path": "/api/push-digest",
+      "schedule": "30 0 * * *"
     }
   ]
 }
