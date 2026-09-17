@@ -183,7 +183,7 @@ if (!/zh-Hant/.test(i18n) || !/locale: 'en-US'/.test(i18n) || !/locale: 'ja-JP'/
 if (!/data-lang="zh-Hant"/.test(indexHtml) || !/data-lang="en"/.test(indexHtml) || !/data-lang="ja"/.test(indexHtml) || !/data-lang="ko"/.test(indexHtml)) { console.error("language selector buttons missing"); ok=false; }
 if (!/neul-language/.test(i18n) || !/neul:languagechange/.test(i18n) || !/MutationObserver/.test(i18n)) { console.error("dynamic language switching incomplete"); ok=false; }
 if (!/Noto\+Sans\+JP/.test(indexHtml)) { console.error("Japanese font support missing"); ok=false; }
-if (!/\/i18n\.js/.test(sw) || !/neul-v0\.40\.0/.test(sw)) { console.error("PWA multilingual cache update missing"); ok=false; }
+if (!/\/i18n\.js/.test(sw) || !/neul-v0\.41\.0/.test(sw)) { console.error("PWA multilingual cache update missing"); ok=false; }
 if (!/uiLocale/.test(app) || !/neul:languagechange/.test(app)) { console.error("locale-aware dynamic render hook missing"); ok=false; }
 
 
@@ -297,21 +297,21 @@ if (!Array.isArray(bigbangOfficial) || bigbangOfficial.length<2 || !bigbangOffic
 for (const id of ["bruno-mars-romantic-kaohsiung-2027","bts-arirang-kaohsiung-2026","bigbang-cosmos-taipei-2026","bigbang-cosmos-kaohsiung-2027"]) {
   if (!seedEvents.some(e=>e.id===id)) { console.error("v0.36 verified fallback missing",id); ok=false; }
 }
-if (seedEvents.length !== 59 || seedEvents.some(e=>!e)) { console.error("v0.40 seed regression",{count:seedEvents.length,hasHole:seedEvents.some(e=>!e)}); ok=false; }
+if (seedEvents.length !== 59 || seedEvents.some(e=>!e)) { console.error("v0.41 seed regression",{count:seedEvents.length,hasHole:seedEvents.some(e=>!e)}); ok=false; }
 const ticketDiscoveryCode=fs.readFileSync(new URL("../lib/taiwan-ticket-platform-discovery.js", import.meta.url),"utf8");
 for (const source of ["tixCraft","KKTIX","Ticket Plus","FamiTicket","udn","ibon"]) if (!ticketDiscoveryCode.includes(source)) { console.error("ticket discovery source missing",source); ok=false; }
 if (!/寬宏|KHAM/.test(ticketDiscoveryCode)) { console.error("KHAM ticket discovery source missing"); ok=false; }
 const arenaB1=taipeiModel.sections.filter(s=>s.tier==="B1");
 if (arenaB1.length!==5 || !arenaB1.every(s=>s.structuralOnly===true && s.eventFlexible===true) || !taipeiModel.sections.some(s=>s.tier==="2F") || !taipeiModel.sections.some(s=>s.tier==="3F")) { console.error("Taipei Arena B1/2F/3F structural completeness missing",arenaB1); ok=false; }
 if (!/hero-live-crisp\.webp/.test(css) || !/filter:none/.test(css) || /neul-feature-photo-swap\{[^}]*transform/.test(css)) { console.error("Hero/Featured crisp no-blur/no-zoom regression"); ok=false; }
-if (!/#3b424a/.test(webgl) || !/quality==='high'\?1\.9/.test(webgl) || !/Simulated live-feed content/.test(webgl)) { console.error("v0.36 stage/floor/LED clarity regression"); ok=false; }
+if (!/#747d86/.test(webgl) || !/quality==='high'\?1\.9/.test(webgl) || !/Simulated live-feed content/.test(webgl)) { console.error("v0.41 stage/floor/LED clarity regression"); ok=false; }
 
 
 // v0.37 auto-source completeness + base-venue invariant + UI audit (retained)
 for (const source of ["MNA","年代售票","ticket.mna.com.tw","ticket.com.tw"]) {
-  if (!ticketDiscoveryCode.includes(source)) { console.error("v0.40 ticket discovery source/pattern missing",source); ok=false; }
+  if (!ticketDiscoveryCode.includes(source)) { console.error("v0.41 ticket discovery source/pattern missing",source); ok=false; }
 }
-if (!/ActivityInfo\\\/Details/.test(ticketDiscoveryCode)) { console.error("v0.40 ibon detail URL pattern missing"); ok=false; }
+if (!/ActivityInfo\\\/Details/.test(ticketDiscoveryCode)) { console.error("v0.41 ibon detail URL pattern missing"); ok=false; }
 for (const id of [
   "aov-10th-anniversary-taipei-dome-2026","silica-gel-asia-tour-taipei-2026","charlie-puth-clever-taipei-2026","post-malone-big-ass-kaohsiung-2026","bts-arirang-kaohsiung-2026","mamamoo-4ward-taipei-2026","yoasobi-super-planet-taipei-2027","bigbang-cosmos-taipei-2026","bigbang-cosmos-kaohsiung-2027"
 ]) if (!seedEvents.some(e=>e.id===id)) { console.error("user-requested verified Taiwan event missing",id); ok=false; }
@@ -327,13 +327,13 @@ if (!["FLOOR","LOWER","MIDDLE","UPPER","VIP","BOWL","REAR"].every(x=>plaveTiers.
 const khTiers=[...new Set(venueModels["kaohsiung-arena"].sections.map(s=>s.tier))];
 if (!khTiers.includes("FLOOR")) { console.error("Kaohsiung Arena 1F structural/activity layer missing",khTiers); ok=false; }
 if (/const\s+fallbackPrice/.test(app) || /本場票價\s*\$\{layout\.priceSummary\}/.test(app)) { console.error("broad all-prices-on-every-section fallback regressed"); ok=false; }
-if (!/event\.historical/.test(app) || !/layout\.eventId/.test(app) || !/now-6\*3600000/.test(app)) { console.error("expired venue-event layout cleanup missing"); ok=false; }
+if (!/eventHasEnded/.test(app) || !/layout\.eventId/.test(app) || !/eventEndTimestamp/.test(app)) { console.error("expired venue-event layout cleanup missing"); ok=false; }
 if (indexHtml.includes('id="searchScopeNote"') || /查看更多活動（\$\{list\.length - 5\}）/.test(app)) { console.error("deprecated search helper / volatile more-count regressed"); ok=false; }
 if (!/artist-name/.test(app) || !/\.artist-bubble \.artist-name/.test(css) || !/overflow-wrap:anywhere/.test(css)) { console.error("My List / long-name overflow audit missing"); ok=false; }
 if (!/title\.title = model\.name/.test(app) || !/\.venue-intro h2/.test(css)) { console.error("VENUE long-name full-title support missing"); ok=false; }
 
 
-// v0.40 official-map automation + BTS/T-ARA + prior calibrations
+// v0.41 official-map automation + BTS/T-ARA + prior calibrations
 const lsf38=seedEvents.find(e=>e.id==="le-sserafim-pureflow-taipei-2026");
 const lsfLayout=getVenueLayout("le-sserafim-pureflow-2026");
 if (!lsf38 || lsf38.venueLayoutId!=="le-sserafim-pureflow-2026" || !/activity\/field\/26_lsf_/i.test(lsf38.seatLayoutSourceUrl||"")) { console.error("LE SSERAFIM official seat-map wiring missing",lsf38); ok=false; }
@@ -350,7 +350,7 @@ if (!/activity\/field\//.test(tixSeatPriority||'')) { console.error("tixCraft of
 
 const sj83=seedEvents.find(e=>e.id==="super-junior-83z-1983-kaohsiung-2026");
 if(!sj83 || !sj83.seatLayoutSourceUrl?.includes("assets.kktix.io") || sectionTicketLabel("sj83z-1983-kaohsiung-2026","VIP A2")!=="NT$6,480"){ console.error("SUPER JUNIOR-83z auto/3D regression",sj83); ok=false; }
-if(!/setInterval\(.*10000/s.test(app) || !/nextUpdateAt/.test(apiEventsCode) || !/freshness-next/.test(css)){ console.error("v0.40 autoplay/update schedule regression"); ok=false; }
+if(!/setInterval\(.*10000/s.test(app) || !/nextUpdateAt/.test(apiEventsCode) || !/freshness-next/.test(css)){ console.error("v0.41 autoplay/update schedule regression"); ok=false; }
 if(!/chuanyeah\.kktix\.cc\/events/.test(ticketDiscoveryCode)){ console.error("KKTIX promoter-index discovery regression"); ok=false; }
 
 const seatVisionCode = fs.readFileSync(new URL("../seat-map-intelligence.js", import.meta.url), "utf8");
@@ -371,6 +371,15 @@ if(!tara40 || !/wve\.kktix\.cc/.test(tara40.sourceUrl||"") || !/assets\.kktix\.i
 if(sectionTicketLabel("tara-fancon-kaohsiung-2026","1F-C")!=="NT$5,980" || sectionTicketLabel("tara-fancon-kaohsiung-2026","2F-A")!=="NT$5,680" || sectionTicketLabel("tara-fancon-kaohsiung-2026","2F-C")!=="NT$4,680" || sectionTicketLabel("tara-fancon-kaohsiung-2026","2F-B-REAR")!=="NT$3,680"){ console.error("T-ARA section pricing regression"); ok=false; }
 if (!/hydrateSeatMapGeometry/.test(app) || !/neul-seatmap-hash/.test(app) || !/hashChanged/.test(app) || /slice\(0,14\)/.test(app) || !/i\+=3/.test(app)) { console.error("client seat-map change regeneration pipeline missing/bounded to partial list"); ok=false; }
 if (!/seatMapFound/.test(apiEventsCode) || !/sectionPricesFound/.test(apiEventsCode) || !/threeDReady/.test(apiEventsCode)) { console.error("four-stage automation status missing"); ok=false; }
-if (!/neul-v0\.40\.0/.test(sw) || !/seat-map-intelligence\.js/.test(sw)) { console.error("v0.40 service-worker cache regression"); ok=false; }
+if (!/neul-v0\.41\.0/.test(sw) || !/seat-map-intelligence\.js/.test(sw)) { console.error("v0.41 service-worker cache regression"); ok=false; }
+
+// v0.41 automatic event-3D + strict Archive + visibility pass
+if (!/function scheduleDataRefresh\(\)/.test(app) || !/scheduled=\$\{bucket\}/.test(app)) { console.error("v0.41 scheduled six-hour client refresh missing"); ok=false; }
+if (!/const historyOk = state\.archiveMode \? past : !past/.test(app) || /state\.archiveMode \? past : \(q \? true/.test(app)) { console.error("Archive is not strict ended-only"); ok=false; }
+if (!/T00:00/.test(app) || !/dayMs - 1/.test(app)) { console.error("date-only event end protection missing"); ok=false; }
+if (!/AUTO-FLOOR/.test(seatVisionCode) || !/floorCandidate/.test(seatVisionCode) || !/rectOverlapRatio/.test(seatVisionCode) || !/analysisVersion:'0\.41'/.test(seatVisionCode)) { console.error("v0.41 event-specific official-map floor generation missing"); ok=false; }
+if (!/seatMapAutoRegenerate:true/.test(fs.readFileSync(new URL("../data/multi-venue-geometry.js", import.meta.url), "utf8")) || !/官方座位圖自動解析＋完整場館基底/.test(fs.readFileSync(new URL("../data/multi-venue-geometry.js", import.meta.url), "utf8"))) { console.error("auto-generated activity layouts are not wired for recurring seat-map regeneration"); ok=false; }
+if (!/groundColor=lightTheme\?'#aeb4ba':'#747d86'/.test(webgl) || !/Bright front fascia and shallow stairs/.test(webgl)) { console.error("v0.41 light-floor / clearer-stage pass missing"); ok=false; }
+
 if (!ok) process.exit(1);
-console.log(`NEUL v0.40 checks passed · Taiwan-only · ${seedEvents.length} seed events · ${Object.keys(venueModels).length} venue models · 9 ticket sources + official artist/venue feeds · complete base-tier 3D merge · exact-section pricing · expired-layout cleanup · UI overflow audit · WebGL + Canvas fallback · PWA + IndexedDB`);
+console.log(`NEUL v0.41 checks passed · Taiwan-only · ${seedEvents.length} seed events · ${Object.keys(venueModels).length} venue models · 9 ticket sources + official artist/venue feeds · scheduled 6h refresh · official-map event 3D regeneration · strict ended-only Archive · light venue floor · WebGL + Canvas fallback · PWA + IndexedDB`);

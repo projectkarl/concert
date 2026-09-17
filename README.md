@@ -1,8 +1,8 @@
-# NEUL v0.40 — Seat Map Vision + BTS / T-ARA Source Audit
+# NEUL v0.41 — Auto Event 3D + Strict Archive + Light Venue Floor
 
-Taiwan-only concert discovery and true WebGL venue/seat-view prototype for Vercel Hobby. The existing NEUL UI is preserved. v0.40 fixes a key automation gap: finding an official seat-map URL is no longer treated as equivalent to building an event-specific 3D layout.
+Taiwan-only concert discovery and true WebGL venue/seat-view prototype for Vercel Hobby. The existing NEUL interface is preserved. v0.41 strengthens the automatic event-to-3D pipeline, keeps the physical venue complete, makes the venue floor easier to read, and makes Archive strictly ended-only.
 
-## v0.40 highlights
+## v0.41 highlights
 
 - Official seat-map images can now be fetched through a same-origin, allowlisted proxy and fingerprinted by SHA-256 content hash.
 - The browser-side `seat-map-intelligence.js` analyzes the actual official image pixels to derive a conservative stage profile and ticket-zone blocks for auto-generated event drafts.
@@ -13,6 +13,13 @@ Taiwan-only concert discovery and true WebGL venue/seat-view prototype for Verce
 - BTS WORLD TOUR 'ARIRANG' IN KAOHSIUNG now uses a calibrated event layout based on the official tixCraft map: central stage, four diagonal stage arms, floor-zone families and section prices.
 - T-ARA Fancon 2026 in Taiwan is included with the official KKTIX seat map, event-specific Kaohsiung Music Center layout and section-price bands.
 - Prior protections remain: full base venue tiers are preserved, seats cannot occupy stage/FOH production zones, ended event layouts leave the active venue selector, and section prices are not copied indiscriminately across unrelated zones.
+
+- While the page is open, NEUL now schedules the next source refresh from the API-provided `nextUpdateAt`; at the six-hour boundary it refreshes the event feed automatically instead of requiring a manual browser reload.
+- Newly discovered events with official seat maps automatically enter the seat-map image pipeline. Event-floor blocks are rebuilt from the current official image while fixed venue bowls remain intact.
+- Automatic image-derived floor blocks are restricted to the central event floor; outer fixed-bowl colors no longer create duplicate fake floor blocks. Production/stage overlaps are filtered before seats are generated.
+- Archive is now based on the actual calculated event end time. A future record cannot enter Archive merely because a stale `historical` flag exists. Date-only/midnight ranges are kept current through the end of the listed day.
+- Event-specific layouts leave the normal VENUE selector immediately after the event has actually ended.
+- WebGL and Canvas fallback both use a lighter neutral venue floor. Stage deck, front fascia, shallow stairs, runway and extra-stage surfaces are brighter and easier to distinguish without changing venue geometry.
 
 ## Automatic seat-map pipeline
 
@@ -36,4 +43,4 @@ Automatic image analysis is a conservative fallback, not an OCR/CAD engine. Publ
 
 Automatic public-source layers include Live Nation Taiwan, official Taipei/Kaohsiung venue calendars, artist/agency tour pages, and nine Taiwan ticket-platform families: tixCraft, KKTIX, Ticket Plus/遠大, KHAM/寬宏, FamiTicket, udn tickets, ibon, MNA/牛耳 and 年代售票.
 
-`/api/events` is cached for six hours. On active use, stale data revalidates after that interval; the UI shows the actual last-sync timestamp and calculated next expected refresh time. A daily Vercel warm-up cron remains for Hobby-friendly background warming.
+`/api/events` is cached for six hours. On active use, NEUL schedules a refresh at the returned `nextUpdateAt`, then reruns official-map hydration for current events. The UI shows the actual last-sync timestamp and calculated next expected refresh time. A daily Vercel warm-up cron remains for Hobby-friendly background warming.

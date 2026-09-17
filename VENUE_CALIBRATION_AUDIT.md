@@ -1,6 +1,6 @@
-# NEUL v0.40 Venue Calibration Audit
+# NEUL v0.41 Venue Calibration Audit
 
-Audit date: 2026-09-17
+Audit date: 2026-09-18
 
 ## Global auto-generation invariant
 
@@ -49,3 +49,18 @@ Finished event-specific layouts are automatically removed from the normal venue 
 ## v0.40 event-map regeneration
 
 BTS ARIRANG Kaohsiung uses an official-map calibrated central/X-arm activity overlay. T-ARA Fancon uses an official KKTIX activity overlay for Hi-ing Music Hall. Future auto-generated events can derive conservative stage/ticket-zone geometry from official seat-map image pixels; a changed official image hash triggers re-analysis while full physical venue structure remains available underneath.
+
+
+## v0.41 automatic official-map regeneration
+
+For newly discovered current events, the runtime flow is now: official activity source → official seat-map image → content hash → image analysis → event-floor geometry → production-zone no-seat filtering → event-specific WebGL layout. The image-derived layer is limited to the flexible event floor; fixed lower/middle/upper bowls always come from the calibrated physical venue model.
+
+The analyzer now rejects event-floor blocks that overlap the detected main/central stage or extra production arms, scales row/seat density from the detected block dimensions, and can mark price-linked standing zones as standing-only when the official section-price rules explicitly say so.
+
+## v0.41 visibility pass
+
+The arena field is rendered in a lighter neutral gray in both WebGL2 and Canvas fallback. Stage deck, front fascia, shallow stairs, runway and extra-stage surfaces use higher contrast. This is a presentation-only change: venue distances, section positions and calibrated camera geometry are unchanged.
+
+## v0.41 Archive invariant
+
+Archive is determined from the event's calculated end time, not a stale metadata flag. Date-only or midnight end values are treated as covering the full listed calendar date unless an exact time is confirmed. Current/future events therefore remain in Upcoming and the active venue layout list until they truly end; after that, the activity layout is removed from the normal venue selector and the record becomes Archive-only.

@@ -14,7 +14,7 @@ export default async function handler(req,res){
     return res.status(403).json({error:'seat map host not allowed'});
   }
   try{
-    const r=await fetch(u.href,{headers:{'user-agent':'Mozilla/5.0 (compatible; NEUL/0.40 seat-map-sync)','accept':'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'},redirect:'follow',signal:AbortSignal.timeout(6500)});
+    const r=await fetch(u.href,{headers:{'user-agent':'Mozilla/5.0 (compatible; NEUL/0.41 seat-map-sync)','accept':'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'},redirect:'follow',signal:AbortSignal.timeout(6500)});
     if(!r.ok) throw new Error(`HTTP ${r.status}`);
     const type=(r.headers.get('content-type')||'application/octet-stream').split(';')[0];
     if(!/^image\//i.test(type)) return res.status(415).json({error:'not an image'});

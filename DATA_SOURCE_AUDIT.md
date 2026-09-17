@@ -1,4 +1,4 @@
-# NEUL v0.40 Data Source Audit
+# NEUL v0.41 Data Source Audit
 
 Audit date: 2026-09-17
 
@@ -57,3 +57,8 @@ Event: 2026/10/18 17:00, Kaohsiung Music Center Hi-ing Music Hall. Published pri
 ## Remaining limitation
 
 No public Taiwan ticket source is guaranteed complete and publisher seat-map graphics are not standardized. The system now materially reduces both failure modes, but it must still expose source/automation status rather than claim that every arbitrary image can be reconstructed as exact CAD geometry.
+
+
+## v0.41 source-to-3D scheduling
+
+The event feed continues to use a six-hour shared cache. While the site is open, the client schedules its next refresh from `nextUpdateAt`; once refreshed, every current event with an official seat-map URL re-enters the image-hash / geometry hydration pipeline. A changed seat-map image therefore regenerates the event-floor draft without requiring a new deployment.

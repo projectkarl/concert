@@ -72,6 +72,34 @@ const taiwanVenueModels = () => Object.values(venueModels).filter(v => TAIWAN_VE
 
 const TAIPEI_TZ = "Asia/Taipei";
 const dayMs = 86400000;
+const EVENT_DEFAULT_DURATION_MS = 6 * 3600000;
+
+function eventEndTimestamp(event = {}) {
+  const startRaw=String(event.start||''),endRaw=String(event.end||'');
+  const startTs = new Date(event.start || 0).getTime();
+  const explicitEndTs = new Date(event.end || 0).getTime();
+  if (Number.isFinite(explicitEndTs) && explicitEndTs > 0) {
+    // A midnight end from ticket feeds usually means "through this calendar date", not
+    // "the show ended at 00:00". Keep it current through the end of that Taipei date.
+    if (/T00:00(?::00)?/.test(endRaw) && event.timeConfirmed !== true) return explicitEndTs + dayMs - 1;
+    if (Number.isFinite(startTs) && explicitEndTs <= startTs) return startTs + EVENT_DEFAULT_DURATION_MS;
+    return explicitEndTs;
+  }
+  if (Number.isFinite(startTs) && startTs > 0) {
+    if (/T00:00(?::00)?/.test(startRaw) && event.timeConfirmed !== true) return startTs + dayMs - 1;
+    return startTs + EVENT_DEFAULT_DURATION_MS;
+  }
+  return NaN;
+}
+function eventHasEnded(event = {}, now = Date.now()) {
+  const endTs = eventEndTimestamp(event);
+  if (Number.isFinite(endTs)) return endTs < now;
+  // Historical is only a fallback when a record genuinely has no usable dates.
+  return Boolean(event?.historical);
+}
+function eventIsCurrent(event = {}, now = Date.now()) {
+  return !eventHasEnded(event, now);
+}
 
 function relativeTime(iso) {
   if (!iso) return "";
@@ -93,7 +121,7 @@ function relativeTime(iso) {
 }
 
 function eventBadge(event) {
-  if (event?.historical) return "歷史場次";
+  if (eventHasEnded(event)) return "歷史場次";
   const now = Date.now();
   const startTs = new Date(event.start || 0).getTime();
   const saleTs = event.generalSale ? new Date(event.generalSale).getTime() : NaN;
@@ -104,7 +132,7 @@ function eventBadge(event) {
 }
 
 function nextAction(event) {
-  if (event?.historical) return { label: "歷史案例", value: "活動已結束 · 保留作為座位配置與視角重建案例" };
+  if (eventHasEnded(event)) return { label: "歷史案例", value: "活動已結束 · 保留作為座位配置與視角重建案例" };
   const now = Date.now();
   const startTs = new Date(event.start || 0).getTime();
   const saleTs = event.generalSale ? new Date(event.generalSale).getTime() : NaN;
@@ -137,7 +165,7 @@ function rebuildArtistStats() {
     };
     const current = map.get(key) || { ...base, upcomingEventCount: 0, nextEvent: null, eventIds: [] };
     current.eventIds = [...new Set([...(current.eventIds || []), event.id])];
-    const future = event.start && new Date(event.start).getTime() >= Date.now() - 86400000;
+    const future = event.start && eventIsCurrent(event);
     if (future) current.upcomingEventCount = (current.upcomingEventCount || 0) + 1;
     if (future && (!current.nextEvent || new Date(event.start) < new Date(current.nextEvent.start))) {
       current.nextEvent = { id: event.id, title: event.title, start: event.start, end: event.end || null, venue: event.venue, city: event.city, statusLabel: event.statusLabel, sourceUrl: event.sourceUrl };
@@ -203,9 +231,8 @@ function filteredEvents() {
     const typeOk = state.type === "ALL" || e.type === state.type;
     const regionOk = e.region === state.region;
     const cityOk = state.city === "ALL" || state.city === "ARCHIVE" || String(e.city || "").toLowerCase() === state.city.toLowerCase();
-    const startTs = new Date(e.end || e.start || 0).getTime();
-    const past = e.historical || (Number.isFinite(startTs) && startTs < now - 6*3600000);
-    const historyOk = state.archiveMode ? past : (q ? true : !past);
+    const past = eventHasEnded(e, now);
+    const historyOk = state.archiveMode ? past : !past;
     const dateText = e.start ? new Intl.DateTimeFormat(uiLocale(),{year:"numeric",month:"2-digit",day:"2-digit",timeZone:"Asia/Taipei"}).format(new Date(e.start)) : "";
     const hay = normalizeSearch(`${e.artist} ${e.title} ${e.venue} ${e.city} ${dateText} ${(e.tags || []).join(" ")}`);
     const queryOk = !qTokens.length || qTokens.every(t => hay.includes(t));
@@ -276,16 +303,16 @@ function renderFollowing() {
 }
 
 function featuredEvents() {
-  const threshold = Date.now() - dayMs;
+  const now = Date.now();
   return [...state.events]
-    .filter(e => e.region === "TW" && !e.historical && e.start && new Date(e.start).getTime() >= threshold)
+    .filter(e => e.region === "TW" && e.start && eventIsCurrent(e, now))
     .sort((a, b) => new Date(a.start) - new Date(b.start))
     .slice(0, 5);
 }
 
 function pickFeaturedEvent() {
   const items = featuredEvents();
-  if (!items.length) return state.events.find(e => !e.historical) || state.events[0] || null;
+  if (!items.length) return state.events.find(e => eventIsCurrent(e)) || state.events[0] || null;
   let index = items.findIndex(e => e.id === state.featuredId);
   if (index < 0) index = 0;
   state.featuredIndex = index;
@@ -647,7 +674,7 @@ function openDetail(id) {
     ? (activityLayout.generationConfidence === "map-pixel-derived" ? "AUTO 3D · 官方座位圖已解析並客製生成" : (activityLayout.seatMapDetected ? "AUTO 3D · 已偵測官方座位配置來源" : "AUTO 3D · 依場館自動生成"))
     : (activityLayout?.eventId ? "CALIBRATED 3D · 本場專屬配置" : "");
   $("#detailContent").innerHTML = `
-    <div class="detail-kicker">${escapeHtml(e.statusLabel || e.type)} · ${e.historical ? "HISTORICAL VERIFIED" : (e.officialCheck?.status === "live" ? "OFFICIAL LIVE" : "OFFICIAL CHECKED")}</div>
+    <div class="detail-kicker">${escapeHtml(e.statusLabel || e.type)} · ${eventHasEnded(e) ? "HISTORICAL VERIFIED" : (e.officialCheck?.status === "live" ? "OFFICIAL LIVE" : "OFFICIAL CHECKED")}</div>
     <h2>${escapeHtml(e.artist)}</h2>
     <div class="detail-title">${escapeHtml(e.title)}</div>
     <p class="detail-title">${escapeHtml(e.summary || "")}</p>
@@ -728,9 +755,21 @@ function updateSearchScope() {
   el.textContent = `目前已收錄資料自 ${label} 起；更早場次持續補齊。搜尋會同時查近期與已收錄 Archive。`;
 }
 
-async function loadEvents() {
+let dataRefreshTimer = null;
+function scheduleDataRefresh() {
+  if (dataRefreshTimer) clearTimeout(dataRefreshTimer);
+  if (!state.nextUpdateAt) return;
+  const target = new Date(state.nextUpdateAt).getTime();
+  if (!Number.isFinite(target)) return;
+  const delay = Math.max(60_000, target - Date.now() + 5_000);
+  dataRefreshTimer = setTimeout(() => loadEvents({ scheduled: true }), Math.min(delay, 2_147_000_000));
+}
+
+async function loadEvents({ scheduled = false } = {}) {
   try {
-    const res = await fetch("/api/events", { headers: { Accept: "application/json" } });
+    const bucket = Math.floor(Date.now() / 21600000);
+    const endpoint = scheduled ? `/api/events?scheduled=${bucket}` : "/api/events";
+    const res = await fetch(endpoint, { headers: { Accept: "application/json" } });
     if (!res.ok) throw new Error("events unavailable");
     const data = await res.json();
     if (Array.isArray(data.events) && data.events.length) state.events = prepareEvents3D(taiwanEventsOnly(data.events));
@@ -756,6 +795,7 @@ async function loadEvents() {
   startFeaturedAutoplay();
   updateFreshness();
   updateSearchScope();
+  scheduleDataRefresh();
   window.dispatchEvent(new CustomEvent("neul:dataupdated", { detail: { events: state.events, updatedAt: state.dataUpdatedAt } }));
   const idle = window.requestIdleCallback || (fn => setTimeout(fn, 900));
   idle(async () => { await loadOfficialUpdates(); await hydrateSeatMapGeometry(state.events); });
@@ -765,7 +805,7 @@ async function loadEvents() {
 async function hydrateSeatMapGeometry(events=[]) {
   const now=Date.now();
   const candidates=events
-    .filter(e=>e?.seatLayoutSourceUrl&&eventVenueModelId(e)&&new Date(e.end||e.start||0).getTime()>=now-6*3600000)
+    .filter(e=>e?.seatLayoutSourceUrl&&eventVenueModelId(e)&&eventIsCurrent(e,now))
     .sort((a,b)=>new Date(a.start||0)-new Date(b.start||0));
   let changed=false;
   const analyzeOne=async event=>{
@@ -852,7 +892,7 @@ function modalBaseEvents() {
   const qTokens = q.split(" ").filter(Boolean);
   return state.events.filter(e => {
     const endTs = new Date(e.end || e.start || 0).getTime();
-    const future = Number.isFinite(endTs) && endTs >= now - 6*3600000 && !e.historical;
+    const future = eventIsCurrent(e, now);
     const typeOk = state.type === "ALL" || e.type === state.type;
     const cityOk = state.city === "ALL" || state.city === "ARCHIVE" || String(e.city || "").toLowerCase() === state.city.toLowerCase();
     const dateText = e.start ? taipeiDateKey(e.start) : "";
@@ -868,7 +908,7 @@ function modalFilteredEvents() {
   const now=Date.now();
   let list=state.events.filter(e=>{
     const endTs=new Date(e.end||e.start||0).getTime();
-    const future=Number.isFinite(endTs)&&endTs>=now-6*3600000&&!e.historical;
+    const future=eventIsCurrent(e,now);
     return future && e.region==="TW" && (state.type==="ALL" || e.type===state.type);
   }).sort((a,b)=>new Date(a.start||0)-new Date(b.start||0));
   const month = eventsMonthFilter?.value || "";
@@ -1006,11 +1046,9 @@ function renderLayoutOptions() {
   const model=activeVenueModel();
   const options=layoutsForVenue(state.venueId).filter(layout=>{
     if(layout.id===model.baseLayoutId || !layout.eventId) return !layout.historical;
-    if(layout.id===state.layoutId) return true; // archive/deep-link may temporarily show its selected layout
     const event=state.events.find(e=>e.id===layout.eventId);
-    if(!event || event.historical) return false;
-    const endTs=new Date(event.end||event.start||0).getTime();
-    return Number.isFinite(endTs) && endTs>=now-6*3600000;
+    if(!event || eventHasEnded(event,now)) return false;
+    return true;
   });
   if (!options.some(x => x.id === state.layoutId)) state.layoutId = model.baseLayoutId;
   layoutSelect.innerHTML = options.map(x => `<option value="${escapeHtml(x.id)}" ${x.id===state.layoutId?"selected":""}>${escapeHtml(x.label)}</option>`).join("");
@@ -1329,18 +1367,20 @@ function renderVenueScene(targetCanvas, opts = {}) {
   const context=targetCanvas.getContext("2d"), rect=targetCanvas.getBoundingClientRect(), dpr=Math.min(devicePixelRatio||1,2), w=Math.max(1,Math.floor(rect.width*dpr)), h=Math.max(1,Math.floor(rect.height*dpr));
   if(targetCanvas.width!==w||targetCanvas.height!==h){targetCanvas.width=w;targetCanvas.height=h;} context.setTransform(dpr,0,0,dpr,0,0);
   const cw=rect.width,ch=rect.height,model=activeVenueModel(),layout=currentVenueLayout(),grad=context.createLinearGradient(0,0,0,ch); grad.addColorStop(0,"#111821");grad.addColorStop(.6,"#080c10");grad.addColorStop(1,"#050709");context.fillStyle=grad;context.fillRect(0,0,cw,ch);
+  const isLight=document.body.classList.contains("light-mode");
   const viewSeat=opts.seatMode??seatMode, project=viewSeat?makeSeatProjector(cw,ch,opts.yaw??yaw,opts.pitch??pitch,opts.zoom??zoom):makeOrbitProjector(cw,ch,opts.yaw??yaw,opts.pitch??pitch,opts.zoom??zoom);
   const poly=(points,fill,stroke="#343942",width=1)=>{const pp=points.map(project).filter(Boolean);if(pp.length!==points.length)return;context.beginPath();pp.forEach((q,i)=>i?context.lineTo(q[0],q[1]):context.moveTo(q[0],q[1]));context.closePath();context.fillStyle=fill;context.fill();context.strokeStyle=stroke;context.lineWidth=width;context.stroke();};
   const line=(points,stroke,width=1)=>{const pp=points.map(project).filter(Boolean);if(pp.length<2)return;context.beginPath();pp.forEach((q,i)=>i?context.lineTo(q[0],q[1]):context.moveTo(q[0],q[1]));context.strokeStyle=stroke;context.lineWidth=width;context.stroke();};
-  poly([[-model.field.x,-25,-model.field.z],[model.field.x,-25,-model.field.z],[model.field.x,-25,model.field.z],[-model.field.x,-25,model.field.z]],"#171d22","#26303a");
-  const isLight=document.body.classList.contains("light-mode");
+  poly([[-model.field.x,-25,-model.field.z],[model.field.x,-25,-model.field.z],[model.field.x,-25,model.field.z],[-model.field.x,-25,model.field.z]],isLight?"#aeb4ba":"#747d86",isLight?"#7c858d":"#9ba3ab");
+  line([[-model.field.x,-24.8,0],[model.field.x,-24.8,0]],isLight?"rgba(55,65,75,.20)":"rgba(245,248,250,.16)",1);
+  line([[0,-24.8,-model.field.z],[0,-24.8,model.field.z]],isLight?"rgba(55,65,75,.20)":"rgba(245,248,250,.16)",1);
   const selectedId=String(state.section), allowedTiers=availableVenueTiers(), palette=isLight?["#69859a","#7890a3","#8d789b","#71889a","#7c92a2","#657f96"]:["#27313b","#313945","#3b3340","#2f3740","#333b45","#303943"];
-  for(const tier of allowedTiers) for(const id of tier.sections){const sec=getVenueSection(state.venueId,id,state.layoutId);if(!sec)continue;const selected=id===selectedId,restricted=layout.restrictedViewSections?.includes(id),floorFacing=layout.bStageFacingSections?.includes(id);let fill=(sec.tier==="FLOOR"||sec.shape==="block")?"#252a31":palette[Math.max(0,allowedTiers.findIndex(t=>t.id===sec.tier))%palette.length];if(layout.id==="plave-keep-it-manic-2026"){const groupFill={vip6300:"#4a262d","5300":"#24433d","3800":"#47442a","2900":"#253b29"};fill=groupFill[sec.group]||fill;}if(layout.id==="le-sserafim-pureflow-2026"){const groupFill={"6980":"#294f8e","6380":"#a7e1e7","5880":"#82c7ee","4680":"#777ac0","3680-4680":"#416fae"};fill=groupFill[sec.group]||fill;}if(layout.id==="ive-show-what-i-am-2026"){const groupFill={vip7800:"#b44785","5800":"#426b86","4800":"#9b5c62","3800":"#3f827f",side2f:"#52657d","3fRange":"#66507c",box4800:"#76545d"};fill=groupFill[sec.group]||fill;}if(restricted)fill=isLight?"#b97837":"#5a4334";if(floorFacing&&!restricted)fill=isLight?"#7c708c":"#343042";if(selected)fill=isLight?"#dc55e8":"#c47ae3";poly(sectionPoly(sec),fill,selected?(isLight?"#fff1ff":"#f4daf2"):restricted?(isLight?"#f2c27a":"#c29a69"):(isLight?"#9db1c0":"#4a5661"),selected?2.2:.95);}
+  for(const tier of allowedTiers) for(const id of tier.sections){const sec=getVenueSection(state.venueId,id,state.layoutId);if(!sec)continue;const selected=id===selectedId,restricted=layout.restrictedViewSections?.includes(id),floorFacing=layout.bStageFacingSections?.includes(id);let fill=(sec.tier==="FLOOR"||sec.tier==="AUTO-FLOOR"||sec.shape==="block")?(isLight?"#929ba3":"#66717a"):palette[Math.max(0,allowedTiers.findIndex(t=>t.id===sec.tier))%palette.length];if(layout.id==="plave-keep-it-manic-2026"){const groupFill={vip6300:"#4a262d","5300":"#24433d","3800":"#47442a","2900":"#253b29"};fill=groupFill[sec.group]||fill;}if(layout.id==="le-sserafim-pureflow-2026"){const groupFill={"6980":"#294f8e","6380":"#a7e1e7","5880":"#82c7ee","4680":"#777ac0","3680-4680":"#416fae"};fill=groupFill[sec.group]||fill;}if(layout.id==="ive-show-what-i-am-2026"){const groupFill={vip7800:"#b44785","5800":"#426b86","4800":"#9b5c62","3800":"#3f827f",side2f:"#52657d","3fRange":"#66507c",box4800:"#76545d"};fill=groupFill[sec.group]||fill;}if(restricted)fill=isLight?"#b97837":"#5a4334";if(floorFacing&&!restricted)fill=isLight?"#7c708c":"#343042";if(selected)fill=isLight?"#dc55e8":"#c47ae3";poly(sectionPoly(sec),fill,selected?(isLight?"#fff1ff":"#f4daf2"):restricted?(isLight?"#f2c27a":"#c29a69"):(isLight?"#9db1c0":"#4a5661"),selected?2.2:.95);}
   const stage=activeStage(),m=stage.main;
-  poly([[m.x-m.width/2,m.y,m.z-m.depth/2],[m.x+m.width/2,m.y,m.z-m.depth/2],[m.x+m.width/2,m.y,m.z+m.depth/2],[m.x-m.width/2,m.y,m.z+m.depth/2]],"#090b0f","#d2b4cd",1.2);
-  if(Array.isArray(layout.extraStageRects)) for(const r of layout.extraStageRects){poly([[r.x-r.width/2,r.y,r.z-r.depth/2],[r.x+r.width/2,r.y,r.z-r.depth/2],[r.x+r.width/2,r.y,r.z+r.depth/2],[r.x-r.width/2,r.y,r.z+r.depth/2]],"#11131a","#a78da2",1.05);}
-  if(stage.runway){const r=stage.runway;poly([[r.x-r.width/2,r.y,r.z1],[r.x+r.width/2,r.y,r.z1],[r.x+r.width/2,r.y,r.z2],[r.x-r.width/2,r.y,r.z2]],"#11131a","#9f879d");}
-  if(stage.bStage)poly(circlePoly(stage.bStage.x,stage.bStage.y,stage.bStage.z,stage.bStage.radius,stage.bStage.shape==="octagon"?8:18),"#14151c","#b49bb0",1.1);
+  poly([[m.x-m.width/2,m.y,m.z-m.depth/2],[m.x+m.width/2,m.y,m.z-m.depth/2],[m.x+m.width/2,m.y,m.z+m.depth/2],[m.x-m.width/2,m.y,m.z+m.depth/2]],isLight?"#7c838a":"#777f87",isLight?"#7f4f87":"#b889c0",1.35);
+  if(Array.isArray(layout.extraStageRects)) for(const r of layout.extraStageRects){poly([[r.x-r.width/2,r.y,r.z-r.depth/2],[r.x+r.width/2,r.y,r.z-r.depth/2],[r.x+r.width/2,r.y,r.z+r.depth/2],[r.x-r.width/2,r.y,r.z+r.depth/2]],isLight?"#7a8188":"#737b83",isLight?"#7b5381":"#aa7bb2",1.1);}
+  if(stage.runway){const r=stage.runway;poly([[r.x-r.width/2,r.y,r.z1],[r.x+r.width/2,r.y,r.z1],[r.x+r.width/2,r.y,r.z2],[r.x-r.width/2,r.y,r.z2]],isLight?"#7a8188":"#737b83",isLight?"#7b5381":"#aa7bb2");}
+  if(stage.bStage)poly(circlePoly(stage.bStage.x,stage.bStage.y,stage.bStage.z,stage.bStage.radius,stage.bStage.shape==="octagon"?8:18),isLight?"#7a8188":"#737b83",isLight?"#805789":"#ae80b5",1.15);
   if(layout.foh){const f=layout.foh;poly([[f.x-f.width/2,f.y,f.z-f.depth/2],[f.x+f.width/2,f.y,f.z-f.depth/2],[f.x+f.width/2,f.y,f.z+f.depth/2],[f.x-f.width/2,f.y,f.z+f.depth/2]],"#34383d","#858b91",1);}
   if(state.layoutId==="skz-run-it-2026"){poly([[-28,-19,72],[-5,-19,72],[-5,-19,92],[-28,-19,92]],"#3b3e42","#72777d");poly([[5,-19,72],[28,-19,72],[28,-19,92],[5,-19,92]],"#3b3e42","#72777d");}
   if(!viewSeat){for(let r=0;r<3;r++){const pts=Array.from({length:43},(_,i)=>{const a=Math.PI*1.03+(Math.PI*.94)*i/42;return[Math.cos(a)*(model.field.x*2.0+r*10),95+r*20,Math.sin(a)*(model.field.z*2.0+r*8)];});line(pts,`rgba(210,218,226,${.16-r*.035})`,1);}}

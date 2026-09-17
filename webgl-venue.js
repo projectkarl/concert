@@ -137,11 +137,11 @@ function sectionColor(layout,section,selected,theme='dark'){
   // Structural sections that are not part of an event's published ticket map stay
   // visible in the venue model, but subdued. They represent the physical arena,
   // not an assertion that those seats are on sale for the selected event.
-  if(section.eventActive===false)return light?'#9ca6ae':'#252c33';
+  if(section.eventActive===false)return light?'#9ca6ae':'#46515b';
   if(layout.restrictedViewSections?.includes(String(section.id)))return light?'#c27b2d':'#8d6745';
   if(layout.id==='plave-keep-it-manic-2026')return (light?{vip6300:'#cf5b76','5300':'#2f8b75','3800':'#9a8e2d','2900':'#41865d'}:{vip6300:'#7d3d4d','5300':'#315d54','3800':'#77733b','2900':'#365846'})[section.group]||(light?'#657888':'#39434d');
   if(layout.id==='ive-show-what-i-am-2026')return (light?{vip7800:'#e05ca8','5800':'#55a2d1','4800':'#d77d88','3800':'#44aaa5',side2f:'#7797bd','3fRange':'#9277b3',box4800:'#aa7381'}:{vip7800:'#c45190','5800':'#5687a6','4800':'#aa6971','3800':'#4e908c',side2f:'#657991','3fRange':'#735e8b',box4800:'#825f68'})[section.group]||(light?'#657888':'#39434d');
-  const dark={FLOOR:'#333640',LOWER:'#37434d',MIDDLE:'#303b47',VIP:'#473b49',UPPER4:'#333e48',UPPER5:'#2c3741','2F':'#36434f','3F':'#423b51',UPPER:'#303a45','4F':'#3d3b47','5F':'#303943',BOX:'#4d4048',BOWL:'#38444d',REAR:'#3f4248'};
+  const dark={FLOOR:'#626b74',LOWER:'#4d5f6c',MIDDLE:'#465766',VIP:'#67556a',UPPER4:'#4b5b68',UPPER5:'#42525f','2F':'#4c6070','3F':'#625674',UPPER:'#485965','4F':'#5d5868','5F':'#475866',BOX:'#705c68',BOWL:'#50616d',REAR:'#5a5f67','AUTO-FLOOR':'#69737d'};
   const bright={FLOOR:'#68727f',LOWER:'#627d90',MIDDLE:'#587189',VIP:'#9a708f',UPPER4:'#60788d',UPPER5:'#526c82','2F':'#5f8098','3F':'#7f6f9b',UPPER:'#5c748b','4F':'#766c83','5F':'#596f84',BOX:'#8f6f83',BOWL:'#657f91',REAR:'#747b86'};
   return (light?bright:dark)[section.tier]||(light?'#667d8d':'#37414a');
 }
@@ -203,18 +203,32 @@ function rectLine(top,yOffset=.6){const a=[];for(let i=0;i<=top.length;i++){cons
 function buildCPUScene(config,quality){
   const {model,layout,sections,selectedId}=config,solids=[],lines=[],seatMats=[],seatColors=[],theme=config.theme||'dark';
   const lightTheme=theme==='light';
-  solids.push(boxItem({x:0,y:-27,z:0,width:model.field.x*2.15,depth:model.field.z*2.2},lightTheme?'#7c858f':'#3b424a','#000000',3));
+  // Keep the arena floor intentionally light even in dark UI mode. The app chrome stays dark,
+  // while the physical field remains readable so aisles, stage edges and event-floor zones do not disappear.
+  const groundColor=lightTheme?'#aeb4ba':'#747d86';
+  solids.push(boxItem({x:0,y:-27,z:0,width:model.field.x*2.15,depth:model.field.z*2.2},groundColor,lightTheme?'#1b1d20':'#171b20',3));
+  const groundY=-23.35,fieldX=model.field.x,fieldZ=model.field.z;
+  lines.push({vertices:new Float32Array([-fieldX,groundY,-fieldZ, fieldX,groundY,-fieldZ, fieldX,groundY,fieldZ, -fieldX,groundY,fieldZ, -fieldX,groundY,-fieldZ]),color:lightTheme?[.28,.32,.36,.55]:[.88,.91,.94,.30]});
+  // Subtle floor guide lines provide scale and make the event floor readable without changing geometry.
+  for(const k of [-.5,0,.5]) lines.push({vertices:new Float32Array([fieldX*k,groundY,-fieldZ, fieldX*k,groundY,fieldZ]),color:lightTheme?[.33,.37,.41,.20]:[.96,.97,1,.13]});
+  for(const k of [-.5,0,.5]) lines.push({vertices:new Float32Array([-fieldX,groundY,fieldZ*k, fieldX,groundY,fieldZ*k]),color:lightTheme?[.33,.37,.41,.20]:[.96,.97,1,.13]});
   for(const sec of sections){const selected=String(sec.id)===selectedId,top=sectionTop(sec);solids.push({mesh:prism(top,selected?9:6.5),model:mat4Identity(),color:sectionColor(layout,sec,selected,theme),emissive:selected?(lightTheme?'#7c237f':'#5e1f75'):'#06080b'});if(selected)lines.push({vertices:rectLine(top),color:lightTheme?[1,.88,1,1]:[.96,.83,1,1]});const arch=sectionArchitecture(sec,selected,quality,theme);solids.push(...arch.solids);lines.push(...arch.lines);for(const seat of seatSamples(sec,selected,quality,layout)){seatMats.push(mat4TRS(seat.x,seat.y,seat.z,seat.rot,2.15,1.8,1.8));seatColors.push(...color3(selected?(lightTheme?'#ffd0ff':'#f2b7ff'):sectionColor(layout,sec,false,theme)));}
     if(sec.standingOnly && Number.isFinite(sec.x)){const count=quality==='high'?12:7;for(let i=0;i<count;i++){const u=((i*37)%97)/97,v=((i*61)%89)/89,x=sec.x-(sec.width||30)*.42+u*(sec.width||30)*.84,z=sec.z-(sec.depth||30)*.42+v*(sec.depth||30)*.84;if(pointInProduction(x,z,layout))continue;solids.push(boxItem({x,y:(sec.y??-19)+.4,z,width:.72,depth:.72,height:4.8},selected?'#e9d8ff':'#242a32',selected?'#8b63ff':'#101319',4.8));}}}
-  const stage=layout.stage||model.stage;solids.push(boxItem(stage.main,lightTheme?'#565b64':'#2b2f36',lightTheme?'#5e3762':'#512a58',7.6));
+  const stage=layout.stage||model.stage;
+  const stageDeck=lightTheme?'#747b83':'#7c838b',stageGlow=lightTheme?'#75497d':'#74447f';
+  solids.push(boxItem(stage.main,stageDeck,stageGlow,7.6));
+  // Bright front fascia and shallow stairs separate the stage from the arena floor.
+  const sm=stage.main,frontZ=(sm.z||0)+(sm.depth||20)/2;
+  solids.push(boxItem({x:sm.x,y:(sm.y||-16)+.6,z:frontZ,width:(sm.width||40)*.96,depth:1.1},'#c8cbd0','#8a5aa0',1.2));
+  for(let i=0;i<3;i++) solids.push(boxItem({x:sm.x,y:(sm.y||-16)-1.6-i*.7,z:frontZ+2+i*1.6,width:Math.min((sm.width||40)*.32,32),depth:1.5},lightTheme?'#9ca3aa':'#858d95','#26212a',1.1));
   // Runway edge lights add depth cues for long catwalks.
   if(stage.runway){
-    const r=stage.runway;solids.push(boxItem({x:r.x,y:r.y,z:(r.z1+r.z2)/2,width:r.width,depth:Math.abs(r.z2-r.z1)},lightTheme?'#60636a':'#32343b',lightTheme?'#704776':'#5a2f62',4.6));
+    const r=stage.runway;solids.push(boxItem({x:r.x,y:r.y,z:(r.z1+r.z2)/2,width:r.width,depth:Math.abs(r.z2-r.z1)},lightTheme?'#7e848b':'#777f87',lightTheme?'#704776':'#684274',4.6));
     const steps=quality==='high'?12:7;
     for(let i=0;i<steps;i++){const z=r.z1+(r.z2-r.z1)*(i+.5)/steps;[-1,1].forEach(side=>solids.push(boxItem({x:r.x+side*r.width*.43,y:r.y+3.6,z,width:.55,depth:1.5},'#ffeaff',side<0?'#786cff':'#e15ce6',.65)));}
   }
-  if(stage.bStage){const r=stage.bStage.radius;const pts=[];const n=stage.bStage.shape==='octagon'?8:40;for(let i=0;i<n;i++){const a=i/n*Math.PI*2,b=(i+1)/n*Math.PI*2;const y=stage.bStage.y;pts.push([[stage.bStage.x,y+4,stage.bStage.z],[stage.bStage.x+Math.cos(a)*r,y+4,stage.bStage.z+Math.sin(a)*r],[stage.bStage.x+Math.cos(b)*r,y+4,stage.bStage.z+Math.sin(b)*r]]);}solids.push({mesh:meshFromFaces(pts),model:mat4Identity(),color:lightTheme?'#60636a':'#343039',emissive:lightTheme?'#704776':'#55295e'});}
-  for(const r of layout.extraStageRects||[])solids.push(boxItem(r,'#14131a','#24172a',4.2));
+  if(stage.bStage){const r=stage.bStage.radius;const pts=[];const n=stage.bStage.shape==='octagon'?8:40;for(let i=0;i<n;i++){const a=i/n*Math.PI*2,b=(i+1)/n*Math.PI*2;const y=stage.bStage.y;pts.push([[stage.bStage.x,y+4,stage.bStage.z],[stage.bStage.x+Math.cos(a)*r,y+4,stage.bStage.z+Math.sin(a)*r],[stage.bStage.x+Math.cos(b)*r,y+4,stage.bStage.z+Math.sin(b)*r]]);}solids.push({mesh:meshFromFaces(pts),model:mat4Identity(),color:lightTheme?'#7e848b':'#777f87',emissive:lightTheme?'#704776':'#684274'});}
+  for(const r of layout.extraStageRects||[])solids.push(boxItem(r,lightTheme?'#7b8289':'#737b83',lightTheme?'#704776':'#63406d',4.2));
   for(const f of (Array.isArray(layout.foh)?layout.foh:[layout.foh]).filter(Boolean))solids.push(boxItem(f,'#373d43','#101214',3.2));
   const m=stage.main;
   const screenH=Math.max(26,m.width*.22),screenZ=m.z-m.depth/2+2,screenY=m.y+Math.max(16,m.width*.13);

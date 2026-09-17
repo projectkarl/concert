@@ -1,6 +1,6 @@
-# NEUL v0.40 QA Report
+# NEUL v0.41 QA Report
 
-Date: 2026-09-17
+Date: 2026-09-18
 
 ## Automated checks
 
@@ -21,6 +21,12 @@ Date: 2026-09-17
 - PASS — stage / standing / FOH no-seat guards retained
 - PASS — base venue geometry merge, exact section-price guard, expired-layout cleanup and UI overflow protections retained
 - PASS — native WebGL2 + Canvas fallback, PWA and IndexedDB retained
+- PASS — six-hour client refresh scheduler uses the API `nextUpdateAt` and refresh bucket
+- PASS — Archive filter is strictly ended-only; search cannot pull future/current events into Archive
+- PASS — date-only / midnight event ranges stay live through the listed day instead of archiving at 00:00
+- PASS — automatic official-map floor generation uses `AUTO-FLOOR`, preserves all fixed venue tiers and excludes production overlap
+- PASS — auto-generated layouts remain eligible for recurring seat-map regeneration when the official image hash changes
+- PASS — dark-mode venue field uses a lighter neutral floor; stage fascia / stairs / event surfaces have improved contrast
 
 ## Accuracy boundary
 
