@@ -166,8 +166,17 @@ if (!/zh-Hant/.test(i18n) || !/locale: 'en-US'/.test(i18n) || !/locale: 'ja-JP'/
 if (!/data-lang="zh-Hant"/.test(indexHtml) || !/data-lang="en"/.test(indexHtml) || !/data-lang="ja"/.test(indexHtml) || !/data-lang="ko"/.test(indexHtml)) { console.error("language selector buttons missing"); ok=false; }
 if (!/neul-language/.test(i18n) || !/neul:languagechange/.test(i18n) || !/MutationObserver/.test(i18n)) { console.error("dynamic language switching incomplete"); ok=false; }
 if (!/Noto\+Sans\+JP/.test(indexHtml)) { console.error("Japanese font support missing"); ok=false; }
-if (!/\/i18n\.js/.test(sw) || !/neul-v0\.27\.0/.test(sw)) { console.error("PWA multilingual cache update missing"); ok=false; }
+if (!/\/i18n\.js/.test(sw) || !/neul-v0\.28\.0/.test(sw)) { console.error("PWA multilingual cache update missing"); ok=false; }
 if (!/uiLocale/.test(app) || !/neul:languagechange/.test(app)) { console.error("locale-aware dynamic render hook missing"); ok=false; }
 
+
+// v0.28 settings reliability + Upcoming modal checks
+for (const id of ["allEventsModal","eventsMonthFilter","eventsStartFilter","eventsEndFilter","eventsModalList","eventsFilterReset"]) {
+  if (!indexHtml.includes(`id="${id}"`)) { console.error("upcoming modal hook missing", id); ok=false; }
+}
+if (!/openAllEventsModal/.test(app) || !/modalFilteredEvents/.test(app) || !/eventsMonthFilter/.test(app) || !/data-events-window/.test(indexHtml)) { console.error("Upcoming modal/time filter incomplete"); ok=false; }
+if (!/document\.addEventListener\("click"/.test(pwa) || !/closest\("#settingsBtn"\)/.test(pwa) || !/aria-expanded/.test(indexHtml)) { console.error("settings gear delegated click fix missing"); ok=false; }
+if (!/events-modal-card/.test(css) || !/body\.events-modal-open/.test(css)) { console.error("Upcoming modal styles missing"); ok=false; }
+
 if (!ok) process.exit(1);
-console.log(`NEUL v0.27 checks passed · Taiwan-only · ${seedEvents.length} seed events · ${Object.keys(venueModels).length} venue models · WebGL + Canvas fallback · PWA + IndexedDB · day mode · archive · calendar/reminders · seat compare · Web Push foundation · Taipei Dome Calibration 2.0 · TICC / TMC / KMC precision pass`);
+console.log(`NEUL v0.28 checks passed · Taiwan-only · ${seedEvents.length} seed events · ${Object.keys(venueModels).length} venue models · WebGL + Canvas fallback · PWA + IndexedDB · day mode · archive · calendar/reminders · seat compare · Web Push foundation · Taipei Dome Calibration 2.0 · TICC / TMC / KMC precision pass`);

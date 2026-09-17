@@ -1,43 +1,12 @@
-# NEUL v0.27 — Multilingual UI
+# NEUL v0.28 — Settings + Upcoming Explorer
 
-NEUL is a Taiwan-focused concert companion for K-pop fans, with event discovery, countdowns, PWA reminders, venue 3D views and calibrated seat-view simulation.
+Taiwan-focused K-pop concert companion for Vercel/PWA.
 
-## v0.27 changes
-
-- Added four interface languages: Traditional Chinese, English, Japanese and Korean.
-- Language switch is located in Settings and changes immediately without reloading.
-- Language preference is saved locally and restored on the next visit.
-- Date / weekday formatting follows the selected interface locale while continuing to use Asia/Taipei for event times.
-- Navigation, search, event filters, Upcoming, Featured, My List, venue controls, seat preview, event drawer, countdown labels, reminders, seat comparison, day mode, settings and disclaimers are translated.
-- Artist names, official event titles, official venue / ticketing identifiers and source-provided content retain their official wording when appropriate, reducing the risk of mistranslating proper nouns.
-- Added Noto Sans JP to complement the existing Korean / Traditional Chinese font system.
-- PWA cache version upgraded to v0.27 and includes `/i18n.js` for offline interface language support.
-
-## Languages
-
-- `zh-Hant` — 繁體中文
-- `en` — English
-- `ja` — 日本語
-- `ko` — 한국어
-
-The selected language is stored under `neul-language` in localStorage.
-
-## Existing functionality retained
-
-- Taiwan-only event discovery and archive
-- 11 venue models
-- Event Auto 3D + venue baseline 3D
-- WebGL2 + Canvas fallback
-- Seat row / seat-number / height / posture / lens simulation
-- Featured concert carousel
-- Flip countdown
-- PWA installation
-- Independent alerts center
-- Dark / light themes
-- IndexedDB persistence
-- Seat A/B comparison
-- Concert-day mode
-
-## Deploy
-
-Deploy the entire folder to Vercel. No additional translation API or paid service is required.
+## v0.28 changes
+- Fixed the settings gear with delegated click handling and explicit dialog state.
+- Homepage Upcoming stays capped at 5 cards.
+- “View more” now opens a dedicated modal instead of expanding the homepage.
+- Upcoming modal supports month, start date, end date, next 30 days and next 90 days filtering.
+- Event rows in the modal open the existing activity detail drawer.
+- Dark/light themes and zh-Hant / English / Japanese / Korean UI remain supported.
+- Existing WebGL venue 3D, PWA, alerts and archive features are retained.

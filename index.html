@@ -33,7 +33,7 @@
       </nav>
       <div class="top-actions">
         <button class="round-icon" id="searchFocusBtn" aria-label="搜尋">⌕</button>
-        <button class="round-icon settings-icon" id="settingsBtn" type="button" aria-label="設定">⚙</button>
+        <button class="round-icon settings-icon" id="settingsBtn" type="button" aria-label="設定" aria-haspopup="dialog" aria-controls="settingsSheet" aria-expanded="false">⚙</button>
         <a class="pill-light" href="#myList">MY LIST</a>
       </div>
     </header>
@@ -213,6 +213,28 @@
     <a href="#top"><span>⌂</span>首頁</a><a href="#upcoming"><span>♬</span>活動</a><a href="#venue3d"><span>◉</span>視野</a><a href="#planner"><span>✓</span>作戰</a><a href="#myList"><span>♡</span>我的</a>
   </nav>
 
+
+  <div class="events-modal" id="allEventsModal" hidden aria-hidden="true">
+    <section class="events-modal-card" role="dialog" aria-modal="true" aria-labelledby="allEventsTitle">
+      <button class="events-modal-close" id="allEventsClose" type="button" aria-label="關閉">×</button>
+      <span class="eyebrow">UPCOMING</span>
+      <h2 id="allEventsTitle">所有近期活動</h2>
+      <p class="events-modal-lead">依目前城市與活動類型顯示，並可用月份或日期區間查詢。</p>
+      <div class="events-time-filters" aria-label="活動時間篩選">
+        <label><span>月份</span><input id="eventsMonthFilter" type="month"></label>
+        <label><span>開始日期</span><input id="eventsStartFilter" type="date"></label>
+        <label><span>結束日期</span><input id="eventsEndFilter" type="date"></label>
+        <button type="button" id="eventsFilterReset">清除時間</button>
+      </div>
+      <div class="events-quick-filter" role="group" aria-label="快速時間篩選">
+        <button type="button" data-events-window="all" class="active">全部日期</button>
+        <button type="button" data-events-window="30">未來 30 天</button>
+        <button type="button" data-events-window="90">未來 90 天</button>
+      </div>
+      <div class="events-modal-summary" id="eventsModalSummary"></div>
+      <div class="events-modal-list" id="eventsModalList"></div>
+    </section>
+  </div>
 
   <div class="settings-backdrop" id="settingsBackdrop" hidden></div>
   <section class="settings-sheet" id="settingsSheet" hidden aria-modal="true" role="dialog" aria-labelledby="settingsTitle">

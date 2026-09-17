@@ -25,21 +25,37 @@ function setInstalledUI() {
 }
 
 
+let settingsCloseTimer = null;
 function openSettings() {
   if (!settingsSheet || !settingsBackdrop) return;
+  if (settingsCloseTimer) { clearTimeout(settingsCloseTimer); settingsCloseTimer = null; }
   settingsSheet.hidden = false;
   settingsBackdrop.hidden = false;
-  requestAnimationFrame(() => settingsSheet.classList.add("open"));
+  settingsSheet.setAttribute("aria-hidden", "false");
+  settingsBtn?.setAttribute("aria-expanded", "true");
+  // Force layout so the opening transition cannot get stuck at opacity:0.
+  void settingsSheet.offsetWidth;
+  settingsSheet.classList.add("open");
   document.body.classList.add("sheet-open");
 }
 function closeSettings() {
   if (!settingsSheet || !settingsBackdrop) return;
   settingsSheet.classList.remove("open");
+  settingsSheet.setAttribute("aria-hidden", "true");
+  settingsBtn?.setAttribute("aria-expanded", "false");
   settingsBackdrop.hidden = true;
-  setTimeout(() => { settingsSheet.hidden = true; }, 200);
+  if (settingsCloseTimer) clearTimeout(settingsCloseTimer);
+  settingsCloseTimer = setTimeout(() => { settingsSheet.hidden = true; settingsCloseTimer = null; }, 200);
   document.body.classList.remove("sheet-open");
 }
-settingsBtn?.addEventListener("click", openSettings);
+// Delegate the gear click so it keeps working after PWA/i18n DOM updates.
+document.addEventListener("click", event => {
+  const trigger = event.target instanceof Element ? event.target.closest("#settingsBtn") : null;
+  if (!trigger) return;
+  event.preventDefault();
+  event.stopPropagation();
+  openSettings();
+}, true);
 settingsClose?.addEventListener("click", closeSettings);
 settingsBackdrop?.addEventListener("click", closeSettings);
 

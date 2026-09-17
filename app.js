@@ -222,7 +222,7 @@ function renderEvents() {
     if (more) more.hidden = true;
     return;
   }
-  const visible = list.slice(0, state.visibleEventLimit);
+  const visible = list.slice(0, 5);
   root.innerHTML = visible.map(e => `
     <button class="event-row" data-event-id="${escapeHtml(e.id)}">
       <span class="event-poster">${escapeHtml(posterCode(e))}</span>
@@ -237,7 +237,7 @@ function renderEvents() {
   $$(".event-row", root).forEach(btn => btn.addEventListener("click", () => openDetail(btn.dataset.eventId)));
   if (more) {
     more.hidden = list.length <= 5;
-    more.textContent = state.visibleEventLimit < list.length ? `查看更多活動（${list.length - visible.length}） →` : "收起活動 ↑";
+    more.textContent = list.length > 5 ? `查看更多活動（${list.length - 5}） →` : "查看更多活動 →";
   }
 }
 
@@ -741,11 +741,99 @@ $$(".region").forEach(btn => btn.addEventListener("click", () => {
   $$(".region").forEach(x => x.classList.remove("active")); btn.classList.add("active");
   state.city = btn.dataset.city || "ALL"; state.archiveMode = state.city === "ARCHIVE"; state.visibleEventLimit = 5; renderEvents();
 }));
-$("#viewMoreBtn").addEventListener("click", () => {
-  const total = filteredEvents().length;
-  state.visibleEventLimit = state.visibleEventLimit < total ? total : 5;
-  renderEvents();
-});
+const allEventsModal = $("#allEventsModal");
+const allEventsList = $("#eventsModalList");
+const allEventsSummary = $("#eventsModalSummary");
+const eventsMonthFilter = $("#eventsMonthFilter");
+const eventsStartFilter = $("#eventsStartFilter");
+const eventsEndFilter = $("#eventsEndFilter");
+
+function taipeiDateKey(value) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (!Number.isFinite(d.getTime())) return "";
+  const parts = new Intl.DateTimeFormat("en-CA", { year:"numeric", month:"2-digit", day:"2-digit", timeZone:TAIPEI_TZ }).formatToParts(d);
+  const get = t => parts.find(x => x.type === t)?.value || "";
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+function modalBaseEvents() {
+  const now = Date.now();
+  const q = normalizeSearch(state.query);
+  const qTokens = q.split(" ").filter(Boolean);
+  return state.events.filter(e => {
+    const endTs = new Date(e.end || e.start || 0).getTime();
+    const future = Number.isFinite(endTs) && endTs >= now - 6*3600000 && !e.historical;
+    const typeOk = state.type === "ALL" || e.type === state.type;
+    const cityOk = state.city === "ALL" || state.city === "ARCHIVE" || String(e.city || "").toLowerCase() === state.city.toLowerCase();
+    const dateText = e.start ? taipeiDateKey(e.start) : "";
+    const hay = normalizeSearch(`${e.artist} ${e.title} ${e.venue} ${e.city} ${dateText} ${(e.tags || []).join(" ")}`);
+    const queryOk = !qTokens.length || qTokens.every(t => hay.includes(t));
+    return future && e.region === state.region && typeOk && cityOk && queryOk;
+  }).sort((a,b) => new Date(a.start || 0) - new Date(b.start || 0));
+}
+function modalFilteredEvents() {
+  let list = modalBaseEvents();
+  const month = eventsMonthFilter?.value || "";
+  const start = eventsStartFilter?.value || "";
+  const end = eventsEndFilter?.value || "";
+  if (month) list = list.filter(e => taipeiDateKey(e.start).startsWith(month));
+  if (start) list = list.filter(e => taipeiDateKey(e.start) >= start);
+  if (end) list = list.filter(e => taipeiDateKey(e.start) <= end);
+  return list;
+}
+function renderAllEventsModal() {
+  if (!allEventsList) return;
+  const list = modalFilteredEvents();
+  if (allEventsSummary) allEventsSummary.textContent = list.length ? `${list.length} 場符合時間條件的活動` : "沒有符合時間條件的活動";
+  allEventsList.innerHTML = list.length ? list.map(e => `
+    <button class="events-modal-row" data-event-id="${escapeHtml(e.id)}">
+      <span class="events-modal-date">${escapeHtml(fmtDate(e.start,e.end))}</span>
+      <span class="events-modal-copy"><strong>${escapeHtml(e.artist)}</strong><span>${escapeHtml(e.title)}</span><small>${escapeHtml(e.venue)} · ${escapeHtml(fmtEventTime(e))}</small></span>
+      <span class="events-modal-arrow">›</span>
+    </button>`).join("") : `<div class="events-modal-empty">目前沒有符合條件的近期活動。</div>`;
+  $$(".events-modal-row", allEventsList).forEach(btn => btn.addEventListener("click", () => {
+    closeAllEventsModal();
+    openDetail(btn.dataset.eventId);
+  }));
+  window.NEUL_I18N?.apply?.();
+}
+function openAllEventsModal() {
+  if (!allEventsModal) return;
+  allEventsModal.hidden = false;
+  allEventsModal.setAttribute("aria-hidden","false");
+  document.body.classList.add("events-modal-open");
+  renderAllEventsModal();
+}
+function closeAllEventsModal() {
+  if (!allEventsModal) return;
+  allEventsModal.hidden = true;
+  allEventsModal.setAttribute("aria-hidden","true");
+  document.body.classList.remove("events-modal-open");
+}
+function setQuickEventWindow(days) {
+  const today = new Date();
+  const start = new Intl.DateTimeFormat("en-CA",{year:"numeric",month:"2-digit",day:"2-digit",timeZone:TAIPEI_TZ}).format(today);
+  eventsMonthFilter.value = "";
+  if (days === "all") { eventsStartFilter.value = ""; eventsEndFilter.value = ""; }
+  else {
+    const endDate = new Date(today.getTime() + Number(days)*dayMs);
+    const end = new Intl.DateTimeFormat("en-CA",{year:"numeric",month:"2-digit",day:"2-digit",timeZone:TAIPEI_TZ}).format(endDate);
+    eventsStartFilter.value = start;
+    eventsEndFilter.value = end;
+  }
+  $$("[data-events-window]").forEach(b => b.classList.toggle("active", b.dataset.eventsWindow === String(days)));
+  renderAllEventsModal();
+}
+$("#viewMoreBtn")?.addEventListener("click", openAllEventsModal);
+$("#allEventsClose")?.addEventListener("click", closeAllEventsModal);
+allEventsModal?.addEventListener("click", e => { if (e.target === allEventsModal) closeAllEventsModal(); });
+[eventsMonthFilter,eventsStartFilter,eventsEndFilter].filter(Boolean).forEach(input => input.addEventListener("change", () => {
+  $$("[data-events-window]").forEach(b => b.classList.remove("active"));
+  renderAllEventsModal();
+}));
+$("#eventsFilterReset")?.addEventListener("click", () => setQuickEventWindow("all"));
+$$('[data-events-window]').forEach(btn => btn.addEventListener("click", () => setQuickEventWindow(btn.dataset.eventsWindow)));
+window.addEventListener("keydown", e => { if (e.key === "Escape") closeAllEventsModal(); });
 $("#featuredDetailBtn").addEventListener("click", () => openDetail(state.featuredId));
 $("#featuredPrevBtn")?.addEventListener("click", () => stepFeatured(-1));
 $("#featuredNextBtn")?.addEventListener("click", () => stepFeatured(1));
