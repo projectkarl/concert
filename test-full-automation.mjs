@@ -60,7 +60,7 @@ if(bad.statusCode!==403)throw new Error('seatmap proxy allowlist guard failed');
 
 const {default:health}=await import('./api/health.mjs');
 const hr=mockRes();health({},hr);
-const hb=JSON.parse(hr.body);if(hb.build!=='0.54')throw new Error('health build stale');
+const hb=JSON.parse(hr.body);if(hb.build!=='0.53')throw new Error('health build stale');
 
 const {default:scan}=await import('./api/automation-scan.mjs');
 const sr=mockRes();await scan({method:'GET'},sr);

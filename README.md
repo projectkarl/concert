@@ -150,11 +150,3 @@
 ### v0.53.1 sceneReady fix
 - 修正 AutoScene 評分誤讀 `seed.stageType`：現在會使用 detail page 已推導出的 `stageType`。
 - 自動發現活動在具備 seat map + prices + section mapping + stage evidence 時可真正進入 `sceneReady=true`。
-
-## v0.54 Original Style Restore
-- 視覺基底完整回到 v0.41 原始 Neul 設計；原始 `styles.css` 內容保持逐字不變並作為前段基底。
-- 只在原始 CSS 後追加功能相容層，不重設 Hero、Feature、Card、Viewer、Sidepanel、Modal 的視覺語言。
-- 保留 v0.53.1 全部自動化：來源掃描、座位圖、票價、Section Mapping、Vision/OCR、SceneSpec、Scene Version、每日背景掃描。
-- 保留 v0.47+ 3D：排/號視角差、Venue Geometry、LED/Truss/FOH、Camera mapping。
-- 保留手機優化：safe-area、48px 觸控目標、360/390/430px 防溢位、Modal 高度、WebGL 行動負載策略。
-- 白色模式只做可讀性修正，不更動原始版面結構。

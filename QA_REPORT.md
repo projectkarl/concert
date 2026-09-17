@@ -103,10 +103,3 @@ LIMIT: 本包尚未提供 v0.53 的實際 Production URL，因此無法在真實
 
 
 PASS v0.53.1: 自動發現活動的整合測試現在強制要求 `sceneSpec.status=ready` 與 `automation.sceneReady=true`，否則測試直接失敗。
-
-## v0.54 Original Style Restore QA
-PASS: `styles.css` 前 10212 characters 與 v0.41 原始 CSS 完全一致。
-PASS: v0.54 只在原始 CSS 後追加 compatibility layer；原 Hero/Card/Viewer/Sidepanel 視覺規則沒有被重寫。
-PASS: `app.js` 保留 v0.53.1 功能邏輯，不因 UI restore 回退 3D 或自動化。
-PASS: 手機 safe-area、48px 觸控、360px 窄螢幕、Modal、SeatMap wrapper、Light mode 可讀性修正保留。
-PASS: 3D Canvas 行動裝置 touch / WebGL 效能策略保留。
