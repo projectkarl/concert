@@ -289,10 +289,21 @@ export default async function handler(req, res) {
   if (errors.length) autoUpdateError = errors.join(" · ");
   discovery.source = sources.join(" + ") || "curated fallback";
 
-  const events = mergeAndDedupe(seedEvents, discovery.events || []);
+  const events = mergeAndDedupe(seedEvents, discovery.events || []).map(event => ({
+    ...event,
+    automation: {
+      eventFound: true,
+      seatMapFound: Boolean(event.seatLayoutSourceUrl),
+      sectionPricesFound: Boolean(event.sectionPriceRules?.length),
+      threeDReady: Boolean(event.venueModelId || event.venueLayoutId || event.venue)
+    }
+  }));
   const artists = buildArtists(events);
+  const updatedAt = new Date();
+  const nextUpdateAt = new Date(updatedAt.getTime() + 21600000);
   return res.status(200).json({
-    updatedAt: new Date().toISOString(),
+    updatedAt: updatedAt.toISOString(),
+    nextUpdateAt: nextUpdateAt.toISOString(),
     upstream: discovery.events?.length ? "taiwan-official+curated" : "curated-fallback",
     autoUpdateEnabled: true,
     liveEnabled: true,

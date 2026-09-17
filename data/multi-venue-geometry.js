@@ -278,6 +278,13 @@ const kmc2=[
 ];
 const kmc3=arcGroup(['3B','3C-1','3C-2','3D'],'3F',190,141,60,2.42,.72)
   .map(s=>({...s,rowMin:1,rowMax:20,depthX:12,depthZ:10,rise:7}));
+
+const sj83zVip=[
+  {...block('VIP A1','VIP',-48,-42,28,42,'floor'),rowMin:1,rowMax:24,depthZ:34,rise:2,aliases:['VIP A1']},
+  {...block('VIP A2','VIP',-16,-42,28,42,'floor'),rowMin:1,rowMax:24,depthZ:34,rise:2,aliases:['VIP A2']},
+  {...block('VIP A3','VIP',16,-42,28,42,'floor'),rowMin:1,rowMax:24,depthZ:34,rise:2,aliases:['VIP A3']},
+  {...block('VIP A4','VIP',48,-42,28,42,'floor'),rowMin:1,rowMax:24,depthZ:34,rise:2,aliases:['VIP A4']}
+];
 const kmcSections=[...kmc1,...kmc2,...kmc3];
 const kmcTiers=[
   {id:'1F',label:'1F 伸縮座席／活動平面',short:'1F',sections:kmc1.map(x=>x.id)},
@@ -443,6 +450,16 @@ export const venueLayouts = {
   'kaohsiung-base': {id:'kaohsiung-base',venueId:'kaohsiung-arena',label:'高雄巨蛋場館基準',stage:venueModels['kaohsiung-arena'].stage,sourceName:'高雄巨蛋官方座位資訊',sourceUrl:'https://www.kaoarena.com.tw/Home/Seat',notices:['官方場館頁提供座椅配置與樓層分區；演唱會舞台、站區與封閉區需依每場官方配置更新。']},
   'tmc-base': {id:'tmc-base',venueId:'taipei-music-center',label:'北流表演廳基準',stage:venueModels['taipei-music-center'].stage,sourceName:'北流官方觀眾席配置圖',sourceUrl:'https://www.tmc.taipei/tw/hire/Unit-f8KLs',notices:['官方確認表演廳固定席約 3,100 席，1F 無固定座位；2F 實拍可見至 15 排、3F 實拍可見至 17 排附近，本站以此校正排數深度。','舞台官方尺寸約寬 30m、深 20m；本站 3D 僅保留比例關係，不把模型單位直接標成真實公尺。']},
   'ticc-base': {id:'ticc-base',venueId:'ticc',label:'TICC 大會堂基準',stage:venueModels['ticc'].stage,foh:{x:0,y:43,z:88,width:34,depth:15},sourceName:'TICC 官方大會堂座位查詢',sourceUrl:'https://www.ticc.com.tw/wSite/sp?BaseDSD=&CtUnit=100&ctNode=323&mp=1&xdUrl=%2FwSite%2Fap%2Flp_PlenaryHall.jsp',notices:['官方座位查詢以 2MF-1～5、3F-1～5、4F-1～5、5F-1～5、6F-1～5 與 L/R 包廂分區；介面同時保留 A–E 對照，方便和粉絲回報互查。','4F-B 公開實拍回報顯示控台位於區域後半，本版加入控台體積作為場館基準遮擋參考；實際設備仍依活動而異。']},
+
+  'sj83z-1983-kaohsiung-2026': {
+    id:'sj83z-1983-kaohsiung-2026',venueId:'kaohsiung-music-center',eventId:'super-junior-83z-1983-kaohsiung-2026',label:'SUPER JUNIOR-83z [1983] 官方票區',
+    stage:{main:{x:0,y:-16,z:-91,width:78,depth:24},runway:{x:0,y:-15,z1:-78,z2:-28,width:18},bStage:{x:0,y:-14,z:-24,radius:15}},
+    foh:[{x:0,y:-16,z:16,width:30,depth:10}],defaultTier:'VIP',defaultSection:'VIP A2',defaultRow:8,
+    tiers:[{id:'VIP',label:'VIP A1–A4',short:'VIP',sections:sj83zVip.map(x=>x.id)}],sections:sj83zVip,
+    sourceName:'KKTIX 官方座位圖',sourceUrl:'https://assets.kktix.io/organization_resource_files/59413/79383/SJ83z_%E5%BA%A7%E4%BD%8D%E5%9C%96%E8%A6%96%E7%B7%9A%E9%81%AE%E6%93%8B_0729_%E9%AB%98%E9%9B%84.jpg',
+    seatMapDetected:true,sectionPriceRules:[{label:'VIP A1',price:'NT$6,480'},{label:'VIP A2',price:'NT$6,480'},{label:'VIP A3',price:'NT$6,480'},{label:'VIP A4',price:'NT$6,480'}],
+    notices:['依 KKTIX 官方座位圖建立 VIP A1–A4、主舞台、延伸台與 FOH 相對位置。','2F／3F 固定席仍保留海音館完整場館結構，票價依官方區帶顯示；視線不良區以 KKTIX 最新公告為準。']
+  },
   'kmc-base': {id:'kmc-base',venueId:'kaohsiung-music-center',label:'海音館場館基準',stage:venueModels['kaohsiung-music-center'].stage,sourceName:'海音館官方全區觀眾席平面圖',sourceUrl:'https://www.kph.tw/venues-resources/1',notices:['官方技術圖可確認主要固定席與剖面；本版再依公開實拍把 2F 拆成 2B1–2B5、2C1–2C4 等視角差異較大的校正分段。','這些 2F 細分名稱用於視角校正，不保證每場售票系統皆採完全相同命名。']},
   'ks-standard': {id:'ks-standard',venueId:'kaohsiung-stadium',label:'世運 · 端景舞台基準',stage:venueModels['kaohsiung-stadium'].stage,sourceName:'高雄市政府運動發展局場館資訊',sourceUrl:'https://busker.kcg.gov.tw/space/Details?Parser=99%2C7%2C28%2C%2C%2C%2C29',notices:['大型戶外場館目前為區域級重建；舞台高度、延伸台與平面區必須依每場活動再校正。']},
   'ks-center': {id:'ks-center',venueId:'kaohsiung-stadium',label:'世運 · 中央舞台基準',stage:{main:{x:0,y:-16,z:8,width:76,depth:64},runway:null,bStage:null},sourceName:'場館級中央舞台示意',sourceUrl:'https://busker.kcg.gov.tw/space/Details?Parser=99%2C7%2C28%2C%2C%2C%2C29',notices:['中央舞台僅為場館級基準，實際 360° 舞台與燈塔位置以主辦售票圖為準。']},

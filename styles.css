@@ -35,7 +35,7 @@ a{color:inherit}
 .side-head{grid-area:side;height:72px;background:var(--dark);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 27px;position:sticky;top:0;z-index:40}
 .menu-icon{border:0;background:transparent;color:white;font-size:20px}
 .hero-panel{grid-area:hero;position:relative;min-height:594px;background:#0f1216;border-right:1px solid var(--line);border-bottom:1px solid var(--line);overflow:hidden}
-.hero-art{position:absolute;inset:0;background-image:url('/assets/hero-crowd-crisp.webp');background-size:cover;background-position:56% 42%;filter:none;transform:none}
+.hero-art{position:absolute;inset:0;background-image:url('/assets/hero-live-crisp.webp');background-size:cover;background-position:56% 42%;filter:none;transform:none}
 .hero-art:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(9,11,14,.88) 0%,rgba(9,11,14,.62) 24%,rgba(9,11,14,.08) 58%,rgba(9,11,14,.12) 100%),linear-gradient(0deg,rgba(9,11,14,.42) 0%,transparent 38%)}
 .hero-shade{position:absolute;inset:0;background:radial-gradient(circle at 63% 23%,rgba(252,219,247,.12),transparent 26%),linear-gradient(90deg,transparent 60%,rgba(9,11,14,.26))}
 .hero-copy{position:relative;z-index:2;padding:42px 0 0 52px;width:48%}
@@ -85,7 +85,7 @@ a{color:inherit}
 .featured-side p{font-size:11px;color:#c8cbd0;margin:0}
 .pink-pill{padding:12px 22px;font-size:11px;margin-top:auto;align-self:flex-start}
 .featured-main{position:relative;min-width:0;overflow:hidden}
-.featured-stage{position:absolute;inset:0;background-image:url('/assets/featured-1-crisp.webp');background-size:cover;background-position:center;filter:none;transform:none}
+.featured-stage{position:absolute;inset:0;background-image:url('/assets/featured-live-1.webp');background-size:cover;background-position:center;filter:none;transform:none}
 .featured-overlay{position:absolute;inset:0;background:linear-gradient(90deg,rgba(6,9,12,.82) 0%,rgba(6,9,12,.38) 43%,rgba(6,9,12,.07) 100%),linear-gradient(0deg,rgba(6,9,12,.46),transparent 54%)}
 .featured-copy{position:relative;z-index:2;padding:24px 25px;width:61%}
 .scribble{font-family:"Segoe Script","Brush Script MT",cursive;font-size:35px;transform:rotate(-4deg);line-height:1;color:#fff;margin-bottom:12px}
@@ -815,8 +815,8 @@ body.light-mode .events-location-filters input,body.light-mode .events-location-
 /* v0.36 · responsive overflow audit + crisp hero/featured media */
 html,body{max-width:100%;overflow-x:hidden}
 .site-shell,.topbar,.hero-panel,.upcoming-panel,.lower-grid,.featured-card,.featured-main,.my-list-card,.brand-story,.venue-section,.footer{min-width:0}
-.hero-art{background-image:url('/assets/hero-crowd-crisp.webp');background-repeat:no-repeat;transform:none;backface-visibility:hidden;will-change:auto}
-.featured-stage{background-image:url('/assets/featured-1-crisp.webp');background-repeat:no-repeat;transform:none;backface-visibility:hidden;will-change:auto}
+.hero-art{background-image:url('/assets/hero-live-crisp.webp');background-repeat:no-repeat;transform:none;backface-visibility:hidden;will-change:auto}
+.featured-stage{background-image:url('/assets/featured-live-1.webp');background-repeat:no-repeat;transform:none;backface-visibility:hidden;will-change:auto}
 .event-row>*{min-width:0}
 .event-info{overflow:hidden}
 .event-info strong,.event-info .title,.event-info .date,.event-info .venue{max-width:100%}
@@ -861,3 +861,11 @@ img,canvas,svg{max-width:100%}
 .hero-art,.featured-stage{filter:none!important;image-rendering:auto}
 .hero-art:after{pointer-events:none}
 .featured-overlay{pointer-events:none}
+
+/* v0.39 · live media, stable My List cards, visible sync schedule */
+.data-freshness .freshness-next{display:block;margin-top:3px;font-size:10.5px;line-height:1.5;color:#a9afb6;text-transform:none;letter-spacing:.02em}
+.artist-bubbles{grid-auto-rows:92px;align-items:stretch}
+.artist-bubble{height:92px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start}
+.artist-bubble .artist-name{width:100%;height:22px;min-height:22px;max-height:22px}
+.artist-bubble em{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:7px;margin-top:2px}
+@media(max-width:560px){.artist-bubbles{grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:88px}.artist-bubble{height:88px}}

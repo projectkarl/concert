@@ -11,6 +11,7 @@ const state = {
   events: seedEvents.filter(e => e?.region === "TW"),
   artists: seedArtists.map(a => ({ ...a, upcomingEventCount: 0, nextEvent: null, eventIds: [] })),
   dataUpdatedAt: null,
+  nextUpdateAt: null,
   autoUpdateEnabled: true,
   upstream: "curated-fallback",
   officialUpdatedAt: null,
@@ -226,7 +227,7 @@ function renderEvents() {
     if (more) more.hidden = true;
     return;
   }
-  const visible = list.slice(0, 5);
+  const visible = list.slice(0, 10);
   root.innerHTML = visible.map(e => `
     <button class="event-row" data-event-id="${escapeHtml(e.id)}">
       <span class="event-poster">${escapeHtml(posterCode(e))}</span>
@@ -308,11 +309,16 @@ function stepFeatured(delta) {
 }
 
 const FEATURED_IMAGES = [
-  "/assets/featured-1-crisp.webp",
-  "/assets/featured-2-crisp.webp",
-  "/assets/featured-3-crisp.webp",
-  "/assets/featured-4-crisp.webp"
+  "/assets/featured-live-1.webp",
+  "/assets/featured-live-2.webp",
+  "/assets/featured-live-3.webp",
+  "/assets/featured-live-4.webp"
 ];
+let featuredAutoTimer = null;
+function startFeaturedAutoplay(){
+  clearInterval(featuredAutoTimer);
+  featuredAutoTimer=setInterval(()=>{ if(!document.hidden && featuredEvents().length>1) stepFeatured(1); },10000);
+}
 function featuredImageFor(event, index=0) {
   const key=String(event?.id||event?.artist||index);
   let hash=0; for(let i=0;i<key.length;i++) hash=((hash<<5)-hash+key.charCodeAt(i))|0;
@@ -705,7 +711,9 @@ function updateFreshness() {
   const t = new Intl.DateTimeFormat(uiLocale(), { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Taipei" }).format(new Date(state.dataUpdatedAt));
   const officialTime = state.officialUpdatedAt ? new Intl.DateTimeFormat(uiLocale(), { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Taipei" }).format(new Date(state.officialUpdatedAt)) : null;
   const headline = officialTime ? `官方資訊更新 ${officialTime}` : (state.autoUpdateEnabled ? `台灣活動同步 ${t}` : `已核對資料 · ${t}`);
-  el.innerHTML = `${headline}${cadence}`;
+  const next = state.nextUpdateAt ? new Intl.DateTimeFormat(uiLocale(), { month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", hour12:false, timeZone:"Asia/Taipei" }).format(new Date(state.nextUpdateAt)) : null;
+  const schedule = next ? `<span class="freshness-next">下次預計更新 ${next}</span>` : "";
+  el.innerHTML = `${headline}${schedule}${cadence}`;
   el.title = "活動資料採 6 小時快取；快取到期後由下一次造訪觸發背景重新驗證，並另有每日排程同步。詳細內容仍以官方最新公告為準。";
 }
 
@@ -727,12 +735,14 @@ async function loadEvents() {
     if (Array.isArray(data.events) && data.events.length) state.events = prepareEvents3D(taiwanEventsOnly(data.events));
     if (Array.isArray(data.artists) && data.artists.length) state.artists = data.artists;
     state.dataUpdatedAt = data.updatedAt || null;
+    state.nextUpdateAt = data.nextUpdateAt || (data.updatedAt ? new Date(new Date(data.updatedAt).getTime()+21600000).toISOString() : null);
     state.autoUpdateEnabled = data.autoUpdateEnabled !== false;
     state.upstream = data.upstream || "curated-fallback";
   } catch {
     state.events = prepareEvents3D(taiwanEventsOnly(seedEvents));
     state.artists = seedArtists.map(a => ({ ...a, upcomingEventCount: seedEvents.filter(e => e.artist.toLowerCase() === a.name.toLowerCase()).length, nextEvent: null, eventIds: [] }));
     state.dataUpdatedAt = null;
+    state.nextUpdateAt = null;
     state.autoUpdateEnabled = false;
     state.upstream = "curated-fallback";
   }
@@ -742,6 +752,7 @@ async function loadEvents() {
   renderEvents();
   renderFollowing();
   renderFeatured();
+  startFeaturedAutoplay();
   updateFreshness();
   updateSearchScope();
   window.dispatchEvent(new CustomEvent("neul:dataupdated", { detail: { events: state.events, updatedAt: state.dataUpdatedAt } }));
@@ -889,8 +900,8 @@ $("#eventsFilterReset")?.addEventListener("click", () => setQuickEventWindow("al
 $$('[data-events-window]').forEach(btn => btn.addEventListener("click", () => setQuickEventWindow(btn.dataset.eventsWindow)));
 window.addEventListener("keydown", e => { if (e.key === "Escape") closeAllEventsModal(); });
 $("#featuredDetailBtn").addEventListener("click", () => openDetail(state.featuredId));
-$("#featuredPrevBtn")?.addEventListener("click", () => stepFeatured(-1));
-$("#featuredNextBtn")?.addEventListener("click", () => stepFeatured(1));
+$("#featuredPrevBtn")?.addEventListener("click", () => { stepFeatured(-1); startFeaturedAutoplay(); });
+$("#featuredNextBtn")?.addEventListener("click", () => { stepFeatured(1); startFeaturedAutoplay(); });
 $("#featuredSourceBtn").addEventListener("click", () => { const e = state.events.find(x => x.id === state.featuredId) || seedEvents[0]; window.open(safeUrl(e.sourceUrl), "_blank", "noopener,noreferrer"); });
 $(".follow-feature").addEventListener("click", e => toggleFollow(e.currentTarget.dataset.artist || "Stray Kids"));
 $("#clearFollowingBtn").addEventListener("click", openArtistDirectory);
@@ -1374,6 +1385,7 @@ window.addEventListener("neul:languagechange", () => {
   renderEvents();
   renderFollowing();
   renderFeatured();
+  startFeaturedAutoplay();
   updateFreshness();
   updateSearchScope();
   updateSeatLabel();

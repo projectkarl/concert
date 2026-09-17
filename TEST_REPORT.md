@@ -1,4 +1,4 @@
-# NEUL v0.38 QA Report
+# NEUL v0.37 QA Report
 
 Date: 2026-09-17
 
@@ -22,16 +22,13 @@ Date: 2026-09-17
 - PASS — My List long-name overflow guard present
 - PASS — VENUE long-title wrapping + native title tooltip support present
 - PASS — crisp Hero / Featured media preserved
-- PASS — LE SSERAFIM uses official tixCraft seat-map URL and dedicated event layout
-- PASS — LE SSERAFIM VIP A/B/C rendered as standing zones at VIP NT$6,980 (no chairs)
-- PASS — LE SSERAFIM runway + octagonal center platform + FOH present
-- PASS — LE SSERAFIM 2F/3F price groups mapped; split NT$3,680/4,680 zones stay ranges instead of false single prices
-- PASS — stage/runway/B-stage/FOH seat-collision guard present globally
-- PASS — generic structural/flexible 1F placeholders do not auto-generate chairs
-- PASS — tixCraft field-map image is prioritized over poster / benefit images
 - PASS — native WebGL2 + Canvas fallback preserved
 - PASS — PWA / IndexedDB / archive / reminders / seat compare preserved
 
 ## Rendering/data boundary
 
 Container tests validate syntax, structural geometry, data merging and application logic. Exact GPU appearance should still be visually checked on the deployed browser/device because the container does not reproduce Safari/Chrome GPU rendering perfectly.
+
+- PASS: SUPER JUNIOR-83z [1983] 高雄場、KKTIX 官方座位圖、VIP A1–A4 與分區票價。
+- PASS: Featured 10 秒自動輪播；Hero 2560×1440、Featured 1920×1080 擬真清晰素材。
+- PASS: API nextUpdateAt + automation pipeline flags。

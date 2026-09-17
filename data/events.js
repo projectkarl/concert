@@ -1,5 +1,36 @@
 export const seedEvents = [
   {
+    id: "super-junior-83z-1983-kaohsiung-2026",
+    artist: "SUPER JUNIOR-83z",
+    shortArtist: "83z",
+    title: "2026 SUPER JUNIOR-83z FANCON TOUR [1983] in KAOHSIUNG",
+    type: "FANCON",
+    region: "TW",
+    start: "2026-10-03T18:00:00+08:00",
+    venue: "高雄流行音樂中心 海音館",
+    city: "Kaohsiung",
+    statusLabel: "FANCON",
+    ticketStatus: "ON SALE",
+    generalSale: "2026-07-29T12:00:00+08:00",
+    ticketing: "KKTIX",
+    price: "NT$6,480 / 6,080 / 5,680 / 4,680 / 3,680 / 2,340（愛心席）",
+    sourceName: "KKTIX 官方售票頁",
+    sourceUrl: "https://chuanyeah.kktix.cc/events/080cefdf?locale=zh-TW",
+    secondarySourceUrl: "https://weverse.io/superjunior/notice/37145",
+    verified: true,
+    checkedAt: "2026-09-17T16:45:00+08:00",
+    tags: ["K-POP","FANCON","KAOHSIUNG","KKTIX"],
+    venueModelId: "kaohsiung-music-center",
+    venueLayoutId: "sj83z-1983-kaohsiung-2026",
+    seatLayoutSourceUrl: "https://assets.kktix.io/organization_resource_files/59413/79383/SJ83z_%E5%BA%A7%E4%BD%8D%E5%9C%96%E8%A6%96%E7%B7%9A%E9%81%AE%E6%93%8B_0729_%E9%AB%98%E9%9B%84.jpg",
+    sectionPriceRules: [
+      {label:"VIP A1",price:"NT$6,480"},{label:"VIP A2",price:"NT$6,480"},{label:"VIP A3",price:"NT$6,480"},{label:"VIP A4",price:"NT$6,480"},
+      {label:"2F 6080票區",price:"NT$6,080"},{label:"2F 5680票區",price:"NT$5,680"},{label:"2F 4680票區",price:"NT$4,680"},{label:"2F 3680票區",price:"NT$3,680"},{label:"2F B/D 愛心席",price:"NT$2,340"}
+    ],
+    summary: "10/3 18:00 於高雄流行音樂中心海音館演出；官方座位圖已公布 VIP A1–A4 與各看台票價帶。",
+    notes: ["VIP A1–A4 均為座席。", "9/18 12:00 KKTIX 公告將再釋出 VIP A2、VIP A3 與 2F D 區票券。"]
+  },
+  {
     id: "le-sserafim-pureflow-taipei-2026",
     artist: "LE SSERAFIM",
     shortArtist: "LSF",
