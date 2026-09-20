@@ -1,4 +1,4 @@
-const VERSION = "neul-v0.40.14-official-map-silent-featured";
+const VERSION = "neul-v0.40.15-v11-3d-layout";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const APP_SHELL = [

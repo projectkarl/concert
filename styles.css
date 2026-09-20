@@ -923,19 +923,14 @@ body.light-mode .source-info-trigger{background:#fff;color:#514b4d;border-color:
 /* v0.40.12 — calendar/list coexistence, visible official reference, robust Featured 10s autoplay. */
 .featured-progress{width:42px;height:3px;border-radius:999px;background:rgba(255,255,255,.18);overflow:hidden;min-width:42px!important}
 .featured-progress i{display:block;width:0;height:100%;background:#fff;border-radius:inherit;transition:width .24s linear}
-.seat-preview-reference-grid{display:grid;grid-template-columns:minmax(0,1.18fr) minmax(280px,.82fr);gap:12px;align-items:stretch}
-.seat-preview-reference-grid:has(.official-seatmap-inline[hidden]){grid-template-columns:1fr}
-.seat-preview-reference-grid .seat-preview-img,.seat-preview-reference-grid .official-seatmap-inline{min-width:0;margin:0}
-.seat-preview-reference-grid .official-seatmap-frame{height:100%;min-height:260px}
-.official-seatmap-inline.is-pending .official-seatmap-frame{min-height:260px;background:repeating-linear-gradient(135deg,#11171c,#11171c 12px,#141b21 12px,#141b21 24px)}
+.official-seatmap-inline.is-pending .official-seatmap-frame{background:repeating-linear-gradient(135deg,#11171c,#11171c 12px,#141b21 12px,#141b21 24px)}
 .official-seatmap-inline.is-pending .official-seatmap-loading{display:grid;place-items:center;text-align:center;padding:24px;line-height:1.6}
 .events-calendar-spacer{display:block;border:1px solid #20262c;border-radius:10px;background:#0b1014;opacity:.52}
 .events-original-list-head{display:flex;justify-content:space-between;gap:12px;align-items:end;margin:18px 0 8px;padding-top:14px;border-top:1px solid #293038}
 .events-original-list-head strong{font-size:15px}.events-original-list-head span{font-size:10px;color:#8f98a1;text-align:right}
 body.light-mode .events-calendar-spacer{background:#f7f3f0;border-color:#e6dfda}
 body.light-mode .events-original-list-head{border-color:#ddd6d0}body.light-mode .events-original-list-head span{color:#7d756f}
-@media(max-width:900px){.seat-preview-reference-grid{grid-template-columns:1fr}.seat-preview-reference-grid .official-seatmap-frame{min-height:240px;height:300px}}
-@media(max-width:720px){.featured-progress{width:30px;min-width:30px!important}.events-original-list-head{align-items:start;flex-direction:column;gap:2px}.events-original-list-head span{text-align:left}.events-calendar-spacer{min-height:54px}.seat-preview-reference-grid .official-seatmap-frame{height:240px;min-height:220px}}
+@media(max-width:720px){.featured-progress{width:30px;min-width:30px!important}.events-original-list-head{align-items:start;flex-direction:column;gap:2px}.events-original-list-head span{text-align:left}.events-calendar-spacer{min-height:54px}}
 
 /* v0.40.14 — activity explorer: full list visible first; calendar remains available beside/below it. */
 .events-modal-card{width:min(1180px,100%)}
@@ -958,3 +953,6 @@ body.light-mode .events-list-pane .events-original-list-head{border-bottom-color
 @media(max-width:520px){
   .events-list-pane .events-modal-row{grid-template-columns:82px minmax(0,1fr) 16px}
 }
+
+/* v0.40.15 — restore v0.40.11 3D composition; official reference stays below preview explanation. */
+.venue-section .seat-preview-card>.official-seatmap-inline{width:100%;box-sizing:border-box}
