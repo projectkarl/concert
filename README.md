@@ -1,17 +1,3 @@
-# NEUL
-
-## v0.40.4 BTS / BABYMONSTER / Auto-generation audit (2026-09-20)
-
-- Website design remains locked to the v0.40 line; `index.html` and `styles.css` are unchanged from v0.40.3.
-- BTS Kaohsiung uses a manually calibrated central circular core plus four diagonal extensions, with complete A1–A13 / M1–M13 / Y1–Y14 / R1–R14 floor families.
-- Central-stage shows no longer inherit the generic end-stage rear LED wall.
-- BABYMONSTER Taipei has an event-specific main stage + runway + end platform + FOH layout and complete published zone-price bindings.
-- Seat-map automation now attempts Traditional-Chinese + English OCR, expands section ranges such as `VIP A～E` / `特A～C` / `黃3A～J`, anchors dark-stage selection with the OCR `STAGE` token when available, and requires diagonal evidence before generating an X-stage.
-- Calibrated special-stage geometry is protected from low-confidence auto-regeneration; price colors are never guessed from palette order without OCR legend evidence.
-- Ticket-page seat-map eligibility checks secondary/ticket URLs in addition to the primary source URL.
-
-See `AUTO_GENERATION_AUDIT_v0.40.4.md`, `V0.40.4_CHANGELOG.md`, and `TEST_REPORT_v0.40.4.md`.
-
 
 ## v0.40.2 Full Audit (2026-09-20)
 - Fixed premature “ended” state with session-aware lifecycle rules.

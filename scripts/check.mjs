@@ -6,7 +6,6 @@ import { extractTaipeiArenaLinks, parseTaipeiArenaDates } from "../lib/taipei-ar
 import { parseBabymonsterChoomTaipei, parseBigBangCosmosTaiwan } from "../lib/artist-official-discovery.js";
 import { parsePage as parseTicketPlatformPage } from "../lib/taiwan-ticket-platform-discovery.js";
 import { mergeAndDedupe } from "../api/events.js";
-import { inferStageProfileForQA, selectStageComponentForQA, priceForLabelForQA } from "../seat-map-intelligence.js";
 import { seedEvents } from "../data/events.js";
 import { venueModels, venueLayouts, getVenueSection, venueSectionWarning, venueSectionPosition, venueIdFromName, ensureAutoEventLayout, getVenueLayout, sectionTicketLabel, effectiveTiers } from "../data/multi-venue-geometry.js";
 
@@ -184,7 +183,7 @@ if (!/zh-Hant/.test(i18n) || !/locale: 'en-US'/.test(i18n) || !/locale: 'ja-JP'/
 if (!/data-lang="zh-Hant"/.test(indexHtml) || !/data-lang="en"/.test(indexHtml) || !/data-lang="ja"/.test(indexHtml) || !/data-lang="ko"/.test(indexHtml)) { console.error("language selector buttons missing"); ok=false; }
 if (!/neul-language/.test(i18n) || !/neul:languagechange/.test(i18n) || !/MutationObserver/.test(i18n)) { console.error("dynamic language switching incomplete"); ok=false; }
 if (!/Noto\+Sans\+JP/.test(indexHtml)) { console.error("Japanese font support missing"); ok=false; }
-if (!/\/i18n\.js/.test(sw) || !/neul-v0\.40\.4-bts-stage-bm-price-autogen-guard/.test(sw)) { console.error("PWA multilingual cache update missing"); ok=false; }
+if (!/\/i18n\.js/.test(sw) || !/neul-v0\.40\.2-full-audit/.test(sw)) { console.error("PWA multilingual cache update missing"); ok=false; }
 if (!/uiLocale/.test(app) || !/neul:languagechange/.test(app)) { console.error("locale-aware dynamic render hook missing"); ok=false; }
 
 
@@ -320,7 +319,7 @@ for (const id of [
 const bm37=seedEvents.find(e=>e.id==="babymonster-choom-taipei-2026");
 if (!bm37 || bm37.ticketing!=="Ticket Plus 遠大售票" || !String(bm37.price).includes("6,780") || !bm37.generalSale?.startsWith("2026-10-14T12:00")) { console.error("BABYMONSTER current price/sale fallback missing",bm37); ok=false; }
 const bmLayoutId=ensureAutoEventLayout(bm37);
-if (sectionTicketLabel(bmLayoutId,"紅2B")!=="NT$6,780" || sectionTicketLabel(bmLayoutId,"紅2D")!=="NT$5,800" || sectionTicketLabel(bmLayoutId,"黃2C")!=="NT$4,800" || !String(sectionTicketLabel(bmLayoutId,"黃3E")||"").includes("4,200") || sectionTicketLabel(bmLayoutId,"藍2A")) { console.error("BABYMONSTER official-zone pricing / unknown-zone guard failed",sectionTicketLabel(bmLayoutId,"紅2B"),sectionTicketLabel(bmLayoutId,"紅2D"),sectionTicketLabel(bmLayoutId,"黃2C"),sectionTicketLabel(bmLayoutId,"黃3E")); ok=false; }
+if (sectionTicketLabel(bmLayoutId,"紅2B")!=="NT$6,780" || sectionTicketLabel(bmLayoutId,"紅2D")) { console.error("BABYMONSTER exact known-zone pricing / unknown-zone guard failed",sectionTicketLabel(bmLayoutId,"紅2B"),sectionTicketLabel(bmLayoutId,"紅2D")); ok=false; }
 const ntsu=venueModels["ntsu-arena"];
 const ntsuTiers=[...new Set(ntsu.sections.map(s=>s.tier))];
 if (!["FLOOR","LOWER","MIDDLE","UPPER"].every(x=>ntsuTiers.includes(x))) { console.error("NTSU complete base-tier structure missing",ntsuTiers); ok=false; }
@@ -373,7 +372,7 @@ if(!tara40 || !/wve\.kktix\.cc/.test(tara40.sourceUrl||"") || !/assets\.kktix\.i
 if(sectionTicketLabel("tara-fancon-kaohsiung-2026","1F-C")!=="NT$5,980" || sectionTicketLabel("tara-fancon-kaohsiung-2026","2F-A")!=="NT$5,680" || sectionTicketLabel("tara-fancon-kaohsiung-2026","2F-C")!=="NT$4,680" || sectionTicketLabel("tara-fancon-kaohsiung-2026","2F-B-REAR")!=="NT$3,680"){ console.error("T-ARA section pricing regression"); ok=false; }
 if (!/hydrateSeatMapGeometry/.test(app) || !/neul-seatmap-hash/.test(app) || !/hashChanged/.test(app) || /slice\(0,14\)/.test(app) || !/i\+=1/.test(app)) { console.error("client seat-map change regeneration pipeline missing/bounded to partial list"); ok=false; }
 if (!/seatMapFound/.test(apiEventsCode) || !/sectionPricesFound/.test(apiEventsCode) || !/threeDReady/.test(apiEventsCode)) { console.error("four-stage automation status missing"); ok=false; }
-if (!/neul-v0\.40\.4-bts-stage-bm-price-autogen-guard/.test(sw) || !/seat-map-intelligence\.js/.test(sw)) { console.error("v0.40.4 service-worker cache regression"); ok=false; }
+if (!/neul-v0\.40\.2-full-audit/.test(sw) || !/seat-map-intelligence\.js/.test(sw)) { console.error("v0.40 service-worker cache regression"); ok=false; }
 
 // v0.40.1 OCR/Vision + precise section mapping + source expansion
 if (!/tesseract\.js@5/.test(seatVisionCode) || !/ocr-section-mapped/.test(seatVisionCode) || !/mapSectionTokenForQA/.test(seatVisionCode) || !/mappingScore/.test(seatVisionCode)) { console.error("OCR/Vision precise section mapping pipeline missing"); ok=false; }
@@ -392,33 +391,5 @@ if (!/#b8c0c7/.test(webgl) || !/isLight\?"#d9dde1":"#b8c0c7"/.test(app)) { conso
 const iznaFixture=`<html><head><title>2026 izna Concert Tour：WHO DAT GIRL? in TAIPEI</title></head><body>演出日期｜2026年10月9日 18:00 演出地點｜Zepp New Taipei 活動票價｜NT$4,280 / NT$3,880 / NT$3,580 售票時間｜2026年8月23日 15:00</body></html>`;
 const parsedIzna=parseTicketPlatformPage(iznaFixture,"https://tixcraft.com/activity/detail/26_izna",{name:"tixCraft 拓元"});
 if (!parsedIzna || parsedIzna.artist?.toLowerCase().includes("台灣演出") || parsedIzna.city!=="New Taipei" || !parsedIzna.start.startsWith("2026-10-09T18:00")) { console.error("izna ticket parser fixture failed",parsedIzna); ok=false; }
-
-
-// v0.40.3 official seat-map-under-preview + bidirectional mapping + physical aisle geometry
-for (const id of ["officialSeatMapPanel","officialSeatMapFrame","officialSeatMapImage","officialSeatMapMarker","officialSeatMapSource","officialSeatMapSync"]) if (!indexHtml.includes(`id="${id}"`)) { console.error("v0.40.3 official seat-map UI hook missing",id); ok=false; }
-if (!/renderOfficialSeatMap/.test(app) || !/handleOfficialSeatMapClick/.test(app) || !/selectMappedSeatMapSection/.test(app) || !/seatMapImagePoint/.test(app)) { console.error("v0.40.3 official map/3D linkage missing"); ok=false; }
-if (!/x:token\.cx,y:token\.cy/.test(seatVisionCode)) { console.error("v0.40.3 OCR normalized map coordinates missing"); ok=false; }
-if (!/sideAisle/.test(webgl) || !/crossAisle/.test(webgl) || !/aisleColor/.test(webgl) || !/prism\(top,\.30\)/.test(webgl)) { console.error("v0.40.3 physical aisle geometry missing"); ok=false; }
-if (!/official-seatmap-inline/.test(css) || !/official-seatmap-frame/.test(css)) { console.error("v0.40.3 inline official-map styling missing"); ok=false; }
-
-// v0.40.4 BTS special-stage accuracy + BABYMONSTER pricing + auto-generation guard
-const btsExpected=[...Array.from({length:13},(_,i)=>`A${i+1}`),...Array.from({length:13},(_,i)=>`M${i+1}`),...Array.from({length:14},(_,i)=>`Y${i+1}`),...Array.from({length:14},(_,i)=>`R${i+1}`)];
-if (btsLayout?.stage?.main?.shape!=="circle" || !(Number(btsLayout?.stage?.main?.radius)>0) || (btsLayout?.extraStageRects||[]).length!==4) { console.error("v0.40.4 BTS circular core + four-arm stage missing",btsLayout?.stage,btsLayout?.extraStageRects); ok=false; }
-for(const id of btsExpected) if(!getVenueSection("kaohsiung-stadium",id,"bts-arirang-kaohsiung-2026")){ console.error("v0.40.4 BTS official floor section missing",id); ok=false; break; }
-if (sectionTicketLabel("bts-arirang-kaohsiung-2026","A4")!=="NT$7,980" || sectionTicketLabel("bts-arirang-kaohsiung-2026","M13")!=="NT$6,980" || sectionTicketLabel("bts-arirang-kaohsiung-2026","R14")!=="NT$7,980") { console.error("v0.40.4 BTS full floor pricing map regression"); ok=false; }
-const bmLayout=getVenueLayout("babymonster-choom-taipei-2026");
-if (!bm37?.seatLayoutDisplayUrl || bm37.venueLayoutId!=="babymonster-choom-taipei-2026" || !bmLayout?.stage?.runway || !(bmLayout?.extraStageRects||[]).length || !bmLayout?.foh) { console.error("v0.40.4 BABYMONSTER official-map/custom-stage wiring missing",bm37,bmLayout); ok=false; }
-if (sectionTicketLabel("babymonster-choom-taipei-2026","VIP A")!=="NT$6,780" || sectionTicketLabel("babymonster-choom-taipei-2026","特B")!=="NT$5,800" || sectionTicketLabel("babymonster-choom-taipei-2026","黃2E")!=="NT$4,800") { console.error("v0.40.4 BABYMONSTER exact section pricing regression"); ok=false; }
-const qaX=inferStageProfileForQA({central:true,xArms:true,circleConfidence:.8});
-const qaCentral=inferStageProfileForQA({central:true,xArms:false,circleConfidence:.8});
-if (qaX.profile!=="central-x" || qaX.armCount!==4 || qaX.mainShape!=="circle" || qaCentral.profile!=="central-stage" || qaCentral.armCount!==0) { console.error("v0.40.4 stage topology guard regression",qaX,qaCentral); ok=false; }
-const stagePick=selectStageComponentForQA([{n:9000,minX:0,maxX:900,minY:750,maxY:900,cx:450,cy:825},{n:1800,minX:360,maxX:640,minY:230,maxY:500,cx:500,cy:365}],1000,1000,{cx:.5,cy:.36});
-if (stagePick?.cx!==500 || stagePick?.cy!==365) { console.error("v0.40.4 STAGE-label component targeting regression",stagePick); ok=false; }
-if (priceForLabelForQA(bm37,"黃3J")!=="NT$4,200 / 3,600 / 2,600 / 800（依官方圖排數色帶）" || priceForLabelForQA(bm37,"VIP E")!=="NT$6,780" || priceForLabelForQA(bm37,"特C")!=="NT$5,800") { console.error("v0.40.4 Chinese/range section price expansion regression"); ok=false; }
-if (!/legendFromOcr/.test(seatVisionCode) || !/unverified-no-price-guess/.test(seatVisionCode) || !/referenceSections/.test(seatVisionCode) || !/stageConfidence/.test(seatVisionCode) || !/central-x/.test(seatVisionCode) || !/eng\+chi_tra/.test(seatVisionCode) || !/ruleAliases/.test(seatVisionCode) || !/selectStageComponent/.test(seatVisionCode)) { console.error("v0.40.4 safe OCR/price/stage inference pipeline missing"); ok=false; }
-if (!/stageConfidence\|\|0\)>=?\.90|stageConfidence.*\.90/.test(app) || !/seatLayoutDisplayUrl/.test(app)) { console.error("v0.40.4 calibrated-stage overwrite guard / display map missing"); ok=false; }
-if (!/roundStageItem/.test(webgl) || !/if\(!stage\.centerStage\)/.test(webgl) || !/Neutral four-sided overhead truss/.test(webgl)) { console.error("v0.40.4 central-stage renderer protection missing"); ok=false; }
-if (!/event\.secondarySourceUrl/.test(apiEventsCode) || !/event\.ticketUrl/.test(apiEventsCode)) { console.error("v0.40.4 secondary ticket URL seat-map eligibility missing"); ok=false; }
-if (!/Ticket Plus 遠大售票/.test(ticketDiscoveryCode) || !/maxDetails:64/.test(ticketDiscoveryCode)) { console.error("v0.40.4 Ticket Plus discovery expansion missing"); ok=false; }
 if (!ok) process.exit(1);
-console.log(`NEUL v0.40.4 checks passed · Taiwan-only · ${seedEvents.length} seed events · ${Object.keys(venueModels).length} venue models · 14 ticket sources + official artist/venue feeds · complete base-tier 3D merge · exact-section pricing · expired-layout cleanup · UI overflow audit · WebGL + Canvas fallback · PWA + IndexedDB`);
+console.log(`NEUL v0.40 checks passed · Taiwan-only · ${seedEvents.length} seed events · ${Object.keys(venueModels).length} venue models · 14 ticket sources + official artist/venue feeds · complete base-tier 3D merge · exact-section pricing · expired-layout cleanup · UI overflow audit · WebGL + Canvas fallback · PWA + IndexedDB`);

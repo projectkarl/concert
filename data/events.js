@@ -911,18 +911,14 @@ export const seedEvents = [
   {
     id: "babymonster-choom-taipei-2026", artist: "BABYMONSTER", shortArtist: "BM", market: "KR",
     title: "2026–27 BABYMONSTER WORLD TOUR [춤 (CHOOM)] IN TAIPEI", type: "CONCERT", region: "TW", start: "2026-11-21T19:30:00+08:00", end: "2026-11-22T18:00:00+08:00", timeConfirmed: true,
-    venue: "臺北小巨蛋 Taipei Arena", city: "Taipei", statusLabel: "演唱會", ticketStatus: "UPCOMING SALE", generalSale: "2026-10-14T12:00:00+08:00", ticketing: "Ticket Plus 遠大售票", price: "NT$6,780 / 5,800 / 4,800 / 4,200 / 3,600 / 2,600 / 800；輪椅席 NT$400",
+    venue: "臺北小巨蛋 Taipei Arena", city: "Taipei", statusLabel: "演唱會", ticketStatus: "UPCOMING SALE", generalSale: "2026-10-14T12:00:00+08:00", ticketing: "Ticket Plus 遠大售票", price: "NT$6,780 / 5,800 / 4,800 / 4,200 / 3,600 / 2,600 / 800",
     sectionPriceRules: [
-      {label:"VIP A～E / 紫2B / 紫2C / 紅2B / 紅2C",price:"NT$6,780"},
-      {label:"特A～C / 紫2D / 紫2E / 紅2D / 紅2E",price:"NT$5,800"},
-      {label:"黃2A～E",price:"NT$4,800"},
-      {label:"黃3A～J",price:"NT$4,200 / 3,600 / 2,600 / 800（依官方圖排數色帶）"}
+      {label:"VIP A",price:"NT$6,780"},{label:"VIP B",price:"NT$6,780"},{label:"VIP C",price:"NT$6,780"},{label:"VIP D",price:"NT$6,780"},{label:"VIP E",price:"NT$6,780"},
+      {label:"紫2B",price:"NT$6,780"},{label:"紫2C",price:"NT$6,780"},{label:"紅2B",price:"NT$6,780"},{label:"紅2C",price:"NT$6,780"}
     ],
-    sourceName: "YG Entertainment / SuperDome 公告", sourceUrl: "https://ygfamily.com/ko/artists/babymonster/notice/258", secondarySourceUrl: "https://www.facebook.com/superdometw", verified: true, checkedAt: "2026-09-20T15:35:00+08:00",
-    seatLayoutDisplayUrl: "https://neww.tw/wp-content/uploads/2026/09/babymonster-concert-seat-1024x683.webp",
-    seatLayoutDisplaySource: "SuperDome 官方座位圖（公開轉載）",
-    tags: ["KR","K-POP","2 DAYS","TAIPEI ARENA","YG OFFICIAL","OFFICIAL SEAT MAP","AUTO SYNC"], venueModelId: "taipei-arena", venueLayoutId: "babymonster-choom-taipei-2026",
-    summary: "台北小巨蛋 11/21 19:30、11/22 18:00；主辦已公布主舞台＋中央延伸舞台、FOH、全場對號座與完整票價分區。3F 黃區同一大區依排數跨四種票價，未公布逐排界線前不假造單排精準價。",
+    sourceName: "YG Entertainment / SuperDome 公告", sourceUrl: "https://artist.ygfamily.co.kr/ARTISTS/BABYMONSTER/concert/worldtourchoom/index.html", secondarySourceUrl: "https://www.facebook.com/superdometw", verified: true, checkedAt: "2026-09-17T15:40:00+08:00",
+    tags: ["KR","K-POP","2 DAYS","TAIPEI ARENA","YG OFFICIAL","AUTO SYNC"], venueModelId: "taipei-arena", venueLayoutId: "taipei-arena-far",
+    summary: "台北小巨蛋 11/21 19:30、11/22 18:00；主辦已公布全場座位席、Ticket Plus 售票與 7 段票價。NEUL 僅把能可靠對應到官方票區名稱的價格套進 3D。",
     sessions: [{date:"2026/11/21",time:"19:30"},{date:"2026/11/22",time:"18:00"}],
     ticketTimeline: [
       {label:"Fanclub 登記",at:"2026-09-17T11:00:00+08:00",end:"2026-09-20T11:00:00+08:00"},
@@ -1007,11 +1003,7 @@ export const seedEvents = [
     sourceName: "Live Nation Taiwan", sourceUrl: "https://www.livenation.com.tw/event/bts-world-tour-arirang-in-kaohsiung-kaohsiung-tickets-edp1675887", secondarySourceUrl: "https://tixcraft.com/activity/detail/26_btskns", verified: true, checkedAt: "2026-09-17T15:25:00+08:00",
     tags: ["KR","K-POP","BTS","KAOHSIUNG STADIUM","OFFICIAL SEAT MAP"], venueModelId: "kaohsiung-stadium", venueLayoutId: "bts-arirang-kaohsiung-2026",
     seatLayoutSourceUrl: "https://static.tixcraft.com/images/activity/field/26_btskns_299447f2cd153382c7af192304de21d1.jpg",
-    sectionPriceRules:[
-      {label:"A1 / A2 / A3 / A5 / A6 / A7 / M1 / M2 / M3 / M5 / M6 / M7",price:"VIP NT$9,380"},
-      {label:"A4 / A8 / M4 / M8 / Y1–Y14 / R1–R14",price:"NT$7,980"},
-      {label:"A9–A13 / M9–M13",price:"NT$6,980"}
-    ],
+    sectionPriceRules:[{label:"VIP A1/A2/A3/M1/M2/M3",price:"VIP NT$9,380"},{label:"Y1–Y14 / R1–R14",price:"NT$7,980"},{label:"A9–A13 / M9–M13",price:"NT$6,980"}],
     sessions: [{date:"2026/11/19",time:"19:00"},{date:"2026/11/21",time:"19:00"},{date:"2026/11/22",time:"19:00"}]
   },
   {

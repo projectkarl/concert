@@ -156,63 +156,20 @@ const lsfPriceLabels={
 
 
 // BTS 2026 ARIRANG — Kaohsiung National Stadium official tixCraft map reconstruction.
-// Official map: circular center stage + four diagonal arms + complete A/M/Y/R floor families.
-// Keep this hand-calibrated event layout protected from low-confidence auto geometry overwrite.
+// The published map is a 360-degree central stage with four diagonal arms and four families
+// of floor blocks. Fixed stadium grandstands remain visible underneath as the physical venue.
 const btsVip=[
-  block('A1','VIP',-38,-43,22,18,'9380'),block('A2','VIP',0,-46,22,18,'9380'),block('A3','VIP',38,-43,22,18,'9380'),
-  block('A5','VIP',-38,-69,22,18,'9380'),block('A6','VIP',0,-72,22,18,'9380'),block('A7','VIP',38,-69,22,18,'9380'),
-  block('M1','VIP',-38,43,22,18,'9380'),block('M2','VIP',0,46,22,18,'9380'),block('M3','VIP',38,43,22,18,'9380'),
-  block('M5','VIP',-38,69,22,18,'9380'),block('M6','VIP',0,72,22,18,'9380'),block('M7','VIP',38,69,22,18,'9380')
+  block('A1','VIP',22,-27,20,22,'9380'),block('A2','VIP',0,-31,20,22,'9380'),block('A3','VIP',-22,-27,20,22,'9380'),
+  block('M1','VIP',22,27,20,22,'9380'),block('M2','VIP',0,31,20,22,'9380'),block('M3','VIP',-22,27,20,22,'9380')
 ];
-const btsYellow=[
-  block('A4','FLOOR',-68,-56,20,20,'7980'),block('A8','FLOOR',68,-56,20,20,'7980'),
-  block('M4','FLOOR',-68,56,20,20,'7980'),block('M8','FLOOR',68,56,20,20,'7980')
-];
-for(let i=0;i<14;i++){
-  const z=-91+i*14;
-  btsYellow.push(block(`Y${i+1}`,'FLOOR',-98,z,22,12,'7980'));
-  btsYellow.push(block(`R${i+1}`,'FLOOR',98,z,22,12,'7980'));
-}
-const btsGreen=[];for(let i=0;i<5;i++){
-  btsGreen.push(block(`A${i+9}`,'FLOOR',-72+i*36,-98,30,18,'6980'));
-  btsGreen.push(block(`M${i+9}`,'FLOOR',-72+i*36,98,30,18,'6980'));
-}
+const btsYellow=[];for(let i=0;i<7;i++){btsYellow.push(block(`Y${i+1}`,'FLOOR',-70,-50+i*17,24,14,'7980'));btsYellow.push(block(`R${i+1}`,'FLOOR',70,-50+i*17,24,14,'7980'));}
+const btsGreen=[];for(let i=0;i<5;i++){btsGreen.push(block(`A${i+9}`,'FLOOR',-48+i*24,-72,21,18,'6980'));btsGreen.push(block(`M${i+9}`,'FLOOR',-48+i*24,72,21,18,'6980'));}
 const btsFloor=[...btsVip,...btsYellow,...btsGreen].map(s=>({...s,rowMin:1,rowMax:28,seatEstimateMax:24,rise:2}));
 const btsTiers=[
   {id:'VIP',label:'VIP PACKAGE 平面席',short:'VIP',sections:btsVip.map(x=>x.id)},
   {id:'FLOOR',label:'官方平面票區',short:'平面',sections:[...btsYellow,...btsGreen].map(x=>x.id)}
 ];
 const btsPriceLabels={'9380':'VIP NT$9,380','7980':'NT$7,980','6980':'NT$6,980','5980':'NT$5,980','4980':'NT$4,980','3980':'NT$3,980','2980':'NT$2,980'};
-
-// BABYMONSTER CHOOM 2026 Taipei — SuperDome official map reconstruction.
-// Exact 2F prices are section-based. Yellow 3F spans four price bands by row; because the
-// organizer map does not publish reliable row cut-points, NEUL shows the official price range
-// instead of inventing per-row boundaries.
-const bmVip=[
-  block('VIP A','VIP',-42,-55,28,38,'bm6780'),block('VIP E','VIP',42,-55,28,38,'bm6780'),
-  block('VIP B','VIP',-42,-8,28,28,'bm6780'),block('VIP C','VIP',0,-8,30,28,'bm6780'),block('VIP D','VIP',42,-8,28,28,'bm6780')
-].map(s=>({...s,rowMin:1,rowMax:22,seatEstimateMax:24,rise:2}));
-const bmSpecial=[
-  block('特A','FLOOR',-45,29,30,26,'bm5800'),block('特B','FLOOR',0,29,36,26,'bm5800'),block('特C','FLOOR',45,29,30,26,'bm5800')
-].map(s=>({...s,rowMin:1,rowMax:18,seatEstimateMax:24,rise:2}));
-const bmClone=(id,group)=>{const base=taipeiArenaSections.find(s=>s.id===id);return base?{...base,group,eventActive:true}:null;};
-const bm2f=[
-  ...['紫2B','紫2C','紅2B','紅2C'].map(id=>bmClone(id,'bm6780')),
-  ...['紫2D','紫2E','紅2D','紅2E'].map(id=>bmClone(id,'bm5800')),
-  ...['黃2A','黃2B','黃2C','黃2D','黃2E'].map(id=>bmClone(id,'bm4800'))
-].filter(Boolean);
-const bm3f=['黃3A','黃3B','黃3C','黃3D','黃3E','黃3F','黃3G','黃3H','黃3I','黃3J'].map(id=>bmClone(id,'bm3range')).filter(Boolean);
-const bmSections=[...bmVip,...bmSpecial,...bm2f,...bm3f];
-const bmTiers=[
-  {id:'VIP',label:'1F VIP 官方票區',short:'VIP',sections:bmVip.map(x=>x.id)},
-  {id:'FLOOR',label:'1F 特區',short:'1F',sections:bmSpecial.map(x=>x.id)},
-  {id:'2F',label:'2F 官方售票區',short:'2F',sections:bm2f.map(x=>x.id)},
-  {id:'3F',label:'3F 黃區（票價依排數）',short:'3F',sections:bm3f.map(x=>x.id)}
-];
-const bmPriceLabels={
-  bm6780:'NT$6,780',bm5800:'NT$5,800',bm4800:'NT$4,800',
-  bm3range:'NT$4,200 / 3,600 / 2,600 / 800（依官方圖排數色帶）'
-};
 
 // T-ARA Fancon 2026 — KKTIX official seat map reconstruction for Kaohsiung Music Center.
 const taraFloor=[
@@ -561,31 +518,16 @@ export const venueLayouts = {
   'kmc-base': {id:'kmc-base',venueId:'kaohsiung-music-center',label:'海音館場館基準',stage:venueModels['kaohsiung-music-center'].stage,sourceName:'海音館官方全區觀眾席平面圖',sourceUrl:'https://www.kph.tw/venues-resources/1',notices:['官方技術圖可確認主要固定席與剖面；本版再依公開實拍把 2F 拆成 2B1–2B5、2C1–2C4 等視角差異較大的校正分段。','這些 2F 細分名稱用於視角校正，不保證每場售票系統皆採完全相同命名。']},
   'bts-arirang-kaohsiung-2026': {
     id:'bts-arirang-kaohsiung-2026',venueId:'kaohsiung-stadium',eventId:'bts-arirang-kaohsiung-2026',label:"BTS · ARIRANG 官方座位圖",
-    stage:{main:{x:0,y:-16,z:0,width:50,depth:50,radius:25,shape:'circle'},runway:null,bStage:null,centerStage:true},
+    stage:{main:{x:0,y:-16,z:0,width:46,depth:42},runway:null,bStage:null,centerStage:true},
     extraStageRects:[
-      {x:-36,y:-15,z:-36,width:12,depth:72,ry:-.785},{x:36,y:-15,z:-36,width:12,depth:72,ry:.785},
-      {x:-36,y:-15,z:36,width:12,depth:72,ry:.785},{x:36,y:-15,z:36,width:12,depth:72,ry:-.785}
+      {x:-37,y:-15,z:-37,width:13,depth:78,ry:-.785},{x:37,y:-15,z:-37,width:13,depth:78,ry:.785},
+      {x:-37,y:-15,z:37,width:13,depth:78,ry:.785},{x:37,y:-15,z:37,width:13,depth:78,ry:-.785}
     ],
-    foh:[{x:0,y:-18,z:-118,width:52,depth:13},{x:0,y:-18,z:118,width:52,depth:13}],
+    foh:[{x:0,y:-18,z:-92,width:50,depth:14},{x:0,y:-18,z:92,width:50,depth:14}],
     sections:btsFloor,tiers:btsTiers,replaceStructuralTiers:['FLOOR'],defaultTier:'VIP',defaultSection:'A2',defaultRow:8,
     sourceName:'tixCraft BTS WORLD TOUR ARIRANG 官方座位圖',sourceUrl:'https://tixcraft.com/activity/detail/26_btskns',
-    latestSeatLayoutSourceUrl:'https://static.tixcraft.com/images/activity/field/26_btskns_299447f2cd153382c7af192304de21d1.jpg',seatMapDetected:true,seatMapAutoRegenerate:true,autoGeometryPolicy:'metadata-only-unless-high-confidence',autoMapProfileExpected:'central-x',
-    priceLabels:btsPriceLabels,notices:['依拓元官方圖重建中央圓形核心舞台、四向斜向延伸台，以及完整 A1–A13、M1–M13、Y1–Y14、R1–R14 平面票區。','本場官方明列特殊舞台設計；低信心 Vision 結果只更新座位圖／Section 對應，不覆寫這份人工校正舞台幾何。','固定看台仍保留世運主場館完整結構；官方座位圖若內容雜湊改變，NEUL 會重新分析，但僅在高信心舞台輪廓成立時才建議幾何更新。']
-  },
-  'babymonster-choom-taipei-2026': {
-    id:'babymonster-choom-taipei-2026',venueId:'taipei-arena',eventId:'babymonster-choom-taipei-2026',label:'BABYMONSTER · CHOOM 官方座位圖',
-    stage:{main:{x:0,y:-16,z:-93,width:76,depth:25},runway:{x:0,y:-15,z1:-81,z2:-38,width:14},bStage:null},
-    extraStageRects:[{x:0,y:-14,z:-31,width:30,depth:22}],
-    foh:{x:0,y:-18,z:61,width:72,depth:15},sections:bmSections,tiers:bmTiers,defaultTier:'VIP',defaultSection:'VIP C',defaultRow:8,
-    sourceName:'YG Entertainment / SuperDome 官方座位圖',sourceUrl:'https://artist.ygfamily.co.kr/ARTISTS/BABYMONSTER/concert/worldtourchoom/index.html',seatMapDetected:true,autoGeometryPolicy:'manual-protected',
-    priceLabels:bmPriceLabels,
-    sectionPriceRules:[
-      {label:'VIP A～E / 紫2B / 紫2C / 紅2B / 紅2C',price:'NT$6,780'},
-      {label:'特A～C / 紫2D / 紫2E / 紅2D / 紅2E',price:'NT$5,800'},
-      {label:'黃2A～E',price:'NT$4,800'},
-      {label:'黃3A～J',price:'NT$4,200 / 3,600 / 2,600 / 800（依官方圖排數色帶）'}
-    ],
-    notices:['依 SuperDome 官方圖校正主舞台、中央延伸台末端平台、VIP A–E、特A–C、2F 與黃3A–J 相對位置。','黃3A–J 在同一大區內依排數跨 NT$4,200／3,600／2,600／800；官方圖未提供可靠逐排切點，因此 3D 顯示官方價帶範圍，不虛構單排價格。','黃2C 正前方有 FOH；輪椅席另為 NT$400，位置依主辦最新公告。']
+    latestSeatLayoutSourceUrl:'https://static.tixcraft.com/images/activity/field/26_btskns_299447f2cd153382c7af192304de21d1.jpg',seatMapDetected:true,seatMapAutoRegenerate:true,
+    priceLabels:btsPriceLabels,notices:['依拓元官方圖重建中央圓形舞台、四向斜向延伸舞台與主要平面票區。','固定看台仍保留世運主場館完整結構；票價依官方色帶與票區資料同步。','官方座位圖若內容雜湊改變，NEUL 會在下次前台同步時重新分析座位圖並更新自動草稿。']
   },
   'tara-fancon-kaohsiung-2026': {
     id:'tara-fancon-kaohsiung-2026',venueId:'kaohsiung-music-center',eventId:'tara-fancon-kaohsiung-2026',label:'T-ARA Fancon 2026 官方座位圖',
@@ -718,28 +660,18 @@ export function ensureAutoEventLayout(event={}) {
 }
 
 
-export function applyAutoSeatMapAnalysis(layoutId, analysis={}, options={}) {
+export function applyAutoSeatMapAnalysis(layoutId, analysis={}) {
   const layout=venueLayouts[layoutId];
   if(!layout || !analysis || !analysis.hash) return false;
-  if(!layout.autoGenerated && !layout.seatMapAutoRegenerate && !layout.seatMapDetected) return false;
-  const applyGeometry=options.geometry !== false;
-  const replaceSections=options.replaceSections ?? Boolean(layout.autoGenerated);
-  if(applyGeometry && analysis.stage) layout.stage=JSON.parse(JSON.stringify(analysis.stage));
-  if(applyGeometry && Array.isArray(analysis.extraStageRects)) layout.extraStageRects=JSON.parse(JSON.stringify(analysis.extraStageRects));
+  if(!layout.autoGenerated && !layout.seatMapAutoRegenerate) return false;
+  if(analysis.stage) layout.stage=JSON.parse(JSON.stringify(analysis.stage));
+  if(Array.isArray(analysis.extraStageRects)) layout.extraStageRects=JSON.parse(JSON.stringify(analysis.extraStageRects));
   if(Array.isArray(analysis.sections) && analysis.sections.length>=3){
-    if(replaceSections){
-      layout.sections=JSON.parse(JSON.stringify(analysis.sections));
-      layout.tiers=JSON.parse(JSON.stringify(analysis.tiers||[]));
-      const priceLabels={}; for(const sec of analysis.sections) if(sec.autoPrice) priceLabels[sec.group]=sec.autoPrice;
-      layout.priceLabels={...(layout.priceLabels||{}),...priceLabels};
-      layout.replaceStructuralTiers=[...new Set([...(layout.replaceStructuralTiers||[]),'FLOOR'])];
-    } else {
-      // Hand-calibrated geometry stays authoritative. OCR may still enrich exact matched
-      // sections with official prices without moving seats/stage blocks.
-      const exact={...(layout.sectionPriceLabels||{})};
-      for(const sec of analysis.sections) if(sec.ocrDerived && sec.autoPrice && sec.id) exact[String(sec.id)]=sec.autoPrice;
-      layout.sectionPriceLabels=exact;
-    }
+    layout.sections=JSON.parse(JSON.stringify(analysis.sections));
+    layout.tiers=JSON.parse(JSON.stringify(analysis.tiers||[]));
+    const priceLabels={}; for(const sec of analysis.sections) if(sec.autoPrice) priceLabels[sec.group]=sec.autoPrice;
+    layout.priceLabels={...(layout.priceLabels||{}),...priceLabels};
+    layout.replaceStructuralTiers=[...new Set([...(layout.replaceStructuralTiers||[]),'FLOOR'])];
   }
   layout.seatMapFingerprint=analysis.hash;
   layout.seatMapDetected=true;
@@ -747,11 +679,8 @@ export function applyAutoSeatMapAnalysis(layoutId, analysis={}, options={}) {
   layout.seatMapResolvedUrl=analysis.resolvedUrl||layout.sourceUrl||null;
   layout.sectionMapping=analysis.ocr?JSON.parse(JSON.stringify(analysis.ocr)):null;
   layout.autoMapProfile=analysis.profile||'unknown';
-  layout.autoStageConfidence=Number(analysis.stageConfidence||0);
-  layout.autoLegendConfidence=analysis.legendConfidence||'unverified-no-price-guess';
-  layout.autoGeometryApplied=Boolean(applyGeometry && analysis.stage);
   layout.autoMapAnalyzedAt=new Date().toISOString();
-  if(layout.sectionMapping?.mappedCount>=2 && layout.autoGenerated){layout.sourceName='官方座位圖＋OCR/Vision Section Mapping 自動生成';layout.notices=[`已從官方座位圖辨識並映射 ${layout.sectionMapping.mappedCount} 個票區標籤；其餘區塊保留 Vision 幾何草稿。`,'同名區號會優先對回場館固定幾何，避免只靠圖片像素造成距離失真。','官方座位圖內容若更新，圖片 hash 改變後會自動重算本場 3D。'];}
+  if(layout.sectionMapping?.mappedCount>=2){layout.sourceName='官方座位圖＋OCR/Vision Section Mapping 自動生成';layout.notices=[`已從官方座位圖辨識並映射 ${layout.sectionMapping.mappedCount} 個票區標籤；其餘區塊保留 Vision 幾何草稿。`,'同名區號會優先對回場館固定幾何，避免只靠圖片像素造成距離失真。','官方座位圖內容若更新，圖片 hash 改變後會自動重算本場 3D。'];}
   return true;
 }
 

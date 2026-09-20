@@ -190,14 +190,11 @@ export function mergeAndDedupe(seeds, discovered) {
 
 
 function ticketSeatMapEligible(event={}) {
-  const candidates=[event.seatLayoutSourceUrl,event.ticketUrl,event.ticketSourceUrl,event.secondarySourceUrl,event.sourceUrl].filter(Boolean);
-  for(const raw of candidates){
-    try {
-      const host=new URL(raw).hostname.toLowerCase();
-      if(/(tixcraft\.com|kktix\.(?:com|cc)|ticketplus\.com\.tw|kham\.com\.tw|ticket\.ibon\.com\.tw|famiticket\.com\.tw|tickets\.udnfunlife\.com|ticket\.mna\.com\.tw|ticket\.com\.tw|opentix\.life|tixfun\.com|go\.fansi\.me|(?:www\.)?indievox\.com|tickets\.books\.com\.tw)$/.test(host)) return true;
-    } catch {}
-  }
-  return false;
+  const raw=event.seatLayoutSourceUrl||event.sourceUrl||"";
+  try {
+    const host=new URL(raw).hostname.toLowerCase();
+    return /(tixcraft\.com|kktix\.(?:com|cc)|ticketplus\.com\.tw|kham\.com\.tw|ticket\.ibon\.com\.tw|famiticket\.com\.tw|tickets\.udnfunlife\.com|ticket\.mna\.com\.tw|ticket\.com\.tw|opentix\.life|tixfun\.com|go\.fansi\.me|(?:www\.)?indievox\.com|tickets\.books\.com\.tw)$/.test(host);
+  } catch { return false; }
 }
 
 function buildArtists(events) {
