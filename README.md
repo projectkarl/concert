@@ -83,3 +83,9 @@ Deleting the only Git repository or working folder can lose manual edits and any
 - 新增「演藝新聞」共通區塊，預設韓星，可切換韓／台／歐美／其他並依關鍵字搜尋。
 - 新聞由伺服器端讀取公開新聞 RSS 索引，不需要使用者 API key；15 分鐘 CDN 快取、失敗時顯示可重試狀態。
 - 四語介面已補上新聞區基本文字。
+
+## UX.3 venue / map policy
+- Entertainment News uses the native NEUL grid/card design.
+- Temporary outdoor plazas/parks/festival grounds remain listed but do not receive fabricated seating 3D.
+- Jason Mraz Taipei uses a flat Nangang Exhibition Hall 1 4F baseline until the official event map upgrades it.
+- Official seat-map preview can resolve directly from supported official event pages; it no longer requires a pre-filled direct image URL.

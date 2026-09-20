@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import {seedEvents} from '../data/events.js';
-import {venueModels,ensureVenueModelForEvent,ensureAutoEventLayout,getVenueLayout,baseLayoutIdForVenue,applyAutoSeatMapAnalysis} from '../data/multi-venue-geometry.js';
+import {venueModels,ensureVenueModelForEvent,ensureAutoEventLayout,getVenueLayout,baseLayoutIdForVenue,applyAutoSeatMapAnalysis,shouldGenerateEvent3D} from '../data/multi-venue-geometry.js';
 
 let ok=true;
 const app=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
@@ -46,16 +46,19 @@ if(!/rotatingKktixIndexes/.test(discovery)||!/page=\$\{i\+1\}/.test(discovery)||
 if(!/extractOfficialTicketLinks/.test(resolver)||!/pageQueue/.test(resolver)||!/sourceRefs/.test(officialApi)) fail('multi-source recursive official seat-map resolver missing');
 if(!/Date\.now\(\) - last < 3600000/.test(app)||!/setInterval\(\(\)=>\{ if\(!document\.hidden\) loadEvents/.test(app)) fail('hourly foreground official/event refresh missing');
 
-// Every current seed receives a unique event-specific layout, including unknown venues.
-const layoutIds=new Set(); let dynamicVenues=0; const layoutFailures=[];
+// Eligible recurring concert venues receive unique event-specific 3D. Temporary outdoor plazas/parks stay in the event list without fabricated seat models.
+const layoutIds=new Set(); let dynamicVenues=0,excluded3D=0; const layoutFailures=[];
 for(const e of seedEvents){
-  const venueId=ensureVenueModelForEvent(e); const layoutId=ensureAutoEventLayout(e); const layout=layoutId&&getVenueLayout(layoutId);
+  const eligible=shouldGenerateEvent3D(e); const venueId=ensureVenueModelForEvent(e); const layoutId=ensureAutoEventLayout(e); const layout=layoutId&&getVenueLayout(layoutId);
+  if(!eligible){ excluded3D++; if(venueId||layoutId) layoutFailures.push({id:e.id,reason:'outdoor exclusion failed',venueId,layoutId}); continue; }
   if(String(venueId||'').startsWith('runtime-')) dynamicVenues++;
   if(!venueId||!layoutId||!layout?.stage?.main||layout.eventId!==e.id||layoutId===baseLayoutIdForVenue(venueId)) layoutFailures.push({id:e.id,venueId,layoutId,eventId:layout?.eventId});
   layoutIds.add(layoutId);
 }
 if(layoutFailures.length) fail('current event-specific 3D failures',layoutFailures.slice(0,10));
-if(layoutIds.size!==seedEvents.length) fail('current events are sharing event-specific layouts',{events:seedEvents.length,layouts:layoutIds.size});
+const eligibleCount=seedEvents.filter(shouldGenerateEvent3D).length;
+if(layoutIds.size!==eligibleCount) fail('eligible current events are sharing event-specific layouts',{eligibleEvents:eligibleCount,layouts:layoutIds.size});
+for(const id of ['waterbomb-kaohsiung-2026','kyuhyun-penghu-music-festival-2026']){const e=seedEvents.find(x=>x.id===id);if(!e||shouldGenerateEvent3D(e)||ensureVenueModelForEvent(e)||ensureAutoEventLayout(e))fail(`temporary outdoor 3D was not filtered: ${id}`);}
 
 const future={id:'future-unknown-venue-fixture',artist:'FUTURE STAR',title:'FUTURE STAR 2027 TAIWAN',type:'CONCERT',region:'TW',start:'2027-08-01T19:00:00+08:00',venue:'NEUL Future Special Hall',city:'Taipei',sourceUrl:'https://example.com/official'};
 const futureVenue=ensureVenueModelForEvent(future),futureLayoutId=ensureAutoEventLayout(future),futureLayout=getVenueLayout(futureLayoutId);
@@ -73,4 +76,4 @@ if(upgraded.generationState!=='official-map-verified'||upgraded.autoMapProfile!=
 if(!/#b8c0c7|#d9dde1/.test(fs.readFileSync(new URL('../webgl-venue.js',import.meta.url),'utf8'))) fail('light venue floor regression');
 
 if(!ok) process.exit(1);
-console.log(`NEUL v0.40.2 complete checks passed · ${seedEvents.length} refreshed fallback events · ${layoutIds.size}/${seedEvents.length} unique custom 3D · ${dynamicVenues} runtime venue fallbacks · silent Featured 10s · daily calendar + full list · official map below preview · future special-stage auto-upgrade`);
+console.log(`NEUL v0.40.2 complete checks passed · ${seedEvents.length} refreshed fallback events · ${layoutIds.size}/${eligibleCount} eligible custom 3D · ${excluded3D} temporary outdoor exclusions · ${dynamicVenues} runtime venue fallbacks · silent Featured 10s · daily calendar + full list · official map below preview · future special-stage auto-upgrade`);

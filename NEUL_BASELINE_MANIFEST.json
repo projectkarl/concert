@@ -1,5 +1,5 @@
 {
-  "baseline": "NEUL v0.40.2 Full Coverage + Calendar + Auto Custom 3D + UX + Entertainment News",
+  "baseline": "NEUL v0.40.2 UX.3 · native news + selective 3D + direct official maps",
   "createdAt": "2026-09-20",
   "fallbackEventCount": 101,
   "requiredFeatures": [
@@ -19,24 +19,29 @@
     "mobile bottom nav without Planner button",
     "mobile view-more modal safe-area close button",
     "Entertainment News: KR/TW/US-EU/Other with Korean default and keyword search",
-    "free public entertainment-news feed proxy with no user API key"
+    "free public entertainment-news feed proxy with no user API key",
+    "native NEUL-grid Entertainment News layout",
+    "temporary outdoor/plaza/festival venue 3D exclusion",
+    "Nangang Exhibition Hall 1 4F flat-hall model for Jason Mraz",
+    "official event-page -> seat-map image direct resolver/display"
   ],
   "runtimeStateWarning": "Browser localStorage/IndexedDB seat-map analysis caches are not a substitute for the source repository. Preserve a release ZIP/Git tag before deleting a working repo.",
   "coreFileSha256": {
     "index.html": "74509e8814ffc6313e1ab5dac3a0d86947e2c71373be7afe945e3ba35b3d700e",
-    "styles.css": "91709ea986d62e0e5100abf186a0e01ad86cdbc8b51981461c2c412b748e4cad",
-    "app.js": "8a3ca91b7db44c06b088dafab7f5f53b019b1e364cc971bb085b10d389df336b",
+    "styles.css": "e9cab97ad08364c47c25da52a8d8a39449b5307a3f4b5a690766b2db5d660eb0",
+    "app.js": "4bbb496b2e87e130544a8bc9d599470bc820962a0ff4c7f09617c1ba5b85c06d",
     "webgl-venue.js": "38e66db679a5bf9ba49749122fc1e254dac65d27fc3fcb3db6813d6f261b6f14",
     "seat-map-intelligence.js": "90d0ebe9d30ec53526dd86907e4739cd3d1729c8d39db0673fbd5bbcd4e82204",
-    "data/events.js": "24d35b6dcaef755e24e4ba5a2a09da0c2af319a5d3d75d9e937fb82eab0f6f24",
-    "data/multi-venue-geometry.js": "d3a8e83da37460ef8d770ecf9afa784094c344d91525764a0c0e66272e885f64",
+    "data/events.js": "eea770da9a1ede172b96adf7565b0ae630b06c8d369b6c75e33a8724b124e9a4",
+    "data/multi-venue-geometry.js": "74fd7e696382edc031a75e233e47868920f45d0fe8d0134bcc66aa9f1f0fd8a3",
     "lib/coverage-auditor.js": "42d0eb9e3cea4cd58a8ade2ccad1c6b3bfef5744c4ef7cba40e7dfbc7b9bc602",
     "lib/taiwan-ticket-platform-discovery.js": "5768b5c20474819316c89730663e5cfdf44b9bde00547f09f4978a1983825bed",
     "api/events.js": "859d957662a31de843a510f0d5d698ef0a68f4c2ee2c146707b38cc9807a4bbd",
-    "api/seat-map-image.js": "3ba376159cdcf54319d56f36b9b4079493824e5f163990706160152f4dd3b1a4",
-    "sw.js": "faade02601e8a115a974d593e29369ceb58bb7628f46fe4acd7c02830fcd14aa",
-    "package.json": "21b4bf34c467e411a9d5bbd736785f5a0a332b43e45d7a95ad2964a43874b932",
+    "api/seat-map-image.js": "3eddc55d16410d2cab7b169a8124faa8f0b5bf42b8755cae49228d7f7954b73a",
+    "sw.js": "d9349c93098a71a19520d3471ab52b2a9f07ecd44bc9c86334e4868704069963",
+    "package.json": "cc56035911ee2ed1cd7c8ba68600c982c4180e0c4a6b67ca7836509d4e1785d2",
     "news.js": "a28025b11f2de2ef0f66f0338ea4824ee3b1f5a159248a96c4a7b9239de3bdc2",
-    "api/entertainment-news.js": "989265c0ae494cf0fe90019f61bc3df1a580ef999f283a52c01c601f2d96dab4"
+    "api/entertainment-news.js": "989265c0ae494cf0fe90019f61bc3df1a580ef999f283a52c01c601f2d96dab4",
+    "lib/official-monitor.js": "e9e3e6b28718de0969a12c56751dfcb6f63497234ed80c685eb25c2e437a6130"
   }
 }

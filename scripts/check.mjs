@@ -183,7 +183,7 @@ if (!/zh-Hant/.test(i18n) || !/locale: 'en-US'/.test(i18n) || !/locale: 'ja-JP'/
 if (!/data-lang="zh-Hant"/.test(indexHtml) || !/data-lang="en"/.test(indexHtml) || !/data-lang="ja"/.test(indexHtml) || !/data-lang="ko"/.test(indexHtml)) { console.error("language selector buttons missing"); ok=false; }
 if (!/neul-language/.test(i18n) || !/neul:languagechange/.test(i18n) || !/MutationObserver/.test(i18n)) { console.error("dynamic language switching incomplete"); ok=false; }
 if (!/Noto\+Sans\+JP/.test(indexHtml)) { console.error("Japanese font support missing"); ok=false; }
-if (!/\/i18n\.js/.test(sw) || !/neul-v0\.40\.2-(?:full-coverage-auditor|complete(?:2)?-auto3d-calendar|ux1-calendar-seat3d|ux2-entertainment-news)/.test(sw)) { console.error("PWA multilingual cache update missing"); ok=false; }
+if (!/\/i18n\.js/.test(sw) || !/neul-v0\.40\.2-(?:full-coverage-auditor|complete(?:2)?-auto3d-calendar|ux1-calendar-seat3d|ux2-entertainment-news|ux3-news-venue-policy-officialmap)/.test(sw)) { console.error("PWA multilingual cache update missing"); ok=false; }
 if (!/uiLocale/.test(app) || !/neul:languagechange/.test(app)) { console.error("locale-aware dynamic render hook missing"); ok=false; }
 
 
@@ -372,7 +372,7 @@ if(!tara40 || !/wve\.kktix\.cc/.test(tara40.sourceUrl||"") || !/assets\.kktix\.i
 if(sectionTicketLabel("tara-fancon-kaohsiung-2026","1F-C")!=="NT$5,980" || sectionTicketLabel("tara-fancon-kaohsiung-2026","2F-A")!=="NT$5,680" || sectionTicketLabel("tara-fancon-kaohsiung-2026","2F-C")!=="NT$4,680" || sectionTicketLabel("tara-fancon-kaohsiung-2026","2F-B-REAR")!=="NT$3,680"){ console.error("T-ARA section pricing regression"); ok=false; }
 if (!/hydrateSeatMapGeometry/.test(app) || !/neul-seatmap-hash/.test(app) || !/hashChanged/.test(app) || /slice\(0,14\)/.test(app) || !/i\+=1/.test(app)) { console.error("client seat-map change regeneration pipeline missing/bounded to partial list"); ok=false; }
 if (!/seatMapFound/.test(apiEventsCode) || !/sectionPricesFound/.test(apiEventsCode) || !/threeDReady/.test(apiEventsCode)) { console.error("four-stage automation status missing"); ok=false; }
-if (!/neul-v0\.40\.2-(?:full-coverage-auditor|complete(?:2)?-auto3d-calendar|ux1-calendar-seat3d|ux2-entertainment-news)/.test(sw) || !/seat-map-intelligence\.js/.test(sw)) { console.error("v0.40 service-worker cache regression"); ok=false; }
+if (!/neul-v0\.40\.2-(?:full-coverage-auditor|complete(?:2)?-auto3d-calendar|ux1-calendar-seat3d|ux2-entertainment-news|ux3-news-venue-policy-officialmap)/.test(sw) || !/seat-map-intelligence\.js/.test(sw)) { console.error("v0.40 service-worker cache regression"); ok=false; }
 
 // v0.40.1 OCR/Vision + precise section mapping + source expansion
 if (!/tesseract\.js@5/.test(seatVisionCode) || !/ocr-section-mapped/.test(seatVisionCode) || !/mapSectionTokenForQA/.test(seatVisionCode) || !/mappingScore/.test(seatVisionCode)) { console.error("OCR/Vision precise section mapping pipeline missing"); ok=false; }

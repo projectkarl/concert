@@ -389,6 +389,14 @@ const zeppTiers=[
   {id:'2F',label:'2F 看台／活動站席',short:'2F',sections:zepp2F.map(x=>x.id)}
 ];
 
+// Nangang Exhibition Center Hall 1 4F: a large flat exhibition/concert hall, not an arena bowl.
+// Keep the base deliberately flat and conservative; event-specific official maps may replace these blocks after OCR/Vision.
+const nangangHall1Floor = Array.from({length:12},(_,i)=>{
+  const col=i%4,row=Math.floor(i/4);
+  return {...block(`H1-4F-${row+1}${String.fromCharCode(65+col)}`,'FLOOR',-69+col*46,-34+row*48,38,39,'structural-floor'),rowMin:1,rowMax:28,seatEstimateMax:34,depthZ:30,rise:1,structuralOnly:true,eventFlexible:true,label:`四樓平面活動區 ${row+1}${String.fromCharCode(65+col)}（依活動配置）`};
+});
+const nangangHall1Tiers=[{id:'FLOOR',label:'四樓平面活動席（依場次配置）',short:'4F 平面',sections:nangangHall1Floor.map(x=>x.id)}];
+
 export const venueModels = {
   'taipei-dome': {
     id:'taipei-dome', name:'臺北大巨蛋', en:'TAIPEI DOME', city:'Taipei', sections:taipeiDomeSections, tiers:taipeiDomeTiers,
@@ -444,6 +452,11 @@ export const venueModels = {
     id:'tianmu-gymnasium', name:'天母體育館', en:'TIANMU GYMNASIUM', city:'Taipei', sections:tianmuSections, tiers:tianmuTiers,
     baseLayoutId:'tianmu-base', defaultTier:'BOWL', defaultSection:'M1', defaultRow:6, field:{x:100,z:78}, stage:genericStage(-94,78,24),
     sourceName:'臺北市政府場館建置資料', sourceUrl:'https://english.udd.gov.taipei/News_Content.aspx?n=DD9CEC17A97FBC64&s=5C7961D8F91A70B4&sms=72544237BBE4C5F6', confidence:'官方容量／場館級幾何＋實景校正'
+  },
+  'nangang-exhibition-hall1-4f': {
+    id:'nangang-exhibition-hall1-4f', name:'台北南港展覽館一館四樓', en:'TWTC NANGANG EXHIBITION HALL 1 · 4F', city:'Taipei', sections:nangangHall1Floor, tiers:nangangHall1Tiers,
+    baseLayoutId:'nangang-hall1-4f-base', defaultTier:'FLOOR', defaultSection:'H1-4F-2B', defaultRow:12, field:{x:165,z:118}, stage:genericStage(-105,104,28),
+    sourceName:'台北南港展覽館一館四樓／活動官方場地示意圖動態校正', sourceUrl:'https://ticket.com.tw/Application/UTK02/UTK0201_.aspx?PRODUCT_ID=P1AT93WA', confidence:'平面展演廳保守基準；本場官方示意圖取得後以 OCR/Vision 覆寫票區'
   },
   'zepp-new-taipei': {
     id:'zepp-new-taipei', name:'Zepp New Taipei', en:'ZEPP NEW TAIPEI', city:'New Taipei', sections:zeppSections, tiers:zeppTiers,
@@ -505,6 +518,8 @@ export const venueLayouts = {
   'kaohsiung-base': {id:'kaohsiung-base',venueId:'kaohsiung-arena',label:'高雄巨蛋場館基準',stage:venueModels['kaohsiung-arena'].stage,sourceName:'高雄巨蛋官方座位資訊',sourceUrl:'https://www.kaoarena.com.tw/Home/Seat',notices:['官方場館頁提供座椅配置與樓層分區；演唱會舞台、站區與封閉區需依每場官方配置更新。']},
   'tmc-base': {id:'tmc-base',venueId:'taipei-music-center',label:'北流表演廳基準',stage:venueModels['taipei-music-center'].stage,sourceName:'北流官方觀眾席配置圖',sourceUrl:'https://www.tmc.taipei/tw/hire/Unit-f8KLs',notices:['官方確認表演廳固定席約 3,100 席，1F 無固定座位；2F 實拍可見至 15 排、3F 實拍可見至 17 排附近，本站以此校正排數深度。','舞台官方尺寸約寬 30m、深 20m；本站 3D 僅保留比例關係，不把模型單位直接標成真實公尺。']},
   'ticc-base': {id:'ticc-base',venueId:'ticc',label:'TICC 大會堂基準',stage:venueModels['ticc'].stage,foh:{x:0,y:43,z:88,width:34,depth:15},sourceName:'TICC 官方大會堂座位查詢',sourceUrl:'https://www.ticc.com.tw/wSite/sp?BaseDSD=&CtUnit=100&ctNode=323&mp=1&xdUrl=%2FwSite%2Fap%2Flp_PlenaryHall.jsp',notices:['官方座位查詢以 2MF-1～5、3F-1～5、4F-1～5、5F-1～5、6F-1～5 與 L/R 包廂分區；介面同時保留 A–E 對照，方便和粉絲回報互查。','4F-B 公開實拍回報顯示控台位於區域後半，本版加入控台體積作為場館基準遮擋參考；實際設備仍依活動而異。']},
+
+  'nangang-hall1-4f-base': {id:'nangang-hall1-4f-base',venueId:'nangang-exhibition-hall1-4f',label:'南港展覽館一館四樓基準',stage:venueModels['nangang-exhibition-hall1-4f'].stage,sourceName:'活動官方場地示意圖／南港展覽館平面展演廳基準',sourceUrl:'https://ticket.com.tw/Application/UTK02/UTK0201_.aspx?PRODUCT_ID=P1AT93WA',notices:['南港展覽館一館四樓為大型平面展演空間，不套用環形體育館看台。','每場舞台、FOH、座位與票區依主辦配置不同；取得官方場地示意圖後由 OCR/Vision 自動更新本場 event-specific 3D。']},
 
   'sj83z-1983-kaohsiung-2026': {
     id:'sj83z-1983-kaohsiung-2026',venueId:'kaohsiung-music-center',eventId:'super-junior-83z-1983-kaohsiung-2026',label:'SUPER JUNIOR-83z [1983] 官方票區',
@@ -632,7 +647,21 @@ function runtimeVenueKind(event={}){
   if(/legacy|live house|warehouse|westar|space|club|音樂空間/.test(text)) return 'club';
   return 'theater';
 }
+export function shouldGenerateEvent3D(event={}){
+  const explicit=event.venueModelId;
+  if(explicit && venueModels[explicit]) return true;
+  const known=venueIdFromName(event.venue||'');
+  if(known && venueModels[known]) return true;
+  const venueText=String(event.venue||'').toLowerCase();
+  // Temporary outdoor plazas, parks and festival grounds do not benefit from a fabricated seat-view model.
+  // Keep the event in lists/calendars, but do not invent rows/seats for an ad-hoc open field.
+  if(/廣場|公園|休閒園區|海灘|沙灘|草地|碼頭|河濱|戶外廣場|festival ground|open field/.test(venueText)) return false;
+  // Other indoor/specialty spaces still get a conservative runtime model and can be upgraded by an official map later.
+  return true;
+}
+
 export function ensureVenueModelForEvent(event={}){
+  if(!shouldGenerateEvent3D(event)) return null;
   const explicit=event.venueModelId;
   if(explicit && venueModels[explicit]) return explicit;
   const known=venueIdFromName(event.venue||'');
@@ -1045,6 +1074,7 @@ export function venueIdFromName(name='') {
   if (/桃園巨蛋|桃園市立綜合體育館|taoyuan arena/.test(v)) return 'taoyuan-arena';
   if (/台大綜合體育館|臺大綜合體育館|ntu sports center/.test(v)) return 'ntu-sports-center';
   if (/天母體育館|tianmu gymnasium/.test(v)) return 'tianmu-gymnasium';
+  if (/南港展覽館(?:一館)?(?:四樓|4f)?|nangang exhibition hall(?: 1)?|twtc nangang exhibition hall/.test(v)) return 'nangang-exhibition-hall1-4f';
   if (/zepp new taipei|zepp新北|zepp 新北/.test(v)) return 'zepp-new-taipei';
   return null;
 }

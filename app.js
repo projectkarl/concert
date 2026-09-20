@@ -1,6 +1,6 @@
 import { seedEvents } from "./data/events.js";
 import { seedArtists } from "./data/artists.js";
-import { venueModels, venueLayouts, layoutsForVenue, getVenueModel, getVenueLayout, getVenueTier, getVenueSection, venueSectionPosition, venueSectionWarning, sectionTicketLabel, venueIdFromName, effectiveTiers, effectiveSections, ensureAutoEventLayout, ensureVenueModelForEvent, applyAutoSeatMapAnalysis, baseLayoutIdForVenue } from "./data/multi-venue-geometry.js";
+import { venueModels, venueLayouts, layoutsForVenue, getVenueModel, getVenueLayout, getVenueTier, getVenueSection, venueSectionPosition, venueSectionWarning, sectionTicketLabel, venueIdFromName, effectiveTiers, effectiveSections, ensureAutoEventLayout, ensureVenueModelForEvent, shouldGenerateEvent3D, applyAutoSeatMapAnalysis, baseLayoutIdForVenue } from "./data/multi-venue-geometry.js";
 import { createVenueWebGL } from "./webgl-venue.js";
 import { analyzeSeatMap, canAnalyzeSeatMap } from "./seat-map-intelligence.js";
 import { saveFollowed, saveMode, recordEventChanges, saveOfflineSnapshot, loadFollowed } from "./storage.js";
@@ -670,7 +670,7 @@ function sectionPriceRulesMarkup(rules = []) {
   return `<section class="detail-section"><h3>官方票區價位</h3><div class="section-price-grid">${clean.map(x => `<div><span>${escapeHtml(x.label)}</span><strong>${escapeHtml(x.price)}</strong></div>`).join("")}</div><p class="section-price-note">能與 NEUL 票區名稱可靠對上的價位會自動顯示在 3D；名稱不一致時只保留官方價位，不會猜測配對。</p></section>`;
 }
 
-function eventVenueModelId(event) { return event?.venueModelId || venueIdFromName(event?.venue || "") || ensureVenueModelForEvent(event); }
+function eventVenueModelId(event) { if(!shouldGenerateEvent3D(event)) return null; return event?.venueModelId || venueIdFromName(event?.venue || "") || ensureVenueModelForEvent(event); }
 function eventBaseLayoutId(event) {
   const venueId = eventVenueModelId(event);
   return venueId ? baseLayoutIdForVenue(venueId) : null;
@@ -1118,13 +1118,16 @@ function officialSeatMapSourceForCurrentLayout() {
   if(!layout?.eventId || !event) return null;
   let cachedResolved="", cachedSourcePage="";
   try{cachedResolved=localStorage.getItem(`neul-seatmap-hash:${event.id}:resolvedUrl`)||"";cachedSourcePage=localStorage.getItem(`neul-seatmap-hash:${event.id}:sourcePage`)||"";}catch{}
-  const machineRaw=event.seatLayoutSourceUrl||event.seatMapResolvedUrl||cachedResolved||layout.seatMapResolvedUrl||layout.latestSeatLayoutSourceUrl||null;
+  const refs=(event.sourceRefs||[]).map(x=>x?.url).filter(Boolean);
+  const officialPages=[event.ticketUrl,event.ticketSourceUrl,event.secondarySourceUrl,event.sourceUrl,...refs,layout.sourceUrl].filter(u=>u&&isOfficialMapUrl(u));
+  const sourcePage=event.seatLayoutResolvedFrom||cachedSourcePage||officialPages[0]||"";
+  const machineRaw=event.seatLayoutSourceUrl||event.seatMapResolvedUrl||cachedResolved||layout.seatMapResolvedUrl||layout.latestSeatLayoutSourceUrl||sourcePage||null;
   const officialDisplay=isOfficialMapUrl(event.seatLayoutDisplayUrl||'') ? event.seatLayoutDisplayUrl : null;
-  const displayRaw=officialDisplay||machineRaw;
-  const sourcePage=event.seatLayoutResolvedFrom||cachedSourcePage||event.ticketUrl||event.ticketSourceUrl||event.sourceUrl||layout.sourceUrl||machineRaw||"";
-  if(!displayRaw) return {event,layout,missing:true,raw:"",machineRaw:"",sourcePage,proxied:""};
-  const proxied=event.seatLayoutDisplayUrl||`/api/seat-map-image?url=${encodeURIComponent(machineRaw||displayRaw)}`;
-  return {event,layout,missing:false,raw:displayRaw,machineRaw:machineRaw||displayRaw,sourcePage,proxied};
+  const displayRaw=officialDisplay||event.seatLayoutSourceUrl||event.seatMapResolvedUrl||cachedResolved||layout.seatMapResolvedUrl||layout.latestSeatLayoutSourceUrl||null;
+  if(!machineRaw) return {event,layout,missing:true,raw:"",machineRaw:"",sourcePage,proxied:"",directImage:false};
+  const proxied=`/api/seat-map-image?url=${encodeURIComponent(machineRaw)}`;
+  const directImage=Boolean(displayRaw&&/\.(?:png|jpe?g|webp|avif)(?:\?|$)/i.test(displayRaw));
+  return {event,layout,missing:false,raw:displayRaw||"",machineRaw,sourcePage:sourcePage||machineRaw,proxied,directImage};
 }
 function normalizeSeatMapSectionLabel(value="") { return String(value||"").toUpperCase().replace(/[區席票座位\s_]/g,"").replace(/[（）()]/g,"").replace(/[^A-Z0-9\-\u4e00-\u9fff]/g,""); }
 function seatMapMappings(layout,event) {
@@ -1144,7 +1147,7 @@ function renderOfficialSeatMap(force=false){
   officialSeatMapPanel.hidden=false; if(officialSeatMapSourceLink){const href=source.sourcePage||source.raw;officialSeatMapSourceLink.hidden=!href;if(href)officialSeatMapSourceLink.href=safeUrl(href);}
   if(source.missing){officialSeatMapPanel.classList.add('is-pending');officialSeatMapKey=`${source.event.id}|pending`;officialSeatMapImage.removeAttribute('src');if(officialSeatMapMarker)officialSeatMapMarker.hidden=true;if(officialSeatMapSource)officialSeatMapSource.textContent=source.event.sourceName||source.event.ticketing||'官方來源持續自動驗證';if(officialSeatMapSync)officialSeatMapSync.textContent='尚未取得可顯示官方位置圖 · 系統持續自動回補';if(officialSeatMapLoading){officialSeatMapLoading.hidden=false;officialSeatMapLoading.textContent='官方位置圖尚未取得；系統會持續從售票／主辦／場館來源自動回補。';}return;}
   officialSeatMapPanel.classList.remove('is-pending'); if(officialSeatMapSource)officialSeatMapSource.textContent=source.event.seatLayoutDisplaySource||source.layout.sourceName||source.event.sourceName||source.event.ticketing||'官方位置配置'; if(officialSeatMapSync){const mapped=seatMapMappings(source.layout,source.event).length;officialSeatMapSync.textContent=mapped?`OCR/Vision 已對應 ${mapped} 區`:'官方原圖 · 等待/使用票區校正';}
-  const key=`${source.event.id}|${source.raw}`;if(!force&&key===officialSeatMapKey&&officialSeatMapImage.getAttribute('src')){updateOfficialSeatMapMarker();return;}officialSeatMapKey=key;if(officialSeatMapLoading){officialSeatMapLoading.hidden=false;officialSeatMapLoading.textContent='載入官方位置圖…';}officialSeatMapMarker.hidden=true;let triedDirect=false;officialSeatMapImage.onload=()=>{if(officialSeatMapLoading)officialSeatMapLoading.hidden=true;updateOfficialSeatMapMarker();};officialSeatMapImage.onerror=()=>{if(!triedDirect&&source.raw&&officialSeatMapImage.src!==source.raw){triedDirect=true;officialSeatMapImage.src=source.raw;return;}if(officialSeatMapLoading){officialSeatMapLoading.hidden=false;officialSeatMapLoading.textContent='官方位置圖來源已找到，但圖片暫時無法顯示；3D 仍保留已解析校正資料。';}officialSeatMapMarker.hidden=true;};officialSeatMapImage.src=source.proxied||source.raw;
+  const key=`${source.event.id}|${source.raw}`;if(!force&&key===officialSeatMapKey&&officialSeatMapImage.getAttribute('src')){updateOfficialSeatMapMarker();return;}officialSeatMapKey=key;if(officialSeatMapLoading){officialSeatMapLoading.hidden=false;officialSeatMapLoading.textContent='載入官方位置圖…';}officialSeatMapMarker.hidden=true;let triedDirect=false;officialSeatMapImage.onload=()=>{if(officialSeatMapLoading)officialSeatMapLoading.hidden=true;updateOfficialSeatMapMarker();};officialSeatMapImage.onerror=()=>{if(!triedDirect&&source.directImage&&source.raw&&officialSeatMapImage.src!==source.raw){triedDirect=true;officialSeatMapImage.src=source.raw;return;}if(officialSeatMapLoading){officialSeatMapLoading.hidden=false;officialSeatMapLoading.textContent='官方位置圖來源已找到，但圖片暫時無法顯示；3D 仍保留已解析校正資料。';}officialSeatMapMarker.hidden=true;};officialSeatMapImage.src=source.proxied||source.raw;
 }
 function handleOfficialSeatMapClick(ev){const source=officialSeatMapSourceForCurrentLayout();if(!source||!officialSeatMapImage?.naturalWidth||!officialSeatMapFrame)return;const rect=officialSeatMapFrame.getBoundingClientRect(),fw=rect.width,fh=rect.height,iw=officialSeatMapImage.naturalWidth,ih=officialSeatMapImage.naturalHeight,scale=Math.min(fw/iw,fh/ih),rw=iw*scale,rh=ih*scale,ox=(fw-rw)/2,oy=(fh-rh)/2,x=ev.clientX-rect.left,y=ev.clientY-rect.top;if(x<ox||x>ox+rw||y<oy||y>oy+rh)return;const nx=(x-ox)/rw,ny=(y-oy)/rh;let best=null,bestD=.11;for(const m of seatMapMappings(source.layout,source.event)){const d=Math.hypot(nx-Number(m.x),ny-Number(m.y));if(d<bestD){bestD=d;best=m;}}if(best&&selectMappedSeatMapSection(best.section))updateOfficialSeatMapMarker();}
 function tierById(id) { return getVenueTier(state.venueId, id, state.layoutId); }

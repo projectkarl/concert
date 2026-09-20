@@ -1180,7 +1180,7 @@ export const seedEvents = [
     title:"Jason Mraz ASIA TOUR 2026 IN TAIPEI",type:"CONCERT",region:"TW",start:"2026-11-02T19:30:00+08:00",timeConfirmed:true,
     venue:"台北南港展覽館一館四樓",city:"Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"年代售票",
     price:"NT$8,880 / 5,880 / 5,280 / 4,880 / 3,880 / 2,880",sourceName:"年代售票官方",sourceUrl:"https://ticket.com.tw/Application/UTK02/UTK0201_.aspx?PRODUCT_ID=P1AT93WA",verified:true,checkedAt:"2026-09-20T16:50:00+08:00",
-    tags:["US","POP","NANGANG EXHIBITION","OFFICIAL"],
+    tags:["US","POP","NANGANG EXHIBITION","OFFICIAL"],venueModelId:"nangang-exhibition-hall1-4f",
     summary:"年代官方頁含場地示意圖；只有在該圖成功抓取並通過 Vision/Section QA 後才標記官方圖校正 3D。"
   },
   {
