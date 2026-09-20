@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0d10" />
+  <meta name="description" content="NEUL｜台灣演唱會活動、售票提醒、場館 3D 視野與追星行程。" />
+  <meta name="application-name" content="NEUL" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="NEUL" />
+  <title>NEUL — Stay Close to What You Love</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700;800;900&family=Noto+Sans+KR:wght@400;500;600;700;800;900&family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="site-shell" id="top">
+    <header class="topbar">
+      <a class="brand-lockup" href="#top" aria-label="NEUL 首頁"><span class="wordmark">NEUL <span class="wordmark-kr">늘</span></span><span class="brand-tagline">Stay Close to What You Love.</span></a>
+      <nav class="desktop-nav" aria-label="主選單">
+        <a href="#top">Home</a>
+        <a href="#upcoming">Concerts</a>
+        <a href="#myList">Artists</a>
+        <a href="#venue3d">Venues</a>
+        <a href="#planner">Planner</a>
+        <a href="#aboutNeul">About</a>
+      </nav>
+      <div class="top-actions">
+        <button class="round-icon" id="searchFocusBtn" aria-label="搜尋">⌕</button>
+        <button class="round-icon settings-icon" id="settingsBtn" type="button" aria-label="設定" aria-haspopup="dialog" aria-controls="settingsSheet" aria-expanded="false">⚙</button>
+        <a class="pill-light" href="#myList">MY LIST</a>
+      </div>
+    </header>
+
+
+    <main class="hero-panel">
+      <div class="hero-art" aria-hidden="true"></div>
+      <div class="hero-shade" aria-hidden="true"></div>
+      <div class="hero-copy">
+        <h1>更近一點，<br>從這裡開始。</h1>
+        <p>選場館・選座位・看視角・更安心<br><span>NEUL 讓每一場心動，都值得被好好準備。</span></p>
+        <div class="micro-manifesto">
+          <span>MUSIC</span><span>PEOPLE</span><span>PLACES</span><span>A BRIGHTER YOU</span>
+        </div>
+      </div>
+      <div class="hero-script" aria-hidden="true">Same<br>Stars<br>Brighter<br>Days</div>
+      <div class="hero-note" aria-hidden="true">FOR<br>ALL<br>FANS<br>WHO KEEP GOING<br>— NEUL</div>
+
+      <div class="hero-search-wrap">
+        <label class="hero-search">
+          <span class="search-mark">⌕</span>
+          <input id="searchInput" type="search" autocomplete="off" placeholder="搜尋藝人、場館或活動（目前收錄 2026/09 起）" />
+          <button id="searchSubmit" type="button" aria-label="搜尋">→</button>
+        </label>
+        <div class="category-row" aria-label="活動篩選">
+          <button class="category active" data-type="ALL">▣ 全部活動</button>
+          <button class="category" data-type="CONCERT">♬ 演唱會</button>
+          <button class="category" data-type="FAN MEETING">♧ 見面會</button>
+          <button class="category" data-type="FESTIVAL">♬ 音樂節</button>
+          <button class="category" data-type="AWARDS">★ 頒獎典禮</button>
+          <button class="category" data-type="EXHIBITION">▧ 展覽</button>
+          <button class="category" data-type="OTHER">◌ 其他</button>
+        </div>
+      </div>
+    </main>
+
+    <aside class="upcoming-panel" id="upcoming">
+      <div class="upcoming-inner">
+        <h2>Upcoming</h2>
+        <div class="region-tabs" role="tablist" aria-label="台灣城市篩選">
+          <button class="region active" data-city="ALL">全台</button>
+          <button class="region" data-city="Taipei">台北</button>
+          <button class="region" data-city="Taoyuan">桃園</button>
+          <button class="region" data-city="Kaohsiung">高雄</button>
+        </div>
+        <div class="data-freshness" id="dataFreshness" aria-live="polite">正在確認最新活動…</div>
+        <div class="event-result-meta" id="eventResultMeta"></div>
+        <div id="eventList" class="event-list" aria-live="polite"><div class="event-skeleton"><span></span><div><i></i><i></i><i></i></div></div><div class="event-skeleton"><span></span><div><i></i><i></i><i></i></div></div><div class="event-skeleton"><span></span><div><i></i><i></i><i></i></div></div></div>
+        <button class="text-link" id="viewMoreBtn">查看更多活動 →</button>
+      </div>
+    </aside>
+
+    <section class="lower-grid">
+      <article class="featured-card" id="planner">
+        <div class="featured-side">
+          <h2>Featured<br>Concert</h2>
+          <p>不能錯過的重點活動</p>
+          <button class="pink-pill" id="featuredDetailBtn">看更多 →</button>
+        </div>
+        <div class="featured-main">
+          <div class="featured-stage"></div>
+          <div class="featured-overlay"></div>
+          <div class="featured-copy">
+            <div class="scribble" id="featuredArtistMark">RUN IT</div>
+            <h3 id="featuredTitle">WORLD TOUR<br>IN TAIPEI</h3>
+            <p id="featuredMeta">2026.12.12（六）19:00<br>臺北大巨蛋</p>
+            <div class="featured-actions">
+              <button class="pink-mini follow-feature" data-artist="Stray Kids">加入追蹤</button>
+              <button class="outline-mini" id="featuredSourceBtn">官方網站 →</button>
+            </div>
+          </div>
+          <div class="carousel-mini" aria-label="Featured Concert 輪播">
+            <span class="featured-auto-label" id="featuredAutoStatus">AUTO 10s</span>
+            <span class="featured-progress" aria-hidden="true"><i id="featuredProgressBar"></i></span>
+            <span id="featuredCount">1/10</span>
+            <button type="button" id="featuredPrevBtn" aria-label="上一場 Featured Concert">‹</button>
+            <button type="button" id="featuredNextBtn" aria-label="下一場 Featured Concert">›</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="my-list-card" id="myList">
+        <div class="card-head-row">
+          <h2>My List</h2>
+          <button class="text-link" id="clearFollowingBtn">藝人資料 →</button>
+        </div>
+        <div class="mini-tabs"><button class="active">追蹤的藝人</button><button>我的活動</button></div>
+        <div class="pwa-mini-status"><span class="pwa-dot"></span><span id="pwaStatus">可加入主畫面</span></div>
+        <div class="artist-bubbles" id="artistBubbles"></div>
+        <blockquote>“Good Music.<br>Better Days.”</blockquote>
+        <span class="tiny-sign">NEUL</span>
+      </article>
+    </section>
+
+    <section class="brand-story" id="aboutNeul" aria-labelledby="aboutNeulTitle">
+      <div class="brand-story-mark" aria-hidden="true">늘</div>
+      <div class="brand-story-copy">
+        <span class="eyebrow">WHY NEUL</span>
+        <h2 id="aboutNeulTitle">Stay Close to What You Love.</h2>
+        <p><strong>NEUL</strong> 取自韓文「<strong>늘</strong>」，意思是「總是、一直」。追星不只是一場演出的那一天，而是從等待公告、準備搶票、選擇座位，到真正走進場館的每一個時刻。</p>
+        <p>NEUL 想做的，是把這些零散的時刻整理得更清楚，讓你一直離喜歡的人、音樂與現場更近一點。</p>
+        <div class="fan-project-egg">
+          <button class="diamond-easter-egg" id="diamondEgg" type="button" aria-expanded="false" aria-controls="fanProjectNote" title="一個小彩蛋">💎</button>
+          <p class="fan-project-note" id="fanProjectNote" hidden>這是一個由喜歡追星的人，為同樣喜歡現場、搶票與選位的人慢慢做起來的獨立專案。NEUL 與藝人、經紀公司、主辦單位及售票平台沒有隸屬關係，只希望讓每一次出發前的準備更清楚一點。</p>
+        </div>
+      </div>
+      <div class="brand-story-tags" aria-label="NEUL 品牌概念">
+        <span>ALWAYS</span><span>MUSIC</span><span>MOMENTS</span><span>CLOSER</span>
+      </div>
+    </section>
+
+    <section class="venue-section" id="venue3d">
+      <div class="venue-intro">
+        <span class="eyebrow">VENUE 3D</span>
+        <h2 id="venueTitle">台北大巨蛋</h2>
+        <p>探索場館 · 選擇座位 · 預覽視角</p>
+        <button class="pink-pill" id="open3dBtn">進入3D場館 →</button>
+        <div class="venue-event-demo" id="iveTaipeiDemo" hidden>
+          <span>RECENT DEMO</span>
+          <strong>IVE · SHOW WHAT I AM</strong>
+          <small>台北小巨蛋 · 官方票區圖重建</small>
+          <button type="button" id="iveDemoBtn">載入 IVE 3D 示範 →</button>
+        </div>
+      </div>
+      <div class="venue-render-wrap">
+        <canvas id="venueOverviewCanvas" class="venue-render" aria-label="目前選擇場館的 3D 區域模型"></canvas>
+        <span class="venue-stage-tag">STAGE</span>
+        <span class="selected-zone">106</span>
+        <span class="selected-price" id="selectedPrice" hidden></span>
+      </div>
+      <div class="venue-controls">
+        <label for="venueSelect">場館</label>
+        <select id="venueSelect" aria-label="選擇場館"></select>
+        <label for="layoutSelect">活動配置</label>
+        <select id="layoutSelect"></select>
+        <label>座位層級</label>
+        <div class="floor-tabs venue-tier-tabs" id="floorTabs"></div>
+        <label for="sectionSelect">區域</label>
+        <select id="sectionSelect"></select>
+        <label for="rowSelect">排數／深度</label>
+        <select id="rowSelect" aria-label="選擇排數"></select>
+        <div class="seat-detail-grid">
+          <label for="seatNumberInput">座號 <small>左右位置估算</small><input id="seatNumberInput" type="number" inputmode="numeric" min="1" max="60" placeholder="例 14"></label>
+          <label for="viewerHeightSelect">身高 <select id="viewerHeightSelect"><option value="150">150 cm</option><option value="160" selected>160 cm</option><option value="170">170 cm</option><option value="180">180 cm</option></select></label>
+        </div>
+        <label>觀看狀態</label>
+        <div class="view-mode-tabs" id="postureTabs"><button class="active" data-posture="seated">坐著</button><button data-posture="standing">站著</button></div>
+        <label>視野模式</label>
+        <div class="view-mode-tabs lens-tabs" id="lensTabs"><button class="active" data-lens="eye">肉眼</button><button data-lens="phone1">1×</button><button data-lens="phone2">2×</button><button data-lens="phone5">5×</button></div>
+        <div class="venue-confidence" id="venueConfidence">官方配置已核對 · 區域幾何模擬</div>
+        <button class="view-button" id="seatPreviewBtn">查看視角 →</button>
+      </div>
+      <div class="seat-preview-card">
+        <div class="preview-title">座位視角預覽（<span id="previewSeatLabel">下層 · 106區 18排</span>）<button id="expandPreviewBtn" aria-label="放大預覽">↗</button></div>
+        <div class="seat-preview-reference-grid">
+          <div class="seat-preview-img"><canvas id="seatPreviewCanvas" aria-label="依所選座位區即時計算的舞台視角模擬"></canvas></div>
+          <div class="official-seatmap-inline" id="officialSeatMapPanel" hidden>
+            <div class="official-seatmap-head"><span>官方座位配置參考</span><a id="officialSeatMapSourceLink" href="#" target="_blank" rel="noopener noreferrer">官方來源 ↗</a></div>
+            <div class="official-seatmap-frame" id="officialSeatMapFrame">
+              <img id="officialSeatMapImage" alt="本場演唱會官方座位圖" loading="lazy" decoding="async">
+              <button class="official-seatmap-marker" id="officialSeatMapMarker" type="button" hidden aria-label="目前選擇票區"></button>
+              <div class="official-seatmap-loading" id="officialSeatMapLoading">載入官方座位圖…</div>
+            </div>
+            <div class="official-seatmap-meta"><span id="officialSeatMapSource"></span><span id="officialSeatMapSync"></span></div>
+          </div>
+        </div>
+        <div class="seat-warning" id="seatWarning" hidden></div>
+        <p>視角方向依官方場館資料與可取得的活動配置重建；未有本場專屬舞台圖時採場館基準，非實際拍攝畫面。</p>
+        <div class="preview-tools"><span>↔ 左右觀看</span><span>⊕ 放大縮小</span><span>↻ 拖曳旋轉</span></div>
+      </div>
+      <div class="venue-tip"><span>TIP</span> 場館分區依官方資料重建；有本場售票配置時再疊加舞台方向。實際視野仍受舞台、欄杆、控台與設備影響。</div>
+    </section>
+
+    <footer class="footer">
+      <span>活動、售票、入場及視野資訊僅供參考，請以藝人、主辦單位、場館與官方售票平台最新公告為準。</span>
+      <span>資料約每 6 小時檢查可用官方來源 · 每日另做一次排程同步</span>
+      <span>NEUL · Stay Close to What You Love.</span>
+    </footer>
+  </div>
+
+  <div class="detail-backdrop" id="detailBackdrop" hidden></div>
+  <aside class="detail-drawer" id="detailDrawer" aria-hidden="true">
+    <button class="drawer-close" id="detailClose" aria-label="關閉">×</button>
+    <div id="detailContent"></div>
+  </aside>
+
+  <div class="viewer-modal" id="viewerModal" hidden>
+    <div class="viewer-toolbar">
+      <div><b>VENUE 3D</b><span id="viewerSeatLabel">TAIPEI DOME · 106區 18排</span></div>
+      <button id="viewerClose">×</button>
+    </div>
+    <canvas id="venueCanvas" aria-label="臺北大巨蛋互動 3D 場館"></canvas>
+    <div class="viewer-lens-chip" id="viewerLensChip">肉眼 · 160cm · 坐著</div>
+    <div class="viewer-price-chip" id="viewerPriceChip" hidden></div>
+    <div class="viewer-help" id="viewerHelp">拖曳觀看 · 滾輪／雙指縮放 · 官方配置校正／模擬視角</div>
+  </div>
+
+  <nav class="mobile-bottom" aria-label="手機導覽">
+    <a href="#top"><span>⌂</span>首頁</a><a href="#upcoming"><span>♬</span>活動</a><a href="#venue3d"><span>◉</span>視野</a><a href="#planner"><span>✓</span>作戰</a><a href="#myList"><span>♡</span>我的</a>
+  </nav>
+
+
+  <div class="events-modal" id="allEventsModal" hidden aria-hidden="true">
+    <section class="events-modal-card" role="dialog" aria-modal="true" aria-labelledby="allEventsTitle">
+      <button class="events-modal-close" id="allEventsClose" type="button" aria-label="關閉">×</button>
+      <span class="eyebrow">UPCOMING</span>
+      <h2 id="allEventsTitle">所有近期活動</h2>
+      <p class="events-modal-lead">可依地區、場館／藝人關鍵字、月份或日期區間搜尋；未來新增縣市也會自動加入選單。</p>
+      <div class="events-location-filters" aria-label="活動地區搜尋">
+        <label class="events-search-wide"><span>搜尋</span><input id="eventsAreaSearch" type="search" autocomplete="off" placeholder="輸入縣市、場館或藝人"></label>
+        <label><span>地區</span><select id="eventsCityFilter"><option value="ALL">全台</option></select></label>
+      </div>
+      <div class="events-time-filters" aria-label="活動時間篩選">
+        <label><span>月份</span><input id="eventsMonthFilter" type="month"></label>
+        <label><span>開始日期</span><input id="eventsStartFilter" type="date"></label>
+        <label><span>結束日期</span><input id="eventsEndFilter" type="date"></label>
+        <button type="button" id="eventsFilterReset">清除篩選</button>
+      </div>
+      <div class="events-quick-filter" role="group" aria-label="快速時間篩選">
+        <button type="button" data-events-window="all" class="active">全部日期</button>
+        <button type="button" data-events-window="30">未來 30 天</button>
+        <button type="button" data-events-window="90">未來 90 天</button>
+      </div>
+      <div class="events-modal-summary" id="eventsModalSummary"></div>
+      <section class="events-calendar-shell" aria-label="每日演唱會行事曆">
+        <div class="events-calendar-head">
+          <button type="button" id="eventsCalendarPrev" aria-label="上個月">‹</button>
+          <div><span>DAILY CONCERT CALENDAR</span><strong id="eventsCalendarMonthLabel">—</strong></div>
+          <button type="button" id="eventsCalendarNext" aria-label="下個月">›</button>
+        </div>
+        <div class="events-calendar-weekdays" aria-hidden="true"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+        <div class="events-calendar-grid" id="eventsCalendarGrid"></div>
+      </section>
+      <div class="events-agenda-head"><strong id="eventsAgendaDateLabel">選擇日期</strong><span>點活動可查看官方來源與本場 3D</span></div>
+      <div class="events-modal-list events-agenda-list" id="eventsAgendaList"></div>
+      <div class="events-original-list-head"><strong>所有符合條件活動</strong><span>保留原本清單，可直接往下瀏覽全部活動</span></div>
+      <div class="events-modal-list" id="eventsModalList"></div>
+    </section>
+  </div>
+
+  <div class="settings-backdrop" id="settingsBackdrop" hidden></div>
+  <section class="settings-sheet" id="settingsSheet" hidden aria-modal="true" role="dialog" aria-labelledby="settingsTitle">
+    <button class="settings-close" id="settingsClose" type="button" aria-label="關閉設定">×</button>
+    <span class="eyebrow">SETTINGS</span>
+    <h2 id="settingsTitle">設定</h2>
+    <div class="settings-group">
+      <div class="settings-group-head"><b>語言</b><span>切換介面顯示語言</span></div>
+      <div class="language-choice" role="group" aria-label="語言">
+        <button type="button" data-lang="zh-Hant">繁中</button>
+        <button type="button" data-lang="en">EN</button>
+        <button type="button" data-lang="ja">日本語</button>
+        <button type="button" data-lang="ko">한국어</button>
+      </div>
+    </div>
+    <div class="settings-group">
+      <div class="settings-group-head"><b>外觀</b><span>圖片與 3D 維持原始色彩</span></div>
+      <div class="theme-choice" role="group" aria-label="外觀模式">
+        <button id="themeDarkBtn" type="button" data-theme="dark">深色</button>
+        <button id="themeLightBtn" type="button" data-theme="light">亮色</button>
+      </div>
+    </div>
+    <div class="settings-group">
+      <div class="settings-group-head"><b>加入主畫面</b><span>以 PWA 方式開啟 NEUL</span></div>
+      <button class="settings-install" id="installAppBtn" type="button">安裝 / 加入主畫面</button>
+    </div>
+    <p class="settings-note">提醒功能維持獨立入口，可從頁面右上方的提醒按鈕開啟。</p>
+  </section>
+
+  <div class="install-backdrop" id="installBackdrop" hidden></div>
+  <section class="install-sheet" id="installSheet" hidden aria-modal="true" role="dialog" aria-labelledby="installTitle">
+    <div class="install-sheet-handle" aria-hidden="true"></div>
+    <button class="install-close" id="installClose" type="button" aria-label="關閉安裝說明">×</button>
+    <div class="install-app-mark"><img src="/icons/icon-192.png" alt="" width="64" height="64"><div><b>NEUL</b><span>追星作戰室</span></div></div>
+    <h2 id="installTitle">加入主畫面</h2>
+    <div class="install-sheet-body" id="installBody"></div>
+  </section>
+
+  <script src="/i18n.js"></script>
+  <script type="module" src="/app.js"></script>
+  <script type="module" src="/pwa.js"></script>
+  <script type="module" src="/enhancements.js"></script>
+</body>
+</html>
