@@ -1,1 +1,17 @@
-{"name":"neul-v056","private":true,"type":"module","engines":{"node":"22.x"},"scripts":{"check":"node qa.mjs"}}
+{
+  "name": "neul-mvp",
+  "version": "0.40.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev",
+    "check": "node scripts/check.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@vercel/blob": "^2.3.0",
+    "web-push": "^3.6.7"
+  }
+}
