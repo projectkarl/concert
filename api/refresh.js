@@ -20,12 +20,6 @@ export default async function handler(req, res) {
       upstream: eventsBody.upstream,
       autoUpdateEnabled: eventsBody.autoUpdateEnabled,
       discoveredEvents: eventsBody.discovery?.discoveredCount || 0,
-      coverage: eventsBody.coverage ? {
-        futureEvents: eventsBody.coverage.auditor?.futureEvents || 0,
-        crossVerified: eventsBody.coverage.auditor?.crossVerified || 0,
-        detectedCoverageGaps: eventsBody.coverage.auditor?.detectedCoverageGaps || 0,
-        sourceWarnings: eventsBody.coverage.sourceWarnings || 0
-      } : null,
       officialMonitor: officialBody ? { monitored: officialBody.monitored, live: officialBody.live, review: officialBody.review, unreachable: officialBody.unreachable } : { available: false },
       at: new Date().toISOString()
     });

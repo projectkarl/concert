@@ -1,4 +1,4 @@
-const VERSION = "neul-v0.40.11-full-coverage-auditor";
+const VERSION = "neul-v0.40.10-seatmap-resolver-v2";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const APP_SHELL = [

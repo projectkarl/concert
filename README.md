@@ -105,7 +105,3 @@ v0.40.8 adds automatic official-source refresh and the lifecycle `ticket countdo
 
 ## v0.40.10 Seat-map resolver
 官方座位圖採 recursive-v2 多來源自動解析：完整 sourceRefs、JSON/lazy asset、detail-page follow、hash cache 與每小時缺圖優先輪替驗證。一次抓取失敗不代表官方未公布。
-
-## v0.40.11 Full Coverage Auditor
-
-v0.40.11 no longer treats the fallback event count as the Taiwan concert total. It cross-checks ticket/promoter discovery with independent official venue calendars (TMC, TICC, Zepp New Taipei, KPMC/LIVE WAREHOUSE, plus the existing Taipei Arena and Kaohsiung Arena sources). Venue-only events are backfilled and flagged for ticket-source follow-up. New activities still automatically receive event-specific 3D drafts and upgrade when official seat maps/prices are found and pass QA.

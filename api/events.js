@@ -5,8 +5,6 @@ import { discoverKaohsiungArena } from "../lib/kaohsiung-arena-discovery.js";
 import { discoverTaipeiArena } from "../lib/taipei-arena-discovery.js";
 import { discoverArtistOfficialTours } from "../lib/artist-official-discovery.js";
 import { discoverTaiwanTicketPlatforms } from "../lib/taiwan-ticket-platform-discovery.js";
-import { discoverVenueCalendars } from "../lib/venue-calendar-discovery.js";
-import { auditCoverage } from "../lib/coverage-auditor.js";
 
 const dateKey = iso => {
   if (!iso) return "";
@@ -248,7 +246,7 @@ function buildArtists(events) {
   });
 }
 
-function coverageSnapshot(discovery = {}, events = [], auditor = null) {
+function coverageSnapshot(discovery = {}, events = []) {
   const health = Array.isArray(discovery.sourceHealth) ? discovery.sourceHealth : [];
   const emptySources = health.filter(x => Number(x.discovered || 0) === 0).map(x => x.name);
   const sourceWarnings = (discovery.indexErrors?.length || 0) + (discovery.pageErrors?.length || 0);
@@ -262,15 +260,7 @@ function coverageSnapshot(discovery = {}, events = [], auditor = null) {
     emptySources,
     officialMapCount,
     priceMappedCount,
-    auditor: auditor ? {
-      futureEvents: auditor.futureEvents,
-      crossVerified: auditor.crossVerified,
-      singleSource: auditor.singleSource,
-      venueOnlyNeedsTicketBackfill: auditor.venueOnlyNeedsTicketBackfill,
-      detectedCoverageGaps: auditor.detectedCoverageGaps,
-      sourceHealthWarnings: auditor.sourceHealthWarnings
-    } : null,
-    note: 'No public source can guarantee every Taiwan performance. NEUL reconciles ticket platforms, promoter/artist pages and independent official venue calendars; detected gaps are automatically backfilled and flagged for ticket-source follow-up.'
+    note: 'No public source can guarantee every Taiwan performance. NEUL reconciles multiple official sources and exposes source health instead of claiming absolute completeness.'
   };
 }
 
@@ -280,13 +270,12 @@ export default async function handler(req, res) {
 
   let discovery = { events: [], checkedUrls: 0, indexErrors: [], pageErrors: [], source: "Taiwan official public pages" };
   let autoUpdateError = null;
-  const [liveNationResult, kaohsiungResult, taipeiArenaResult, artistOfficialResult, ticketPlatformResult, venueCalendarResult] = await Promise.allSettled([
+  const [liveNationResult, kaohsiungResult, taipeiArenaResult, artistOfficialResult, ticketPlatformResult] = await Promise.allSettled([
     discoverLiveNationTaiwan(),
     discoverKaohsiungArena(),
     discoverTaipeiArena(),
     discoverArtistOfficialTours(),
-    discoverTaiwanTicketPlatforms(),
-    discoverVenueCalendars()
+    discoverTaiwanTicketPlatforms()
   ]);
   const sources = [];
   const errors = [];
@@ -329,20 +318,10 @@ export default async function handler(req, res) {
     discovery.sourceHealth = d.sourceHealth || [];
     sources.push(d.source || "台灣售票平台");
   } else errors.push(ticketPlatformResult.reason?.message || "Taiwan ticket platforms unavailable");
-  if (venueCalendarResult.status === "fulfilled") {
-    const d = venueCalendarResult.value;
-    discovery.events.push(...(d.events || []));
-    discovery.checkedUrls += d.checkedUrls || 0;
-    discovery.indexErrors.push(...(d.indexErrors || []));
-    discovery.pageErrors.push(...(d.pageErrors || []));
-    discovery.venueSourceHealth = d.sourceHealth || [];
-    sources.push(d.source || "官方場館行事曆");
-  } else errors.push(venueCalendarResult.reason?.message || "Venue calendars unavailable");
   if (errors.length) autoUpdateError = errors.join(" · ");
   discovery.source = sources.join(" + ") || "curated fallback";
 
-  const mergedEvents = mergeAndDedupe(seedEvents, discovery.events || []);
-  const events = mergedEvents.map(event => {
+  const events = mergeAndDedupe(seedEvents, discovery.events || []).map(event => {
     const seatMapFound = Boolean(event.seatLayoutSourceUrl);
     const sectionPricesFound = Boolean(event.sectionPriceRules?.length);
     const explicitEventLayout = Boolean(event.venueLayoutId);
@@ -377,9 +356,6 @@ export default async function handler(req, res) {
       }
     };
   });
-  const combinedSourceHealth = [...(discovery.sourceHealth || []), ...(discovery.venueSourceHealth || [])];
-  discovery.sourceHealth = combinedSourceHealth;
-  const coverageAudit = auditCoverage({events, rawDiscovered: discovery.events || [], sourceHealth: combinedSourceHealth});
   const artists = buildArtists(events);
   const updatedAt = new Date();
   const nextUpdateAt = new Date(updatedAt.getTime() + 3600000);
@@ -395,13 +371,9 @@ export default async function handler(req, res) {
       checkedUrls: discovery.checkedUrls || 0,
       discoveredCount: discovery.events?.length || 0,
       sourceWarnings: (discovery.indexErrors?.length || 0) + (discovery.pageErrors?.length || 0) + (autoUpdateError ? 1 : 0),
-      sourceHealth: discovery.sourceHealth || [],
-      venueSourceHealth: discovery.venueSourceHealth || [],
-      coverageGaps: coverageAudit.gaps || [],
-      needsTicketBackfill: coverageAudit.needsTicketBackfill || []
+      sourceHealth: discovery.sourceHealth || []
     },
-    coverage: coverageSnapshot(discovery, events, coverageAudit),
-    coverageAudit,
+    coverage: coverageSnapshot(discovery, events),
     count: events.length,
     artistCount: artists.length,
     events,
