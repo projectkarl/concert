@@ -191,7 +191,7 @@ if (!/zh-Hant/.test(i18n) || !/locale: 'en-US'/.test(i18n) || !/locale: 'ja-JP'/
 if (!/data-lang="zh-Hant"/.test(indexHtml) || !/data-lang="en"/.test(indexHtml) || !/data-lang="ja"/.test(indexHtml) || !/data-lang="ko"/.test(indexHtml)) { console.error("language selector buttons missing"); ok=false; }
 if (!/neul-language/.test(i18n) || !/neul:languagechange/.test(i18n) || !/MutationObserver/.test(i18n)) { console.error("dynamic language switching incomplete"); ok=false; }
 if (!/Noto\+Sans\+JP/.test(indexHtml)) { console.error("Japanese font support missing"); ok=false; }
-if (!/\/i18n\.js/.test(sw) || !/neul-v0\.40\.(?:11-full-coverage-auditor|12-calendar-seatmap-featured|13-official-map-silent-featured|14-official-map-silent-featured|15-v11-3d-layout)/.test(sw)) { console.error("PWA multilingual cache update missing"); ok=false; }
+if (!/\/i18n\.js/.test(sw) || !/neul-v0\.40\.(?:11-full-coverage-auditor|12-calendar-seatmap-featured|13-official-map-silent-featured|14-official-map-silent-featured|16-official-map-below-preview)/.test(sw)) { console.error("PWA multilingual cache update missing"); ok=false; }
 if (!/uiLocale/.test(app) || !/neul:languagechange/.test(app)) { console.error("locale-aware dynamic render hook missing"); ok=false; }
 
 
@@ -380,7 +380,7 @@ if(!tara40 || !/wve\.kktix\.cc/.test(tara40.sourceUrl||"") || !/assets\.kktix\.i
 if(sectionTicketLabel("tara-fancon-kaohsiung-2026","1F-C")!=="NT$5,980" || sectionTicketLabel("tara-fancon-kaohsiung-2026","2F-A")!=="NT$5,680" || sectionTicketLabel("tara-fancon-kaohsiung-2026","2F-C")!=="NT$4,680" || sectionTicketLabel("tara-fancon-kaohsiung-2026","2F-B-REAR")!=="NT$3,680"){ console.error("T-ARA section pricing regression"); ok=false; }
 if (!/hydrateSeatMapGeometry/.test(app) || !/neul-seatmap-hash/.test(app) || !/hashChanged/.test(app) || /slice\(0,14\)/.test(app) || !/i\+=1/.test(app)) { console.error("client seat-map change regeneration pipeline missing/bounded to partial list"); ok=false; }
 if (!/seatMapFound/.test(apiEventsCode) || !/sectionPricesFound/.test(apiEventsCode) || !/threeDReady/.test(apiEventsCode)) { console.error("four-stage automation status missing"); ok=false; }
-if (!/neul-v0\.40\.(?:11-full-coverage-auditor|12-calendar-seatmap-featured|13-official-map-silent-featured|14-official-map-silent-featured|15-v11-3d-layout)/.test(sw) || !/seat-map-intelligence\.js/.test(sw)) { console.error("v0.40.4 service-worker cache regression"); ok=false; }
+if (!/neul-v0\.40\.(?:11-full-coverage-auditor|12-calendar-seatmap-featured|13-official-map-silent-featured|14-official-map-silent-featured|16-official-map-below-preview)/.test(sw) || !/seat-map-intelligence\.js/.test(sw)) { console.error("v0.40.4 service-worker cache regression"); ok=false; }
 
 // v0.40.1 OCR/Vision + precise section mapping + source expansion
 if (!/tesseract\.js@5/.test(seatVisionCode) || !/ocr-section-mapped/.test(seatVisionCode) || !/mapSectionTokenForQA/.test(seatVisionCode) || !/mappingScore/.test(seatVisionCode)) { console.error("OCR/Vision precise section mapping pipeline missing"); ok=false; }
@@ -496,7 +496,7 @@ if(!/slice\(0, 10\)/.test(app) || !/(?:setInterval\(\(\)=>\{ if\(!document\.hidd
 if(/layout\.id===state\.layoutId\) return true; \/\/ archive\/deep-link/.test(app) || !/nextEventLayout/.test(app) || !/eventLifecycle\(event,now\)\.ended/.test(app)){console.error("v0.40.8 archived 3D layout cleanup missing");ok=false;}
 if(!/s-maxage=3600/.test(apiEventsCode) || !/nextUpdateAt = new Date\(updatedAt\.getTime\(\) \+ 3600000\)/.test(apiEventsCode)){console.error("v0.40.8 hourly event source cache/update metadata missing");ok=false;}
 if(!/ticketUrl,seed\.ticketSourceUrl/.test(officialMonitorCode) || !/saleDateOk/.test(officialMonitorCode)){console.error("v0.40.8 multi-source sale verification missing");ok=false;}
-if(!/neul-v0\.40\.(?:11-full-coverage-auditor|12-calendar-seatmap-featured|13-official-map-silent-featured|14-official-map-silent-featured|15-v11-3d-layout)/.test(sw) || !/lib\/ticket-lifecycle\.js/.test(sw)){console.error("v0.40.8 service worker cache version/module missing");ok=false;}
+if(!/neul-v0\.40\.(?:11-full-coverage-auditor|12-calendar-seatmap-featured|13-official-map-silent-featured|14-official-map-silent-featured|16-official-map-below-preview)/.test(sw) || !/lib\/ticket-lifecycle\.js/.test(sw)){console.error("v0.40.8 service worker cache version/module missing");ok=false;}
 if(!/Date\.now\(\) - last < 3600000/.test(app) || !/renderLayoutOptions\(\);\n  updateFreshness/.test(app)){console.error("v0.40.8 one-hour official recheck / immediate 3D selector refresh missing");ok=false;}
 
 
@@ -541,17 +541,12 @@ if(!/discoverVenueCalendars/.test(apiEventsCode)||!/auditCoverage/.test(apiEvent
 const gapAudit=auditCoverage({events:[{id:'gap',artist:'GAP BAND',title:'GAP BAND LIVE',start:'2026-12-31T19:00:00+08:00',venue:'Zepp New Taipei',sourceName:'Zepp New Taipei 官方 Schedule',sourceUrl:'https://www.zepp.co.jp/test',sourceRefs:[{name:'Zepp New Taipei 官方 Schedule',url:'https://www.zepp.co.jp/test'}]}],rawDiscovered:[{artist:'GAP BAND',title:'GAP BAND LIVE',start:'2026-12-31T19:00:00+08:00',venue:'Zepp New Taipei',sourceName:'Zepp New Taipei 官方 Schedule',sourceUrl:'https://www.zepp.co.jp/test'}],sourceHealth:[]});
 if(gapAudit.detectedCoverageGaps!==1 || !gapAudit.gaps[0]?.backfilled){console.error('v0.40.11 venue-only coverage gap detection failed',gapAudit);ok=false;}
 if(!/rotatingKktixIndexes/.test(ticketDiscoveryCode)||!/promoterRootsChecked/.test(ticketDiscoveryCode)||!/offtimemusic\.kktix\.cc/.test(ticketDiscoveryCode)||!/ldh\.kktix\.cc/.test(ticketDiscoveryCode)){console.error('v0.40.11 KKTIX deep/promoter discovery missing');ok=false;}
-if(!/neul-v0\.40\.(?:11-full-coverage-auditor|12-calendar-seatmap-featured|13-official-map-silent-featured|14-official-map-silent-featured|15-v11-3d-layout)/.test(sw)){console.error('v0.40.11 service worker version missing');ok=false;}
+if(!/neul-v0\.40\.(?:11-full-coverage-auditor|12-calendar-seatmap-featured|13-official-map-silent-featured|14-official-map-silent-featured|16-official-map-below-preview)/.test(sw)){console.error('v0.40.11 service worker version missing');ok=false;}
 
 
 // v0.40.12 visible calendar + original list + seat-map reference + robust 10s Featured autoplay
 if(!indexHtml.includes('id="eventsAgendaList"') || !indexHtml.includes('id="eventsModalList"') || !indexHtml.includes('events-browser-layout') || !app.includes('eventsAgendaList') || !app.includes('eventModalRowMarkup')) { console.error('v0.40.14 calendar/full-list coexistence missing'); ok=false; }
-{
-  const previewPos=indexHtml.indexOf('id="seatPreviewCanvas"');
-  const explainPos=indexHtml.indexOf('視角方向依官方場館資料與可取得的活動配置重建');
-  const officialPos=indexHtml.indexOf('id="officialSeatMapPanel"');
-  if(previewPos<0 || explainPos<previewPos || officialPos<explainPos || indexHtml.includes('seat-preview-reference-grid') || !/官方(?:位置／)?座位配置參考/.test(indexHtml) || !app.includes("classList.add('is-pending')") || !app.includes(':resolvedUrl')) { console.error('v0.40.15 v0.40.11-style preview + official-map-below-description regression'); ok=false; }
-}
+if(!indexHtml.includes('official-seatmap-below-preview') || !/官方(?:位置／)?座位配置參考/.test(indexHtml) || !app.includes("classList.add('is-pending')") || !app.includes(':resolvedUrl')) { console.error('v0.40.16 official seat-map below-preview/pending state missing'); ok=false; }
 if(!indexHtml.includes('featuredProgressBar') || !app.includes('featuredAutoDeadline') || !app.includes('featuredProgressTimer') || !/10000/.test(app)) { console.error('v0.40.12 Featured 10-second autoplay missing'); ok=false; }
 
 
@@ -584,4 +579,4 @@ if (!app.includes('safariNeedsStableCanvas3D') || !app.includes('recover3DFromWe
 if (!/areaTokens\.every/.test(app)) { console.error('v0.40.14 tokenized activity search missing'); ok=false; }
 
 if (!ok) process.exit(1);
-console.log(`NEUL v0.40.15 checks passed · Taiwan-only · ${seedEvents.length} fallback events · ${Object.keys(venueModels).length} venue models · 14 ticket sources + promoter/artist feeds + independent TMC/TICC/Zepp/KPMC venue calendars · coverage-gap auditor · future auto custom 3D · WebGL + Canvas fallback · PWA + IndexedDB`);
+console.log(`NEUL v0.40.16 checks passed · Taiwan-only · ${seedEvents.length} fallback events · ${Object.keys(venueModels).length} venue models · 14 ticket sources + promoter/artist feeds + independent TMC/TICC/Zepp/KPMC venue calendars · coverage-gap auditor · future auto custom 3D · WebGL + Canvas fallback · PWA + IndexedDB`);

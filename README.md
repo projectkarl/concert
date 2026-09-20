@@ -128,7 +128,7 @@ v0.40.11 no longer treats the fallback event count as the Taiwan concert total. 
 - 第三方轉載圖不作官方位置圖。
 - 活動資料每小時重新驗證，生命週期每分鐘更新，每日 refresh 作保底。
 
-## v0.40.15
+## v0.40.16
 - 活動查詢改為完整清單優先＋月曆並存；手機完整清單先顯示。
 - 修復 Safari/WebGL 失敗時 3D Canvas fallback 空白問題。
 - 新增 WebGL runtime 自動安全恢復。
