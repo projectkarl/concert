@@ -1,11 +1,11 @@
 {
   "name": "neul-mvp",
-  "version": "0.40.16",
+  "version": "0.40.11",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vercel dev",
-    "check": "node scripts/check.mjs && node scripts/audit-future-autogen.mjs && node scripts/audit-3d-runtime.mjs"
+    "check": "node scripts/check.mjs && node scripts/audit-future-autogen.mjs"
   },
   "engines": {
     "node": ">=20"

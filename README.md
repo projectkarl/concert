@@ -109,27 +109,3 @@ v0.40.8 adds automatic official-source refresh and the lifecycle `ticket countdo
 ## v0.40.11 Full Coverage Auditor
 
 v0.40.11 no longer treats the fallback event count as the Taiwan concert total. It cross-checks ticket/promoter discovery with independent official venue calendars (TMC, TICC, Zepp New Taipei, KPMC/LIVE WAREHOUSE, plus the existing Taipei Arena and Kaohsiung Arena sources). Venue-only events are backfilled and flagged for ticket-source follow-up. New activities still automatically receive event-specific 3D drafts and upgrade when official seat maps/prices are found and pass QA.
-## v0.40.12 Calendar + Official Map Reference + Featured Autoplay
-
-- The expanded Upcoming modal now keeps both views: a real month calendar with daily agenda and the original full filtered activity list below it.
-- The calendar uses complete week rows with blank day cells, so it reads like a normal monthly calendar instead of a date-only activity picker.
-- The 3D seat preview now places the official seat-map reference beside the simulated view on desktop and stacks it below on mobile. For event layouts with no map yet, the reference area remains visible and explicitly says the official map is still being automatically backfilled instead of disappearing.
-- Previously resolved seat-map URLs stored in the local resolver cache are also used by the visible reference panel, preventing a successful resolver result from being hidden after a data refresh.
-- Featured Concert keeps up to 10 active events and now has a visible AUTO 10s countdown/progress indicator. Autoplay uses a restartable 10-second timer, resumes when the tab becomes visible, and resets after manual previous/next navigation.
-- Archive, future-event automatic custom 3D, Coverage Auditor, source backfill and ticket lifecycle logic remain unchanged.
-
-
-## v0.40.13 — Official Map Display / Silent Featured
-- IVE 2026 `SHOW WHAT I AM` 保留為台北小巨蛋「活動配置」選單中的歷史 3D 校正範例，不另顯示示範卡。
-- Featured 保留 10 秒自動輪播但移除 `AUTO 10s` 文字。
-- 3D 活動預覽固定提供「官方位置／座位配置參考」；已取得顯示官方圖，未取得顯示待自動回補。
-- Resolver 擴充至活動全部可信官方來源與 sourceRefs，並能由藝人／主辦／場館頁追售票 detail page。
-- 新官方圖解析成功會立即刷新 UI；hash 改變自動重新跑 OCR/Vision、Section/Price、3D QA。
-- 第三方轉載圖不作官方位置圖。
-- 活動資料每小時重新驗證，生命週期每分鐘更新，每日 refresh 作保底。
-
-## v0.40.16
-- 活動查詢改為完整清單優先＋月曆並存；手機完整清單先顯示。
-- 修復 Safari/WebGL 失敗時 3D Canvas fallback 空白問題。
-- 新增 WebGL runtime 自動安全恢復。
-- 補上南港展覽館一館模型；目前 75/75 fallback events 通過 event-specific 3D runtime audit。

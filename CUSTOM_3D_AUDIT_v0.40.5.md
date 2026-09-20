@@ -1,12 +1,12 @@
 # NEUL v0.40.5 — 每場客製 3D 完整稽核
 
-- 活動總數：75
-- 通過「逐場唯一客製 3D」：75/75
-- 唯一 event layout：75/75
+- 活動總數：66
+- 通過「逐場唯一客製 3D」：66/66
+- 唯一 event layout：66/66
 - 已直接綁定官方座位圖／人工校正：9
-- 初始為場館衍生、等待官方圖自動校正：67
+- 初始為場館衍生、等待官方圖自動校正：57
 - 人工校正 layout：8
-- 自動 event-specific layout：67
+- 自動 event-specific layout：58
 
 > 「通過」代表每場都有自己唯一的 event layout、舞台主體存在、沒有直接使用場館 base layout，且既有票價規則已同步。等待官方圖的場次仍屬客製草稿，不宣稱官方尺寸精準。
 
@@ -17,7 +17,7 @@
 | KIM JI WON | LEGACY TERA | auto-kim-ji-won-wonederland-taipei-2026 | venue-derived | — | 需 | PASS |
 | TREASURE | 高雄巨蛋 Kaohsiung Arena | auto-treasure-new-wav-kaohsiung-2026 | venue-derived | — | 需 | PASS |
 | Stray Kids | 臺北大巨蛋 Taipei Dome | skz-run-it-2026 | hand-calibrated-official-map | ✓ | — | PASS |
-| Asia Artist Awards | 高雄國家體育場（世運主場館） | auto-aaa-2026-kaohsiung | official-map-linked | ✓ | 需 | PASS |
+| Asia Artist Awards | 高雄國家體育場（世運主場館） | auto-aaa-2026-kaohsiung | official-map-linked | ✓ | — | PASS |
 | PLAVE | NTSU ARENA (LINKOU ARENA) | plave-keep-it-manic-2026 | hand-calibrated-official-map | ✓ | — | PASS |
 | YESUNG | NTSU ARENA | auto-yesung-ordinary-taipei-2026 | venue-derived | — | 需 | PASS |
 | NCT 127 | 臺北小巨蛋 Taipei Arena | auto-nct127-redline-taipei-2027 | venue-derived | — | 需 | PASS |
@@ -78,12 +78,3 @@
 | 派偉俊 Patrick Brasca | 臺北流行音樂中心表演廳 | auto-patrick-brasca-bad-idea-taipei-2026 | venue-derived | — | 需 | PASS |
 | QWER | 國立體育大學綜合體育館 NTSU ARENA | auto-qwer-rockation-taipei-2026 | venue-derived | — | 需 | PASS |
 | BOYNEXTDOOR | 國立體育大學綜合體育館 NTSU ARENA | auto-boynextdoor-knock-on-vol2-taipei-2027 | venue-derived | — | 需 | PASS |
-| Engelbert Humperdinck | TICC 臺北國際會議中心 | auto-engelbert-legacy-of-love-taipei-2026 | venue-derived | — | 需 | PASS |
-| STAYC | TICC 臺北國際會議中心 | auto-stayc-stay-closer-taipei-2026 | venue-derived | — | 需 | PASS |
-| Novelbright | 新北市工商展覽中心 New Taipei City Exhibition Hall | auto-novelbright-pyramid-taipei-2026 | venue-derived | — | 需 | PASS |
-| 羊文学 Hitsujibungaku | LIVE WAREHOUSE 大庫 | auto-hitsujibungaku-su-ha-kaohsiung-2026 | venue-derived | — | 需 | PASS |
-| Fujii Kaze 藤井風 | 高雄國家體育場（世運主場館） | auto-fujii-kaze-prema-kaohsiung-2026 | venue-derived | — | 需 | PASS |
-| Jason Mraz | 台北南港展覽館一館四樓 | auto-jason-mraz-asia-tour-taipei-2026 | venue-derived | — | 需 | PASS |
-| yung kai | Zepp New Taipei | auto-yung-kai-ocean-taipei-2026 | venue-derived | — | 需 | PASS |
-| BINI | 新北市工商展覽中心 New Taipei Exhibition Hall | auto-bini-signals-taipei-2026 | venue-derived | — | 需 | PASS |
-| Gareth Gates | Zepp New Taipei | auto-gareth-gates-25th-taipei-2027 | venue-derived | — | 需 | PASS |

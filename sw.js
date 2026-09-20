@@ -1,4 +1,4 @@
-const VERSION = "neul-v0.40.16-official-map-below-preview";
+const VERSION = "neul-v0.40.11-full-coverage-auditor";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const APP_SHELL = [

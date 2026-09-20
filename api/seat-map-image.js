@@ -2,15 +2,12 @@ import crypto from 'node:crypto';
 import { extractOfficialSeatLayoutCandidates, extractOfficialTicketLinks } from '../lib/official-monitor.js';
 
 const ALLOWED = [
-  'tixcraft.com','static.tixcraft.com','kktix.com','kktix.cc','assets.kktix.io','ticketplus.com.tw',
-  'kham.com.tw','ticket.ibon.com.tw','ibon.com.tw','famiticket.com.tw','tickets.udnfunlife.com','ticket.mna.com.tw','ticket.com.tw',
-  'opentix.life','tixfun.com','go.fansi.me','tickets.books.com.tw','indievox.com','kkday.com',
-  // Official event / artist / venue pages are safe resolver entry points. The resolver still only
-  // follows HTTPS URLs returned by trusted pages and keeps the recursive page budget bounded.
-  'livenation.com.tw','weverse.io','ygfamily.com','xgalx.com','arena.taipei','kaoarena.com.tw','ticc.com.tw','kpmc.com.tw','penghumusicfestival.com','novelbright.jp','vaundy.jp','moba.garena.tw'
+  'tixcraft.com','static.tixcraft.com','kktix.com','kktix.cc','assets.kktix.io','ticketplus.com.tw','www.ticketplus.com.tw',
+  'kham.com.tw','www.kham.com.tw','ticket.ibon.com.tw','www.famiticket.com.tw','famiticket.com.tw',
+  'tickets.udnfunlife.com','ticket.mna.com.tw','ticket.com.tw','www.ticket.com.tw','opentix.life','www.opentix.life','tixfun.com','www.tixfun.com','go.fansi.me','tickets.books.com.tw','indievox.com','www.indievox.com'
 ];
 function allowed(u){return u.protocol==='https:'&&ALLOWED.some(h=>u.hostname===h||u.hostname.endsWith('.'+h));}
-async function fetchOfficial(u,accept,fetchImpl=fetch){return fetchImpl(u.href,{headers:{'user-agent':'Mozilla/5.0 (compatible; NEUL/0.40.14 official-map-display)','accept':accept,'accept-language':'zh-TW,zh;q=0.9,en;q=0.7','referer':`${u.protocol}//${u.hostname}/`},redirect:'follow',signal:AbortSignal.timeout(7000)});}
+async function fetchOfficial(u,accept,fetchImpl=fetch){return fetchImpl(u.href,{headers:{'user-agent':'Mozilla/5.0 (compatible; NEUL/0.40.11 auto-seat-map)','accept':accept,'accept-language':'zh-TW,zh;q=0.9,en;q=0.7','referer':`${u.protocol}//${u.hostname}/`},redirect:'follow',signal:AbortSignal.timeout(7000)});}
 const contentType=r=>(r.headers.get('content-type')||'application/octet-stream').split(';')[0].toLowerCase();
 
 export async function resolveOfficialSeatMap(raw,{fetchImpl=fetch,maxPages=5,maxCandidates=8}={}){
