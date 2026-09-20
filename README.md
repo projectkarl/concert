@@ -101,7 +101,3 @@ v0.40.8 adds automatic official-source refresh and the lifecycle `ticket countdo
 - When an official seat map, stage layout, or section pricing changes, the same event layout is marked stale and automatically re-enters OCR/Vision QA instead of inheriting the previous verification.
 - Official-map verification and 3D section-price verification are client QA results; server discovery no longer treats a seat-map URL alone as proof of a calibrated 3D scene.
 - Drafts remain usable but are labelled for review until stage confidence and Section Mapping meet the QA gate.
-
-
-## v0.40.10 Seat-map resolver
-官方座位圖採 recursive-v2 多來源自動解析：完整 sourceRefs、JSON/lazy asset、detail-page follow、hash cache 與每小時缺圖優先輪替驗證。一次抓取失敗不代表官方未公布。

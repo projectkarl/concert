@@ -30,26 +30,14 @@ function stageTopology(mask,w,h,comp){if(!comp)return{central:false,xArms:false,
 function buildMappedSections({event,venueModel,referenceSections,comps,palette,legend,ocr,w,h}){const field=venueModel.field,used=new Set(),out=[],mapped=[];const tokens=(ocr.words||[]).filter(x=>likelySectionToken(x.text));for(const token of tokens){const comp=nearestComponent(token.cx*w,token.cy*h,comps,w,h);const hit=matchOcrToken(token,{x:token.cx,y:token.cy},venueModel,used,referenceSections);if(!hit)continue;const base=hit.section,id=String(base.id);used.add(id);const pal=comp?palette[comp.palette]:null;const colorPrice=pal&&legend.length?legend.reduce((best,l)=>!best||rgbDist(pal.rgb,l.rgb)<rgbDist(pal.rgb,best.rgb)?l:best,null)?.price:null;const autoPrice=priceForLabel(event,id)||colorPrice||null;out.push({...base,id,label:base.label||id,officialId:id,autoDerived:true,ocrDerived:true,ocrToken:token.text,ocrConfidence:token.conf,autoPrice,eventActive:true,mappingScore:Math.round(hit.score)});mapped.push({token:token.text,section:id,confidence:token.conf,score:Math.round(hit.score),x:token.cx,y:token.cy});}
   const central=comps.filter(q=>Math.abs(q.cx/w-.5)<.44&&q.cy/h>.12&&q.cy/h<.92).slice(0,56);let autoN=1;for(const q of central){if(out.length>=90)break;const occupied=out.some(s=>{const sp=sectionPoint(s,field);return Math.hypot(sp.x-q.cx/w,sp.y-q.cy/h)<.045;});if(occupied)continue;const rect=mapRect(q,w,h,field),pal=palette[q.palette],match=legend.length?legend.reduce((best,l)=>!best||rgbDist(pal.rgb,l.rgb)<rgbDist(pal.rgb,best.rgb)?l:best,null):null;out.push({id:`AUTO-${autoN++}`,label:match?.price?`官方圖 ${match.price} 票區`:'官方圖未標記票區',tier:'AUTO-MAP',shape:'block',x:rect.x,z:rect.z,y:-19,width:rect.width,depth:rect.depth,rowMin:1,rowMax:18,seatEstimateMax:24,group:`auto-${q.palette}`,autoDerived:true,ocrDerived:false,autoPrice:match?.price||null,eventActive:true});}
   const byTier=new Map();for(const s of out){const t=String(s.tier||'AUTO-MAP');if(!byTier.has(t))byTier.set(t,[]);byTier.get(t).push(String(s.id));}const tiers=[...byTier].map(([id,sections])=>({id,label:id==='AUTO-MAP'?'官方座位圖自動票區':id,short:id,sections}));return{sections:out,tiers,mapped,tokens:tokens.map(t=>({text:t.text,confidence:t.conf,x:t.cx,y:t.cy}))};}
-function ticketSourceCandidates(event={}){
-  const refs=(event.sourceRefs||[]).flatMap(ref=>[ref?.url,ref?.sourceUrl]);
-  const raws=[event.seatLayoutSourceUrl,event.ticketUrl,event.ticketSourceUrl,event.secondarySourceUrl,event.autoSourceUrl,event.sourceUrl,...refs].filter(Boolean);
-  const out=[];const seen=new Set();
-  for(const raw of raws){try{const u=new URL(raw),h=u.hostname.toLowerCase(),allowed=/(^|\.)(tixcraft\.com|kktix\.com|kktix\.cc|ticketplus\.com\.tw|kham\.com\.tw|ticket\.ibon\.com\.tw|famiticket\.com\.tw|tickets\.udnfunlife\.com|ticket\.mna\.com\.tw|ticket\.com\.tw|tixfun\.com|opentix\.life|go\.fansi\.me|tickets\.books\.com\.tw|indievox\.com)$/.test(h);u.hash='';const key=u.href;if(allowed&&!seen.has(key)){seen.add(key);out.push(key);}}catch{}}
-  return out;
-}
-function ticketSourceCandidate(event={}){return ticketSourceCandidates(event)[0]||null;}
-export function ticketSourceCandidatesForQA(event={}){return ticketSourceCandidates(event);}
-export function canAnalyzeSeatMap(event={}){return ticketSourceCandidates(event).length>0;}
+function ticketSourceCandidate(event={}){for(const raw of [event.seatLayoutSourceUrl,event.ticketUrl,event.ticketSourceUrl,event.secondarySourceUrl,event.sourceUrl]){if(!raw)continue;try{const h=new URL(raw).hostname.toLowerCase(),allowed=/(^|\.)(tixcraft\.com|kktix\.com|kktix\.cc|ticketplus\.com\.tw|kham\.com\.tw|ticket\.ibon\.com\.tw|famiticket\.com\.tw|tickets\.udnfunlife\.com|ticket\.mna\.com\.tw|ticket\.com\.tw|tixfun\.com|opentix\.life|go\.fansi\.me|tickets\.books\.com\.tw|indievox\.com)$/.test(h);if(allowed)return raw;}catch{}}return null;}
+export function canAnalyzeSeatMap(event={}){return Boolean(ticketSourceCandidate(event));}
 export function mapSectionTokenForQA(text,x,y,venueModel,referenceSections=null){const hit=matchOcrToken({text},{x:Number(x),y:Number(y)},venueModel,new Set(),referenceSections);return hit?{id:String(hit.section.id),score:Math.round(hit.score)}:null;}
 export function priceForLabelForQA(event,label){return priceForLabel(event,label);}
 export function inferStageProfileForQA({central=true,xArms=false,circleConfidence=.8}={}){return central?(xArms?{profile:'central-x',mainShape:circleConfidence>.55?'circle':'rect',armCount:4}:{profile:'central-stage',mainShape:circleConfidence>.72?'circle':'rect',armCount:0}):{profile:'end-stage',mainShape:'rect',armCount:0};}
 export async function analyzeSeatMap(event,venueModel,cache={},options={}){
-  const sources=ticketSourceCandidates(event);if(!sources.length||!venueModel?.field||typeof createImageBitmap!=='function')return null;
-  let r=null,source=null;
-  for(const candidate of sources){
-    try{const probe=await fetch(`/api/seat-map-image?url=${encodeURIComponent(candidate)}`,{headers:{Accept:'image/*'}});if(probe.ok){r=probe;source=candidate;break;}}catch{}
-  }
-  if(!r||!source)return null;
+  const source=ticketSourceCandidate(event);if(!source||!venueModel?.field||typeof createImageBitmap!=='function')return null;
+  const r=await fetch(`/api/seat-map-image?url=${encodeURIComponent(source)}`,{headers:{Accept:'image/*'}});if(!r.ok)return null;
   const hash=r.headers.get('X-NEUL-SeatMap-Hash')||'',resolvedUrl=r.headers.get('X-NEUL-SeatMap-Resolved')||event.seatLayoutSourceUrl||source,blob=await r.blob();
   if(cache?.hash&&cache.hash===hash&&cache.analysis?.sections?.length)return{...cache.analysis,hash,resolvedUrl,cacheHit:true};
   const bmp=await createImageBitmap(blob),scale=Math.min(1,1080/Math.max(bmp.width,bmp.height)),w=Math.max(220,Math.round(bmp.width*scale)),h=Math.max(220,Math.round(bmp.height*scale)),c=document.createElement('canvas');c.width=w;c.height=h;const ctx=c.getContext('2d',{willReadFrequently:true});ctx.drawImage(bmp,0,0,w,h);bmp.close?.();

@@ -793,20 +793,8 @@ function eventCustom3DMeta(event={}) {
   else if(officialSeatMap) grade='official-map-linked-pending';
   return {ready:Boolean(layout.eventId===event.id&&layout.stage?.main),venueModelId,layoutId:venueLayoutId,uniqueEventLayout:Boolean(layout.eventId===event.id),officialSeatMap,officialMapVerified,priceDataFound,priceMapped3D,mappedCount,stageConfidence,grade,generationState:layout.generationState||grade,pipelineVersion:layout.autoPipelineVersion||null,seatMapNeedsRefresh:Boolean(layout.seatMapNeedsRefresh),verifiedAgainstCurrentSource:Boolean(layout.verifiedAgainstCurrentSource||manualOfficial),requiresReview:Boolean(layout.qaGate?.requiresReview||!officialMapVerified)};
 }
-function hydrateResolvedSeatMapFromCache(event={}) {
-  try {
-    const key=`neul-seatmap-hash:${event.id}`;
-    const resolved=localStorage.getItem(`${key}:resolvedUrl`);
-    const checkedAt=localStorage.getItem(`${key}:checkedAt`);
-    if(!resolved) return event;
-    const refs=[...(event.sourceRefs||[])];
-    if(!refs.some(ref=>normalizeSourceUrl(ref?.url)===normalizeSourceUrl(resolved))) refs.push({name:'官方座位圖（自動解析）',url:resolved});
-    return {...event,seatLayoutSourceUrl:event.seatLayoutSourceUrl||resolved,seatMapResolvedAt:checkedAt||event.seatMapResolvedAt||null,sourceRefs:refs};
-  } catch { return event; }
-}
 function prepareEvents3D(events = []) {
-  return events.map(rawEvent => {
-    const event=hydrateResolvedSeatMapFromCache(rawEvent);
+  return events.map(event => {
     const venueModelId = eventVenueModelId(event);
     if (!venueModelId) return { ...event, custom3D:eventCustom3DMeta(event) };
     const venueLayoutId = eventVenueLayoutId({ ...event, venueModelId });
@@ -992,12 +980,7 @@ async function hydrateSeatMapGeometry(events=[]) {
       const key=`neul-seatmap-hash:${event.id}`, previous=localStorage.getItem(key)||'';
       let cachedAnalysis=null;try{cachedAnalysis=JSON.parse(localStorage.getItem(`${key}:analysis`)||'null');}catch{}
       const referenceSections=effectiveSections(model.id,layoutId);
-      const analysis=await analyzeSeatMap(event,model,{hash:previous,analysis:cachedAnalysis},{referenceSections});
-      if(!analysis?.hash){
-        const failKey=`${key}:resolverFailure`;let fail={count:0};try{fail=JSON.parse(localStorage.getItem(failKey)||'{"count":0}');}catch{}
-        localStorage.setItem(failKey,JSON.stringify({count:Number(fail.count||0)+1,checkedAt:new Date().toISOString(),sourceSignature:JSON.stringify([event.sourceUrl,event.secondarySourceUrl,event.autoSourceUrl,event.ticketUrl,event.ticketSourceUrl,(event.sourceRefs||[]).map(x=>x?.url)])}));
-        return false;
-      }
+      const analysis=await analyzeSeatMap(event,model,{hash:previous,analysis:cachedAnalysis},{referenceSections}); if(!analysis?.hash) return false;
       const firstSeen=!previous, hashChanged=Boolean(previous&&previous!==analysis.hash);
       // Geometry and metadata have different trust thresholds. Every verified image refresh can
       // update OCR/Section mapping; stage geometry is allowed to move only with strong shape evidence.
@@ -1011,7 +994,7 @@ async function hydrateSeatMapGeometry(events=[]) {
       if(analysis.resolvedUrl){event.seatLayoutSourceUrl=analysis.resolvedUrl;localStorage.setItem(`${key}:resolvedUrl`,analysis.resolvedUrl);}
       localStorage.setItem(`${key}:mapping`,JSON.stringify({confidence:analysis.confidence,ocr:analysis.ocr?.engine||'vision-only',mappedCount:analysis.ocr?.mappedCount||0,profile:analysis.profile||'unknown',stageConfidence:Number(analysis.stageConfidence||0),legendConfidence:analysis.legendConfidence||'unverified-no-price-guess',geometryApplied:geometryAllowed}));
       if(!analysis.cacheHit){try{const compact={...analysis,ocr:{...(analysis.ocr||{}),text:''}};localStorage.setItem(`${key}:analysis`,JSON.stringify(compact));}catch{}}
-      localStorage.setItem(`${key}:checkedAt`,new Date().toISOString()); localStorage.removeItem(`${key}:resolverFailure`);
+      localStorage.setItem(`${key}:checkedAt`,new Date().toISOString());
       if(firstSeen && layout?.seatMapAutoRegenerate) localStorage.setItem(`${key}:baseline`,analysis.hash);
       return applied;
     }catch{return false;}

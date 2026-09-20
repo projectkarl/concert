@@ -1,6 +1,6 @@
 {
   "name": "neul-mvp",
-  "version": "0.40.10",
+  "version": "0.40.9",
   "private": true,
   "type": "module",
   "scripts": {

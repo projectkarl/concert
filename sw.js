@@ -1,4 +1,4 @@
-const VERSION = "neul-v0.40.10-seatmap-resolver-v2";
+const VERSION = "neul-v0.40.9-auto-custom3d-pipeline";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const APP_SHELL = [

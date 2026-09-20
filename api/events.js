@@ -190,8 +190,7 @@ export function mergeAndDedupe(seeds, discovered) {
 
 
 function ticketSeatMapEligible(event={}) {
-  const refUrls=(event.sourceRefs||[]).flatMap(ref=>[ref?.url,ref?.sourceUrl]);
-  const candidates=[event.seatLayoutSourceUrl,event.ticketUrl,event.ticketSourceUrl,event.secondarySourceUrl,event.autoSourceUrl,event.sourceUrl,...refUrls].filter(Boolean);
+  const candidates=[event.seatLayoutSourceUrl,event.ticketUrl,event.ticketSourceUrl,event.secondarySourceUrl,event.sourceUrl].filter(Boolean);
   for(const raw of candidates){
     try {
       const host=new URL(raw).hostname.toLowerCase();
