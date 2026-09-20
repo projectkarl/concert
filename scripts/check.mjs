@@ -12,7 +12,7 @@ import { venueModels, venueLayouts, getVenueSection, venueSectionWarning, venueS
 const required = [
   "index.html","styles.css","app.js","i18n.js","enhancements.js","storage.js","pwa.js","sw.js","manifest.webmanifest","webgl-venue.js","seat-map-intelligence.js","THIRD_PARTY_NOTICES.md","vercel.json","api/events.js","api/official.js","api/seat-map-image.js","api/refresh.js","api/push-config.js","api/push-subscribe.js","api/push-digest.js",
   "data/events.js","data/artists.js","data/venues.js","data/discovery.js","data/taipei-dome-geometry.js","data/multi-venue-geometry.js",
-  "lib/official-monitor.js","lib/live-nation-discovery.js","lib/kaohsiung-arena-discovery.js","lib/taipei-arena-discovery.js","lib/artist-official-discovery.js","lib/taiwan-ticket-platform-discovery.js",
+  "lib/official-monitor.js","lib/live-nation-discovery.js","lib/kaohsiung-arena-discovery.js","lib/taipei-arena-discovery.js","lib/artist-official-discovery.js","lib/taiwan-ticket-platform-discovery.js","lib/venue-calendar-discovery.js","lib/coverage-auditor.js","api/coverage.js",
   "assets/hero-crowd.webp","assets/hero-crowd-hd.webp","assets/hero-crowd-hd2.webp","assets/hero-crowd-crisp.webp","assets/hero-live-crisp.webp","assets/feature-stage.webp","assets/venue-3d.webp","assets/seat-view.webp","assets/featured-1.webp","assets/featured-2.webp","assets/featured-3.webp","assets/featured-4.webp","assets/featured-1-hd.webp","assets/featured-2-hd.webp","assets/featured-3-hd.webp","assets/featured-4-hd.webp","assets/featured-1-crisp.webp","assets/featured-2-crisp.webp","assets/featured-3-crisp.webp","assets/featured-4-crisp.webp","assets/featured-live-1.webp","assets/featured-live-2.webp","assets/featured-live-3.webp","assets/featured-live-4.webp",
   "icons/icon-192.png","icons/icon-512.png","icons/icon-maskable-512.png","icons/apple-touch-icon.png"
 ];
@@ -158,7 +158,7 @@ if (!/\.wordmark\{font-size:29px\}/.test(fs.readFileSync(new URL("../styles.css"
 const indexHtml = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 if (indexHtml.includes('id="searchScopeNote"')) { console.error("deprecated search scope hint still visible"); ok=false; }
-if (!/約每 6 小時/.test(app) || !/每日排程同步/.test(app)) { console.error("update cadence label missing"); ok=false; }
+if (!/約每 1 小時/.test(app) || !/每日排程同步/.test(app) || !/startAutomaticEventVerification/.test(app)) { console.error("update cadence label missing"); ok=false; }
 if (!/diamondEgg/.test(indexHtml) || !/fanProjectNote/.test(indexHtml) || !/wireDiamondEgg/.test(enhancements)) { console.error("About diamond easter egg missing"); ok=false; }
 if (!/喜歡追星的人/.test(indexHtml)) { console.error("fan-made project disclosure missing"); ok=false; }
 if (/\.search-scope-note/.test(css)) { console.error("deprecated search scope UI style still present"); ok=false; }
@@ -183,7 +183,7 @@ if (!/zh-Hant/.test(i18n) || !/locale: 'en-US'/.test(i18n) || !/locale: 'ja-JP'/
 if (!/data-lang="zh-Hant"/.test(indexHtml) || !/data-lang="en"/.test(indexHtml) || !/data-lang="ja"/.test(indexHtml) || !/data-lang="ko"/.test(indexHtml)) { console.error("language selector buttons missing"); ok=false; }
 if (!/neul-language/.test(i18n) || !/neul:languagechange/.test(i18n) || !/MutationObserver/.test(i18n)) { console.error("dynamic language switching incomplete"); ok=false; }
 if (!/Noto\+Sans\+JP/.test(indexHtml)) { console.error("Japanese font support missing"); ok=false; }
-if (!/\/i18n\.js/.test(sw) || !/neul-v0\.40\.2-full-audit/.test(sw)) { console.error("PWA multilingual cache update missing"); ok=false; }
+if (!/\/i18n\.js/.test(sw) || !/neul-v0\.40\.2-full-coverage-auditor/.test(sw)) { console.error("PWA multilingual cache update missing"); ok=false; }
 if (!/uiLocale/.test(app) || !/neul:languagechange/.test(app)) { console.error("locale-aware dynamic render hook missing"); ok=false; }
 
 
@@ -360,7 +360,7 @@ const officialMonitorCode = fs.readFileSync(new URL("../lib/official-monitor.js"
 if (!/createImageBitmap/.test(seatVisionCode) || !/\/api\/seat-map-image/.test(seatVisionCode) || !/map-pixel-derived/.test(seatVisionCode)) { console.error("seat-map pixel intelligence missing"); ok=false; }
 if (!/X-NEUL-SeatMap-Hash/.test(seatProxyCode) || !/sha256/i.test(seatProxyCode)) { console.error("seat-map content-hash proxy missing"); ok=false; }
 if (!/secondarySourceUrl/.test(officialMonitorCode) || !/assets\.kktix\.io/.test(officialMonitorCode) || !/parseTicketPage/.test(officialMonitorCode)) { console.error("multi-source official monitor regression"); ok=false; }
-if (!/wve\.kktix\.cc/.test(ticketDiscoveryCode) || !/kktix\.com\/events\?page=10/.test(ticketDiscoveryCode)) { console.error("KKTIX organization/pagination coverage missing"); ok=false; }
+if (!/wve\.kktix\.cc/.test(ticketDiscoveryCode) || !/rotatingKktixIndexes/.test(ticketDiscoveryCode) || !/offtimemusic\.kktix\.cc/.test(ticketDiscoveryCode)) { console.error("KKTIX organization/pagination coverage missing"); ok=false; }
 const bts40=seedEvents.find(e=>e.id==="bts-arirang-kaohsiung-2026");
 const btsLayout=getVenueLayout("bts-arirang-kaohsiung-2026");
 if(!bts40 || bts40.venueLayoutId!=="bts-arirang-kaohsiung-2026" || !/activity\/field\/26_btskns_/i.test(bts40.seatLayoutSourceUrl||"")){ console.error("BTS official map wiring missing",bts40); ok=false; }
@@ -372,11 +372,11 @@ if(!tara40 || !/wve\.kktix\.cc/.test(tara40.sourceUrl||"") || !/assets\.kktix\.i
 if(sectionTicketLabel("tara-fancon-kaohsiung-2026","1F-C")!=="NT$5,980" || sectionTicketLabel("tara-fancon-kaohsiung-2026","2F-A")!=="NT$5,680" || sectionTicketLabel("tara-fancon-kaohsiung-2026","2F-C")!=="NT$4,680" || sectionTicketLabel("tara-fancon-kaohsiung-2026","2F-B-REAR")!=="NT$3,680"){ console.error("T-ARA section pricing regression"); ok=false; }
 if (!/hydrateSeatMapGeometry/.test(app) || !/neul-seatmap-hash/.test(app) || !/hashChanged/.test(app) || /slice\(0,14\)/.test(app) || !/i\+=1/.test(app)) { console.error("client seat-map change regeneration pipeline missing/bounded to partial list"); ok=false; }
 if (!/seatMapFound/.test(apiEventsCode) || !/sectionPricesFound/.test(apiEventsCode) || !/threeDReady/.test(apiEventsCode)) { console.error("four-stage automation status missing"); ok=false; }
-if (!/neul-v0\.40\.2-full-audit/.test(sw) || !/seat-map-intelligence\.js/.test(sw)) { console.error("v0.40 service-worker cache regression"); ok=false; }
+if (!/neul-v0\.40\.2-full-coverage-auditor/.test(sw) || !/seat-map-intelligence\.js/.test(sw)) { console.error("v0.40 service-worker cache regression"); ok=false; }
 
 // v0.40.1 OCR/Vision + precise section mapping + source expansion
 if (!/tesseract\.js@5/.test(seatVisionCode) || !/ocr-section-mapped/.test(seatVisionCode) || !/mapSectionTokenForQA/.test(seatVisionCode) || !/mappingScore/.test(seatVisionCode)) { console.error("OCR/Vision precise section mapping pipeline missing"); ok=false; }
-if (!/X-NEUL-SeatMap-Resolved/.test(seatProxyCode) || !/text\/html/.test(seatProxyCode) || !/extractOfficialSeatLayoutUrl/.test(seatProxyCode)) { console.error("ticket page -> seat-map resolver missing"); ok=false; }
+if (!/X-NEUL-SeatMap-Resolved/.test(seatProxyCode) || !/text\/html/.test(seatProxyCode) || !/extractOfficialSeatLayoutCandidates/.test(seatProxyCode) || !/extractOfficialTicketLinks/.test(seatProxyCode)) { console.error("ticket page -> seat-map resolver missing"); ok=false; }
 for (const source of ["TixFun","OPENTIX","FANSI GO","博客來售票"]) if (!ticketDiscoveryCode.includes(source)) { console.error("expanded ticket discovery source missing",source); ok=false; }
 if (!/data-src|data-original/.test(officialMonitorCode) || !/srcset/.test(officialMonitorCode)) { console.error("lazy/srcset seat-map extraction missing"); ok=false; }
 if (!/cacheHit/.test(seatVisionCode) || !/neul-seatmap-hash/.test(app) || !/\:analysis/.test(app)) { console.error("seat-map hash/OCR cache missing"); ok=false; }

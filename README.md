@@ -59,3 +59,6 @@ This build keeps the v0.40 interface and extends only the automation path:
 8. Cache the compact analysis on the device; unchanged official maps skip repeated OCR.
 
 Current discovery adapters cover tixCraft, KKTIX, Ticket Plus, KHAM, FamiTicket, udn, ibon, MNA, ERA/ticket.com.tw, TixFun, OPENTIX, FANSI GO and Books Tickets, plus artist/venue official feeds. Sites can block automated fetching or change markup; those cases fall back to the verified venue model instead of inventing a seat map.
+
+## v0.40.2 Coverage build
+This package keeps the v0.40.2 interface and 3D base while adding Full Coverage Auditor + Auto Backfill. The 66 bundled events are fallback data; live event completeness is improved by ticket/promoter/artist discovery plus independent official venue calendars. See `V0.40.2_COVERAGE_CHANGELOG.md` and `TEST_REPORT_v0.40.2-Coverage.md`.

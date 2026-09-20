@@ -15,6 +15,8 @@ const state = {
   nextUpdateAt: null,
   autoUpdateEnabled: true,
   upstream: "curated-fallback",
+  coverage: null,
+  discoveryHealth: null,
   officialUpdatedAt: null,
   officialMonitorCount: 0,
   query: "",
@@ -744,10 +746,10 @@ function closeDetail() {
 function updateFreshness() {
   const el = $("#dataFreshness");
   if (!el) return;
-  const cadence = `<span class="freshness-cadence">約每 6 小時檢查可用官方來源 · 每日排程同步</span>`;
+  const cadence = `<span class="freshness-cadence">約每 1 小時檢查可用官方來源 · 每日排程同步</span>`;
   if (!state.dataUpdatedAt) {
     el.innerHTML = `目前顯示已核對活動${cadence}`;
-    el.title = "活動資料採 6 小時快取；快取到期後由下一次造訪觸發背景重新驗證，並另有每日排程同步。";
+    el.title = "活動資料採 1 小時快取；頁面開啟時會自動重新驗證，並另有每日排程同步。";
     return;
   }
   const t = new Intl.DateTimeFormat(uiLocale(), { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Taipei" }).format(new Date(state.dataUpdatedAt));
@@ -756,7 +758,7 @@ function updateFreshness() {
   const next = state.nextUpdateAt ? new Intl.DateTimeFormat(uiLocale(), { month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", hour12:false, timeZone:"Asia/Taipei" }).format(new Date(state.nextUpdateAt)) : null;
   const schedule = next ? `<span class="freshness-next">下次預計更新 ${next}</span>` : "";
   el.innerHTML = `${headline}${schedule}${cadence}`;
-  el.title = "活動資料採 6 小時快取；快取到期後由下一次造訪觸發背景重新驗證，並另有每日排程同步。詳細內容仍以官方最新公告為準。";
+  el.title = "活動資料採 1 小時快取；頁面開啟時會自動重新驗證，並另有每日排程同步。詳細內容仍以官方最新公告為準。";
 }
 
 function updateSearchScope() {
@@ -769,7 +771,7 @@ function updateSearchScope() {
   el.textContent = `目前已收錄資料自 ${label} 起；更早場次持續補齊。搜尋會同時查近期與已收錄 Archive。`;
 }
 
-async function loadEvents() {
+async function loadEvents({ preserveOnFailure = false } = {}) {
   try {
     const res = await fetch("/api/events", { headers: { Accept: "application/json" } });
     if (!res.ok) throw new Error("events unavailable");
@@ -777,16 +779,22 @@ async function loadEvents() {
     if (Array.isArray(data.events) && data.events.length) state.events = prepareEvents3D(taiwanEventsOnly(data.events));
     if (Array.isArray(data.artists) && data.artists.length) state.artists = data.artists;
     state.dataUpdatedAt = data.updatedAt || null;
-    state.nextUpdateAt = data.nextUpdateAt || (data.updatedAt ? new Date(new Date(data.updatedAt).getTime()+21600000).toISOString() : null);
+    state.nextUpdateAt = data.nextUpdateAt || (data.updatedAt ? new Date(new Date(data.updatedAt).getTime()+3600000).toISOString() : null);
+    state.coverage = data.coverage || null;
+    state.discoveryHealth = data.discovery?.sourceHealth || null;
     state.autoUpdateEnabled = data.autoUpdateEnabled !== false;
     state.upstream = data.upstream || "curated-fallback";
   } catch {
-    state.events = prepareEvents3D(taiwanEventsOnly(seedEvents));
-    state.artists = seedArtists.map(a => ({ ...a, upcomingEventCount: seedEvents.filter(e => e.artist.toLowerCase() === a.name.toLowerCase()).length, nextEvent: null, eventIds: [] }));
-    state.dataUpdatedAt = null;
-    state.nextUpdateAt = null;
-    state.autoUpdateEnabled = false;
-    state.upstream = "curated-fallback";
+    if (!preserveOnFailure || !state.events.length) {
+      state.events = prepareEvents3D(taiwanEventsOnly(seedEvents));
+      state.artists = seedArtists.map(a => ({ ...a, upcomingEventCount: seedEvents.filter(e => e.artist.toLowerCase() === a.name.toLowerCase()).length, nextEvent: null, eventIds: [] }));
+      state.dataUpdatedAt = null;
+      state.nextUpdateAt = null;
+      state.autoUpdateEnabled = false;
+      state.upstream = "curated-fallback";
+      state.coverage = { completenessGuaranteed:false, sourceWarnings:1 };
+      state.discoveryHealth = null;
+    }
   }
   await recordEventChanges(state.events);
   await saveOfflineSnapshot({ at: state.dataUpdatedAt || new Date().toISOString(), upstream: state.upstream, count: state.events.length });
@@ -800,6 +808,30 @@ async function loadEvents() {
   window.dispatchEvent(new CustomEvent("neul:dataupdated", { detail: { events: state.events, updatedAt: state.dataUpdatedAt } }));
   const idle = window.requestIdleCallback || (fn => setTimeout(fn, 900));
   idle(async () => { await loadOfficialUpdates(); await hydrateSeatMapGeometry(state.events); });
+}
+
+
+let eventsAutoRefreshTimer=null;
+let lifecycleSyncTimer=null;
+function startAutomaticEventVerification(){
+  clearInterval(eventsAutoRefreshTimer);
+  clearInterval(lifecycleSyncTimer);
+  eventsAutoRefreshTimer=setInterval(()=>{ if(!document.hidden) loadEvents({preserveOnFailure:true}); },3600000);
+  lifecycleSyncTimer=setInterval(()=>{
+    renderEvents();
+    renderFeatured();
+    const previousLayoutId=state.layoutId;
+    renderLayoutOptions();
+    if(state.layoutId!==previousLayoutId) setVenue(state.venueId,state.layoutId);
+    updateFreshness();
+    if(state.detailId) openDetail(state.detailId);
+  },60000);
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden) return;
+    const last=new Date(state.dataUpdatedAt||0).getTime();
+    if(!Number.isFinite(last)||Date.now()-last>=3600000) loadEvents({preserveOnFailure:true});
+    renderLayoutOptions();
+  });
 }
 
 
@@ -1371,11 +1403,11 @@ function renderVenueScene(targetCanvas, opts = {}) {
   const context=targetCanvas.getContext("2d"), rect=targetCanvas.getBoundingClientRect(), dpr=Math.min(devicePixelRatio||1,2), w=Math.max(1,Math.floor(rect.width*dpr)), h=Math.max(1,Math.floor(rect.height*dpr));
   if(targetCanvas.width!==w||targetCanvas.height!==h){targetCanvas.width=w;targetCanvas.height=h;} context.setTransform(dpr,0,0,dpr,0,0);
   const cw=rect.width,ch=rect.height,model=activeVenueModel(),layout=currentVenueLayout(),grad=context.createLinearGradient(0,0,0,ch); grad.addColorStop(0,"#111821");grad.addColorStop(.6,"#080c10");grad.addColorStop(1,"#050709");context.fillStyle=grad;context.fillRect(0,0,cw,ch);
+  const isLight=document.body.classList.contains("light-mode");
   const viewSeat=opts.seatMode??seatMode, project=viewSeat?makeSeatProjector(cw,ch,opts.yaw??yaw,opts.pitch??pitch,opts.zoom??zoom):makeOrbitProjector(cw,ch,opts.yaw??yaw,opts.pitch??pitch,opts.zoom??zoom);
   const poly=(points,fill,stroke="#343942",width=1)=>{const pp=points.map(project).filter(Boolean);if(pp.length!==points.length)return;context.beginPath();pp.forEach((q,i)=>i?context.lineTo(q[0],q[1]):context.moveTo(q[0],q[1]));context.closePath();context.fillStyle=fill;context.fill();context.strokeStyle=stroke;context.lineWidth=width;context.stroke();};
   const line=(points,stroke,width=1)=>{const pp=points.map(project).filter(Boolean);if(pp.length<2)return;context.beginPath();pp.forEach((q,i)=>i?context.lineTo(q[0],q[1]):context.moveTo(q[0],q[1]));context.strokeStyle=stroke;context.lineWidth=width;context.stroke();};
   poly([[-model.field.x,-25,-model.field.z],[model.field.x,-25,-model.field.z],[model.field.x,-25,model.field.z],[-model.field.x,-25,model.field.z]],isLight?"#d9dde1":"#b8c0c7",isLight?"#aeb7bf":"#8f9aa3");
-  const isLight=document.body.classList.contains("light-mode");
   const selectedId=String(state.section), allowedTiers=availableVenueTiers(), palette=isLight?["#69859a","#7890a3","#8d789b","#71889a","#7c92a2","#657f96"]:["#27313b","#313945","#3b3340","#2f3740","#333b45","#303943"];
   for(const tier of allowedTiers) for(const id of tier.sections){const sec=getVenueSection(state.venueId,id,state.layoutId);if(!sec)continue;const selected=id===selectedId,restricted=layout.restrictedViewSections?.includes(id),floorFacing=layout.bStageFacingSections?.includes(id);let fill=(sec.tier==="FLOOR"||sec.shape==="block")?"#252a31":palette[Math.max(0,allowedTiers.findIndex(t=>t.id===sec.tier))%palette.length];if(layout.id==="plave-keep-it-manic-2026"){const groupFill={vip6300:"#4a262d","5300":"#24433d","3800":"#47442a","2900":"#253b29"};fill=groupFill[sec.group]||fill;}if(layout.id==="le-sserafim-pureflow-2026"){const groupFill={"6980":"#294f8e","6380":"#a7e1e7","5880":"#82c7ee","4680":"#777ac0","3680-4680":"#416fae"};fill=groupFill[sec.group]||fill;}if(layout.id==="ive-show-what-i-am-2026"){const groupFill={vip7800:"#b44785","5800":"#426b86","4800":"#9b5c62","3800":"#3f827f",side2f:"#52657d","3fRange":"#66507c",box4800:"#76545d"};fill=groupFill[sec.group]||fill;}if(restricted)fill=isLight?"#b97837":"#5a4334";if(floorFacing&&!restricted)fill=isLight?"#7c708c":"#343042";if(selected)fill=isLight?"#dc55e8":"#c47ae3";poly(sectionPoly(sec),fill,selected?(isLight?"#fff1ff":"#f4daf2"):restricted?(isLight?"#f2c27a":"#c29a69"):(isLight?"#9db1c0":"#4a5661"),selected?2.2:.95);}
   const stage=activeStage(),m=stage.main;
@@ -1458,6 +1490,7 @@ setVenue(state.venueId, state.layoutId);
 
 loadFollowed().then(names => { if (Array.isArray(names) && names.length) { state.followed = new Set(names); renderFollowing(); } });
 loadEvents();
+startAutomaticEventVerification();
 renderFollowing();
 renderFeatured();
 updateSeatLabel();
