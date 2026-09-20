@@ -79,7 +79,7 @@ function identityOverlap(a, b) {
 
 function likelySameEvent(a = {}, b = {}) {
   const au = normalizeUrl(a.sourceUrl), bu = normalizeUrl(b.sourceUrl);
-  if (au && bu && au === bu) return true;
+  if (au && bu && au === bu && !a.sharedSourceUrl && !b.sharedSourceUrl) return true;
   const dayA = dateKey(a.start), dayB = dateKey(b.start);
   if (!dayA || dayA !== dayB) return false;
   if (canonicalVenue(a.venue) !== canonicalVenue(b.venue)) return false;
@@ -100,7 +100,7 @@ function isMeaningful(value) {
 
 function sourcePriority(event = {}) {
   const s = `${event.sourceName || ""} ${event.sourceUrl || ""} ${event.ticketing || ""}`.toLowerCase();
-  if (/tixcraft|拓元|kktix|ticketplus|遠大|kham|寬宏|ibon|famiticket|全網|udn|聯合|ticket\.mna|mna|牛耳|ticket\.com\.tw|年代/.test(s)) return 60;
+  if (/tixcraft|拓元|kktix|ticketplus|遠大|kham|寬宏|ibon|famiticket|全網|udn|聯合|ticket\.mna|mna|牛耳|ticket\.com\.tw|年代|indievox|fansi|opentix|tixfun|tickets\.books/.test(s)) return 60;
   if (/livenation|live nation/.test(s)) return 55;
   if (/weverse|ygfamily|jype|smtown|hybe|official.*tour|藝人官方/.test(s)) return 50;
   if (/arena|小巨蛋|巨蛋|場館|calendar|行事曆/.test(s)) return 40;
@@ -193,7 +193,7 @@ function ticketSeatMapEligible(event={}) {
   const raw=event.seatLayoutSourceUrl||event.sourceUrl||"";
   try {
     const host=new URL(raw).hostname.toLowerCase();
-    return /(tixcraft\.com|kktix\.(?:com|cc)|ticketplus\.com\.tw|kham\.com\.tw|ticket\.ibon\.com\.tw|famiticket\.com\.tw|tickets\.udnfunlife\.com|ticket\.mna\.com\.tw|ticket\.com\.tw|opentix\.life|tixfun\.com|go\.fansi\.me|tickets\.books\.com\.tw)$/.test(host);
+    return /(tixcraft\.com|kktix\.(?:com|cc)|ticketplus\.com\.tw|kham\.com\.tw|ticket\.ibon\.com\.tw|famiticket\.com\.tw|tickets\.udnfunlife\.com|ticket\.mna\.com\.tw|ticket\.com\.tw|opentix\.life|tixfun\.com|go\.fansi\.me|(?:www\.)?indievox\.com|tickets\.books\.com\.tw)$/.test(host);
   } catch { return false; }
 }
 
@@ -293,6 +293,7 @@ export default async function handler(req, res) {
     discovery.checkedUrls += d.checkedUrls || 0;
     discovery.indexErrors.push(...(d.indexErrors || []));
     discovery.pageErrors.push(...(d.pageErrors || []));
+    discovery.sourceHealth = d.sourceHealth || [];
     sources.push(d.source || "台灣售票平台");
   } else errors.push(ticketPlatformResult.reason?.message || "Taiwan ticket platforms unavailable");
   if (errors.length) autoUpdateError = errors.join(" · ");
@@ -329,7 +330,8 @@ export default async function handler(req, res) {
       source: discovery.source,
       checkedUrls: discovery.checkedUrls || 0,
       discoveredCount: discovery.events?.length || 0,
-      sourceWarnings: (discovery.indexErrors?.length || 0) + (discovery.pageErrors?.length || 0) + (autoUpdateError ? 1 : 0)
+      sourceWarnings: (discovery.indexErrors?.length || 0) + (discovery.pageErrors?.length || 0) + (autoUpdateError ? 1 : 0),
+      sourceHealth: discovery.sourceHealth || []
     },
     count: events.length,
     artistCount: artists.length,

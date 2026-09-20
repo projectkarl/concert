@@ -42,3 +42,12 @@ The container validates syntax, data wiring, source-monitor logic and geometry r
 ### Known external-source limitations
 
 Automated crawling is best-effort. An official ticket site can block server-side fetches, move seat images to a new CDN/domain, render all content behind anti-bot JavaScript, or publish only PDF/interactive seat pickers. In those cases NEUL keeps the calibrated venue model and does not claim false section precision. The source adapter/allow-list is intentionally explicit for SSRF safety.
+
+## v0.40.2 full audit
+- PASS `npm run check`
+- PASS 66 seed events / no holes / seed-only dedupe remains 66
+- PASS izna official fallback + Zepp New Taipei model
+- PASS 14 ticket-source discovery code and source-health diagnostics
+- PASS active-show lifecycle guard (no midnight premature Archive)
+- PASS all-venue light ground in WebGL + Canvas fallback
+- PASS 5,200-seat high-quality WebGL budget / DPR 2.05

@@ -373,6 +373,22 @@ const tianmuTiers=[
 
 const genericStage = (z=-128,width=112,depth=34) => ({ main:{x:0,y:-16,z,width,depth}, runway:null, bStage:null });
 
+const zeppFloor = [
+  {...block('1F-L','FLOOR',-28,8,24,74,'standing'),standingOnly:true,rowMin:1,rowMax:1,label:'1F 左側站區（依活動票區圖更新）'},
+  {...block('1F-C','FLOOR',0,8,26,74,'standing'),standingOnly:true,rowMin:1,rowMax:1,label:'1F 中央站區（依活動票區圖更新）'},
+  {...block('1F-R','FLOOR',28,8,24,74,'standing'),standingOnly:true,rowMin:1,rowMax:1,label:'1F 右側站區（依活動票區圖更新）'}
+];
+const zepp2F = [
+  {...block('2F-L','2F',-31,37,27,28,'balcony'),y:10,rowMin:1,rowMax:10,seatEstimateMax:20,rise:9,label:'2F 左側'},
+  {...block('2F-C','2F',0,37,30,28,'balcony'),y:10,rowMin:1,rowMax:10,seatEstimateMax:22,rise:9,label:'2F 中央'},
+  {...block('2F-R','2F',31,37,27,28,'balcony'),y:10,rowMin:1,rowMax:10,seatEstimateMax:20,rise:9,label:'2F 右側'}
+];
+const zeppSections=[...zeppFloor,...zepp2F];
+const zeppTiers=[
+  {id:'FLOOR',label:'1F 活動站區',short:'1F',sections:zeppFloor.map(x=>x.id)},
+  {id:'2F',label:'2F 看台／活動站席',short:'2F',sections:zepp2F.map(x=>x.id)}
+];
+
 export const venueModels = {
   'taipei-dome': {
     id:'taipei-dome', name:'臺北大巨蛋', en:'TAIPEI DOME', city:'Taipei', sections:taipeiDomeSections, tiers:taipeiDomeTiers,
@@ -428,6 +444,11 @@ export const venueModels = {
     id:'tianmu-gymnasium', name:'天母體育館', en:'TIANMU GYMNASIUM', city:'Taipei', sections:tianmuSections, tiers:tianmuTiers,
     baseLayoutId:'tianmu-base', defaultTier:'BOWL', defaultSection:'M1', defaultRow:6, field:{x:100,z:78}, stage:genericStage(-94,78,24),
     sourceName:'臺北市政府場館建置資料', sourceUrl:'https://english.udd.gov.taipei/News_Content.aspx?n=DD9CEC17A97FBC64&s=5C7961D8F91A70B4&sms=72544237BBE4C5F6', confidence:'官方容量／場館級幾何＋實景校正'
+  },
+  'zepp-new-taipei': {
+    id:'zepp-new-taipei', name:'Zepp New Taipei', en:'ZEPP NEW TAIPEI', city:'New Taipei', sections:zeppSections, tiers:zeppTiers,
+    baseLayoutId:'zepp-new-taipei-base', defaultTier:'2F', defaultSection:'2F-C', defaultRow:5, field:{x:62,z:68}, stage:genericStage(-66,54,18),
+    sourceName:'Zepp New Taipei 公開場館資訊／官方售票票區圖交叉校正', sourceUrl:'https://tixcraft.com/activity/detail/26_izna', confidence:'場館比例＋活動票區圖動態校正'
   }
 };
 
@@ -520,7 +541,8 @@ export const venueLayouts = {
   'ks-horizontal': {id:'ks-horizontal',venueId:'kaohsiung-stadium',label:'世運 · 橫開舞台基準',stage:{main:{x:-122,y:-16,z:0,width:42,depth:170},runway:null,bStage:null},sourceName:'場館級橫開舞台示意',sourceUrl:'https://busker.kcg.gov.tw/space/Details?Parser=99%2C7%2C28%2C%2C%2C%2C29',notices:['橫開舞台會大幅改變側邊看台與延伸台方向；本配置只做場館方位參考。']},
   'taoyuan-base': {id:'taoyuan-base',venueId:'taoyuan-arena',label:'桃園巨蛋場館基準',stage:venueModels['taoyuan-arena'].stage,sourceName:'桃園市政府體育局官方座位平面圖',sourceUrl:'https://www.dst.tycg.gov.tw/cp.aspx?n=11715',notices:['官方資料可確認主場地直徑約 82 公尺、固定座椅與活動座椅；演唱會平面票區依每場配置。']},
   'ntu-base': {id:'ntu-base',venueId:'ntu-sports-center',label:'臺大主球場基準',stage:venueModels['ntu-sports-center'].stage,sourceName:'臺大體育室場地地圖／主球場資料',sourceUrl:'https://rent.pe.ntu.edu.tw/map/',notices:['官方可確認 3–5F 固定席 3,221 張與活動伸縮座椅 1,022 張；平面票區依活動重排。']},
-  'tianmu-base': {id:'tianmu-base',venueId:'tianmu-gymnasium',label:'天母體育館場館基準',stage:venueModels['tianmu-gymnasium'].stage,sourceName:'臺北市政府場館建置資料',sourceUrl:'https://english.udd.gov.taipei/News_Content.aspx?n=DD9CEC17A97FBC64&s=5C7961D8F91A70B4&sms=72544237BBE4C5F6',notices:['官方可確認約 4,620 固定席、可擴充至約 6,000 席；細分看台目前為區域級校正。']}
+  'tianmu-base': {id:'tianmu-base',venueId:'tianmu-gymnasium',label:'天母體育館場館基準',stage:venueModels['tianmu-gymnasium'].stage,sourceName:'臺北市政府場館建置資料',sourceUrl:'https://english.udd.gov.taipei/News_Content.aspx?n=DD9CEC17A97FBC64&s=5C7961D8F91A70B4&sms=72544237BBE4C5F6',notices:['官方可確認約 4,620 固定席、可擴充至約 6,000 席；細分看台目前為區域級校正。']},
+  'zepp-new-taipei-base': {id:'zepp-new-taipei-base',venueId:'zepp-new-taipei',label:'Zepp New Taipei 場館基準',stage:venueModels['zepp-new-taipei'].stage,sourceName:'官方售票活動頁／公開場館配置交叉校正',sourceUrl:'https://tixcraft.com/activity/detail/26_izna',notices:['1F 為活動可變站區，2F 為看台／活動站席；精確票區邊界以每場官方座位圖 OCR/Vision 自動覆寫。','未取得該場官方座位圖前，不把基準分區宣稱為售票區號。']}
 };
 
 
@@ -884,5 +906,6 @@ export function venueIdFromName(name='') {
   if (/桃園巨蛋|桃園市立綜合體育館|taoyuan arena/.test(v)) return 'taoyuan-arena';
   if (/台大綜合體育館|臺大綜合體育館|ntu sports center/.test(v)) return 'ntu-sports-center';
   if (/天母體育館|tianmu gymnasium/.test(v)) return 'tianmu-gymnasium';
+  if (/zepp new taipei|zepp新北|zepp 新北/.test(v)) return 'zepp-new-taipei';
   return null;
 }

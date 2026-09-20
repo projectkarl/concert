@@ -1,3 +1,10 @@
+
+## v0.40.2 Full Audit (2026-09-20)
+- Fixed premature “ended” state with session-aware lifecycle rules.
+- Added izna + Zepp New Taipei 3D baseline.
+- Expanded discovery to 14 Taiwan ticket sources including iNDIEVOX; tixCraft crawl depth increased and source-health diagnostics added.
+- All venue grounds are light in WebGL and Canvas fallback; high-quality 3D seat density and render DPR increased.
+- See `FULL_AUDIT_2026-09-20.md`.
 # NEUL v0.40 — Seat Map Vision + BTS / T-ARA Source Audit
 
 Taiwan-only concert discovery and true WebGL venue/seat-view prototype for Vercel Hobby. The existing NEUL UI is preserved. v0.40 fixes a key automation gap: finding an official seat-map URL is no longer treated as equivalent to building an event-specific 3D layout.

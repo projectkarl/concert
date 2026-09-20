@@ -1093,5 +1093,34 @@ export const seedEvents = [
     ticketTimeline:[{label:"CUBE 卡友優先購",at:"2026-09-16T12:00:00+08:00",end:"2026-09-16T18:00:00+08:00"},{label:"實名抽選登記",at:"2026-09-17T12:00:00+08:00",end:"2026-09-20T19:00:00+08:00"}],
     summary: "2027/01/09–10 台北大巨蛋；採實名抽選，分區價位待官方座位配置可可靠解析後自動寫入 3D。"
   },
+  {
+    id: "izna-who-dat-girl-taipei-2026", artist: "izna", shortArtist: "izna", market: "KR",
+    title: "2026 izna Concert Tour：WHO DAT GIRL? in TAIPEI", type: "CONCERT", region: "TW", start: "2026-10-09T18:00:00+08:00", timeConfirmed: true,
+    venue: "Zepp New Taipei", city: "New Taipei", statusLabel: "演唱會", ticketStatus: "ON SALE", generalSale: "2026-08-23T15:00:00+08:00", ticketing: "tixCraft 拓元",
+    price: "NT$4,280 / 3,880 / 3,580；身障席 NT$2,140",
+    sectionPriceRules:[{label:"1F VIP",price:"NT$4,280"},{label:"2F",price:"NT$3,880 / 3,580"}],
+    sourceName: "tixCraft 拓元", sourceUrl: "https://tixcraft.com/activity/detail/26_izna", verified: true, checkedAt: "2026-09-20T15:00:00+08:00",
+    tags: ["KR","K-POP","izna","ZEPP NEW TAIPEI","OFFICIAL"], venueModelId: "zepp-new-taipei", venueLayoutId: "zepp-new-taipei-base",
+    summary: "拓元官方已確認 2026/10/09 18:00 於 Zepp New Taipei 演出；1F VIP 與 2F 站席依票面序號整隊入場。"
+  },
+
+  {
+    id:"do-as-infinity-27th-taipei-2026",artist:"Do As Infinity",shortArtist:"DAI",market:"JP",title:"Do As Infinity 27th Anniversary LIVE TOUR IN TAIPEI",type:"CONCERT",region:"TW",start:"2026-09-20T17:00:00+08:00",timeConfirmed:true,venue:"Zepp New Taipei",city:"New Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"tixCraft 拓元",price:"1F站席 NT$4,200 / 2F座席 NT$3,900 / 2F站席 NT$3,200",sourceName:"tixCraft 拓元",sourceUrl:"https://tixcraft.com/activity/detail/26_dai0920",verified:true,checkedAt:"2026-09-20T15:00:00+08:00",tags:["JP","J-ROCK","ZEPP NEW TAIPEI"],venueModelId:"zepp-new-taipei",venueLayoutId:"zepp-new-taipei-base"
+  },
+  {
+    id:"henry-moodie-kaohsiung-2026",artist:"Henry Moodie",shortArtist:"HM",market:"EU",title:"Henry Moodie：Mood Swings World Tour in Kaohsiung",type:"CONCERT",region:"TW",start:"2026-09-28T00:00:00+08:00",timeConfirmed:false,venue:"LIVE WAREHOUSE",city:"Kaohsiung",statusLabel:"演唱會",ticketStatus:"CHECK OFFICIAL",ticketing:"tixCraft 拓元",price:"依官方售票頁公告",sourceName:"tixCraft 拓元活動列表",sourceUrl:"https://tixcraft.com/activity",sharedSourceUrl:true,verified:true,checkedAt:"2026-09-20T15:00:00+08:00",tags:["EU","POP","KAOHSIUNG"]
+  },
+  {
+    id:"plave-keep-it-manic-kaohsiung-2026",artist:"PLAVE",shortArtist:"PLV",market:"KR",title:"2026 PLAVE World Tour [KEEP IT MANIC] in Kaohsiung",type:"CONCERT",region:"TW",start:"2026-10-03T00:00:00+08:00",timeConfirmed:false,venue:"高雄巨蛋 Kaohsiung Arena",city:"Kaohsiung",statusLabel:"演唱會",ticketStatus:"CHECK OFFICIAL",ticketing:"tixCraft 拓元",price:"依官方售票頁公告",sourceName:"tixCraft 拓元活動列表",sourceUrl:"https://tixcraft.com/activity",sharedSourceUrl:true,verified:true,checkedAt:"2026-09-20T15:00:00+08:00",tags:["KR","K-POP","PLAVE","KAOHSIUNG ARENA"],venueModelId:"kaohsiung-arena",venueLayoutId:"kaohsiung-base"
+  },
+  {
+    id:"patrick-brasca-bad-idea-taipei-2026",artist:"派偉俊 Patrick Brasca",shortArtist:"PB",market:"TW",title:"派偉俊 Patrick Brasca《BAD IDEA》2026個人演唱會",type:"CONCERT",region:"TW",start:"2026-10-10T00:00:00+08:00",timeConfirmed:false,venue:"臺北流行音樂中心表演廳",city:"Taipei",statusLabel:"演唱會",ticketStatus:"CHECK OFFICIAL",ticketing:"tixCraft 拓元",price:"依官方售票頁公告",sourceName:"tixCraft 拓元活動列表",sourceUrl:"https://tixcraft.com/activity",sharedSourceUrl:true,verified:true,checkedAt:"2026-09-20T15:00:00+08:00",tags:["TW","POP","TAIPEI MUSIC CENTER"],venueModelId:"taipei-music-center",venueLayoutId:"tmc-base"
+  },
+  {
+    id:"qwer-rockation-taipei-2026",artist:"QWER",shortArtist:"QWER",market:"KR",title:"QWER 2nd TOUR <ROCKATION: ROCKET LAUNCH!!> IN TAIPEI",type:"CONCERT",region:"TW",start:"2026-10-10T00:00:00+08:00",end:"2026-10-11T00:00:00+08:00",timeConfirmed:false,venue:"國立體育大學綜合體育館 NTSU ARENA",city:"Taoyuan",statusLabel:"演唱會",ticketStatus:"CHECK OFFICIAL",ticketing:"tixCraft 拓元",price:"依官方售票頁公告",sourceName:"tixCraft 拓元活動列表",sourceUrl:"https://tixcraft.com/activity",sharedSourceUrl:true,verified:true,checkedAt:"2026-09-20T15:00:00+08:00",tags:["KR","K-POP","QWER","NTSU"],venueModelId:"ntsu-arena",venueLayoutId:"ntsu-base"
+  },
+  {
+    id:"boynextdoor-knock-on-vol2-taipei-2027",artist:"BOYNEXTDOOR",shortArtist:"BND",market:"KR",title:"BOYNEXTDOOR TOUR ‘KNOCK ON Vol.2’ IN TAIPEI",type:"CONCERT",region:"TW",start:"2027-01-08T00:00:00+08:00",end:"2027-01-10T00:00:00+08:00",timeConfirmed:false,venue:"國立體育大學綜合體育館 NTSU ARENA",city:"Taoyuan",statusLabel:"演唱會",ticketStatus:"CHECK OFFICIAL",ticketing:"tixCraft 拓元",price:"依官方售票頁公告",sourceName:"tixCraft 拓元活動列表",sourceUrl:"https://tixcraft.com/activity",sharedSourceUrl:true,verified:true,checkedAt:"2026-09-20T15:00:00+08:00",tags:["KR","K-POP","BOYNEXTDOOR","NTSU"],venueModelId:"ntsu-arena",venueLayoutId:"ntsu-base"
+  },
 
 ];

@@ -73,6 +73,40 @@ const taiwanVenueModels = () => Object.values(venueModels).filter(v => TAIWAN_VE
 const TAIPEI_TZ = "Asia/Taipei";
 const dayMs = 86400000;
 
+
+function eventSessionTs(session, event={}) {
+  if (!session?.date) return NaN;
+  const date=String(session.date).replaceAll('/','-');
+  const time=String(session.time||'23:59').padStart(5,'0');
+  const d=new Date(`${date}T${time.length===5?time:'23:59'}:00+08:00`);
+  return d.getTime();
+}
+function isMidnightIso(iso='') { return /T00:00(?::00)?(?:\+08:00|Z)?$/i.test(String(iso)); }
+function endOfTaipeiDayTs(iso='') {
+  const d=new Date(iso); if(!Number.isFinite(d.getTime())) return NaN;
+  const key=new Intl.DateTimeFormat('en-CA',{year:'numeric',month:'2-digit',day:'2-digit',timeZone:TAIPEI_TZ}).format(d);
+  return new Date(`${key}T23:59:59+08:00`).getTime();
+}
+function eventEffectiveEndTs(event={}) {
+  const sessionTs=(event.sessions||[]).map(x=>eventSessionTs(x,event)).filter(Number.isFinite);
+  if(sessionTs.length) return Math.max(...sessionTs) + 6*3600000;
+  if(event.end){
+    const raw=new Date(event.end).getTime();
+    if(Number.isFinite(raw)) return isMidnightIso(event.end) ? endOfTaipeiDayTs(event.end) : raw + 6*3600000;
+  }
+  const start=new Date(event.start||0).getTime();
+  if(!Number.isFinite(start)) return NaN;
+  if(event.timeConfirmed===false || isMidnightIso(event.start)) return endOfTaipeiDayTs(event.start);
+  return start + 6*3600000;
+}
+function eventLifecycle(event={}, now=Date.now()) {
+  const startTs=new Date(event.start||0).getTime(), endTs=eventEffectiveEndTs(event);
+  if(event.historical) return {state:'ended',ended:true,active:false,upcoming:false,startTs,endTs};
+  if(Number.isFinite(startTs) && now < startTs) return {state:'upcoming',ended:false,active:false,upcoming:true,startTs,endTs};
+  if(Number.isFinite(endTs) && now <= endTs) return {state:'active',ended:false,active:true,upcoming:false,startTs,endTs};
+  return {state:'ended',ended:true,active:false,upcoming:false,startTs,endTs};
+}
+
 function relativeTime(iso) {
   if (!iso) return "";
   const ts = new Date(iso).getTime();
@@ -93,7 +127,9 @@ function relativeTime(iso) {
 }
 
 function eventBadge(event) {
-  if (event?.historical) return "歷史場次";
+  const life=eventLifecycle(event);
+  if (event?.historical || life.ended) return "已結束";
+  if (life.active) return "演出進行中";
   const now = Date.now();
   const startTs = new Date(event.start || 0).getTime();
   const saleTs = event.generalSale ? new Date(event.generalSale).getTime() : NaN;
@@ -203,8 +239,8 @@ function filteredEvents() {
     const typeOk = state.type === "ALL" || e.type === state.type;
     const regionOk = e.region === state.region;
     const cityOk = state.city === "ALL" || state.city === "ARCHIVE" || String(e.city || "").toLowerCase() === state.city.toLowerCase();
-    const startTs = new Date(e.end || e.start || 0).getTime();
-    const past = e.historical || (Number.isFinite(startTs) && startTs < now - 6*3600000);
+    const life = eventLifecycle(e,now);
+    const past = life.ended;
     const historyOk = state.archiveMode ? past : (q ? true : !past);
     const dateText = e.start ? new Intl.DateTimeFormat(uiLocale(),{year:"numeric",month:"2-digit",day:"2-digit",timeZone:"Asia/Taipei"}).format(new Date(e.start)) : "";
     const hay = normalizeSearch(`${e.artist} ${e.title} ${e.venue} ${e.city} ${dateText} ${(e.tags || []).join(" ")}`);
@@ -278,7 +314,7 @@ function renderFollowing() {
 function featuredEvents() {
   const threshold = Date.now() - dayMs;
   return [...state.events]
-    .filter(e => e.region === "TW" && !e.historical && e.start && new Date(e.start).getTime() >= threshold)
+    .filter(e => e.region === "TW" && !eventLifecycle(e).ended && e.start && eventEffectiveEndTs(e) >= threshold)
     .sort((a, b) => new Date(a.start) - new Date(b.start))
     .slice(0, 5);
 }
@@ -460,6 +496,8 @@ function parseTimelineDateTime(item, event) {
 
 function countdownTarget(event) {
   const now = Date.now();
+  const life=eventLifecycle(event,now);
+  if(life.active) return {active:true,label:"演出進行中",note:"活動尚未結束；結束時間以最後場次與官方公告為準",kind:"active"};
   const futureSessions = (event?.sessions || [])
     .map(session => ({ session, date: parseSessionDateTime(session, event) }))
     .filter(x => x.date && x.date.getTime() > now)
@@ -502,6 +540,9 @@ function countdownTarget(event) {
 
 function countdownMarkup(event) {
   const target = countdownTarget(event);
+  if (target?.active) {
+    return `<section class="concert-countdown countdown-live" data-countdown-live="true"><div class="countdown-eyebrow">LIVE NOW</div><div class="countdown-ended-title">演出進行中</div><p>${escapeHtml(target.note)}</p></section>`;
+  }
   if (!target) {
     return `<section class="concert-countdown countdown-ended" data-countdown-ended="true">
       <div class="countdown-eyebrow">LIVE COUNTDOWN</div>
@@ -765,7 +806,7 @@ async function loadEvents() {
 async function hydrateSeatMapGeometry(events=[]) {
   const now=Date.now();
   const candidates=events
-    .filter(e=>canAnalyzeSeatMap(e)&&eventVenueModelId(e)&&new Date(e.end||e.start||0).getTime()>=now-6*3600000)
+    .filter(e=>canAnalyzeSeatMap(e)&&eventVenueModelId(e)&&!eventLifecycle(e,now).ended)
     .sort((a,b)=>new Date(a.start||0)-new Date(b.start||0));
   let changed=false;
   const analyzeOne=async event=>{
@@ -855,8 +896,7 @@ function modalBaseEvents() {
   const q = normalizeSearch(state.query);
   const qTokens = q.split(" ").filter(Boolean);
   return state.events.filter(e => {
-    const endTs = new Date(e.end || e.start || 0).getTime();
-    const future = Number.isFinite(endTs) && endTs >= now - 6*3600000 && !e.historical;
+    const future = !eventLifecycle(e,now).ended;
     const typeOk = state.type === "ALL" || e.type === state.type;
     const cityOk = state.city === "ALL" || state.city === "ARCHIVE" || String(e.city || "").toLowerCase() === state.city.toLowerCase();
     const dateText = e.start ? taipeiDateKey(e.start) : "";
@@ -871,8 +911,7 @@ function modalFilteredEvents() {
   // scalable when more counties/cities are added to the feed.
   const now=Date.now();
   let list=state.events.filter(e=>{
-    const endTs=new Date(e.end||e.start||0).getTime();
-    const future=Number.isFinite(endTs)&&endTs>=now-6*3600000&&!e.historical;
+    const future=!eventLifecycle(e,now).ended;
     return future && e.region==="TW" && (state.type==="ALL" || e.type===state.type);
   }).sort((a,b)=>new Date(a.start||0)-new Date(b.start||0));
   const month = eventsMonthFilter?.value || "";
@@ -1013,8 +1052,7 @@ function renderLayoutOptions() {
     if(layout.id===state.layoutId) return true; // archive/deep-link may temporarily show its selected layout
     const event=state.events.find(e=>e.id===layout.eventId);
     if(!event || event.historical) return false;
-    const endTs=new Date(event.end||event.start||0).getTime();
-    return Number.isFinite(endTs) && endTs>=now-6*3600000;
+    return !eventLifecycle(event,now).ended;
   });
   if (!options.some(x => x.id === state.layoutId)) state.layoutId = model.baseLayoutId;
   layoutSelect.innerHTML = options.map(x => `<option value="${escapeHtml(x.id)}" ${x.id===state.layoutId?"selected":""}>${escapeHtml(x.label)}</option>`).join("");
@@ -1336,7 +1374,7 @@ function renderVenueScene(targetCanvas, opts = {}) {
   const viewSeat=opts.seatMode??seatMode, project=viewSeat?makeSeatProjector(cw,ch,opts.yaw??yaw,opts.pitch??pitch,opts.zoom??zoom):makeOrbitProjector(cw,ch,opts.yaw??yaw,opts.pitch??pitch,opts.zoom??zoom);
   const poly=(points,fill,stroke="#343942",width=1)=>{const pp=points.map(project).filter(Boolean);if(pp.length!==points.length)return;context.beginPath();pp.forEach((q,i)=>i?context.lineTo(q[0],q[1]):context.moveTo(q[0],q[1]));context.closePath();context.fillStyle=fill;context.fill();context.strokeStyle=stroke;context.lineWidth=width;context.stroke();};
   const line=(points,stroke,width=1)=>{const pp=points.map(project).filter(Boolean);if(pp.length<2)return;context.beginPath();pp.forEach((q,i)=>i?context.lineTo(q[0],q[1]):context.moveTo(q[0],q[1]));context.strokeStyle=stroke;context.lineWidth=width;context.stroke();};
-  poly([[-model.field.x,-25,-model.field.z],[model.field.x,-25,-model.field.z],[model.field.x,-25,model.field.z],[-model.field.x,-25,model.field.z]],"#171d22","#26303a");
+  poly([[-model.field.x,-25,-model.field.z],[model.field.x,-25,-model.field.z],[model.field.x,-25,model.field.z],[-model.field.x,-25,model.field.z]],isLight?"#d9dde1":"#b8c0c7",isLight?"#aeb7bf":"#8f9aa3");
   const isLight=document.body.classList.contains("light-mode");
   const selectedId=String(state.section), allowedTiers=availableVenueTiers(), palette=isLight?["#69859a","#7890a3","#8d789b","#71889a","#7c92a2","#657f96"]:["#27313b","#313945","#3b3340","#2f3740","#333b45","#303943"];
   for(const tier of allowedTiers) for(const id of tier.sections){const sec=getVenueSection(state.venueId,id,state.layoutId);if(!sec)continue;const selected=id===selectedId,restricted=layout.restrictedViewSections?.includes(id),floorFacing=layout.bStageFacingSections?.includes(id);let fill=(sec.tier==="FLOOR"||sec.shape==="block")?"#252a31":palette[Math.max(0,allowedTiers.findIndex(t=>t.id===sec.tier))%palette.length];if(layout.id==="plave-keep-it-manic-2026"){const groupFill={vip6300:"#4a262d","5300":"#24433d","3800":"#47442a","2900":"#253b29"};fill=groupFill[sec.group]||fill;}if(layout.id==="le-sserafim-pureflow-2026"){const groupFill={"6980":"#294f8e","6380":"#a7e1e7","5880":"#82c7ee","4680":"#777ac0","3680-4680":"#416fae"};fill=groupFill[sec.group]||fill;}if(layout.id==="ive-show-what-i-am-2026"){const groupFill={vip7800:"#b44785","5800":"#426b86","4800":"#9b5c62","3800":"#3f827f",side2f:"#52657d","3fRange":"#66507c",box4800:"#76545d"};fill=groupFill[sec.group]||fill;}if(restricted)fill=isLight?"#b97837":"#5a4334";if(floorFacing&&!restricted)fill=isLight?"#7c708c":"#343042";if(selected)fill=isLight?"#dc55e8":"#c47ae3";poly(sectionPoly(sec),fill,selected?(isLight?"#fff1ff":"#f4daf2"):restricted?(isLight?"#f2c27a":"#c29a69"):(isLight?"#9db1c0":"#4a5661"),selected?2.2:.95);}
