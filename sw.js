@@ -1,4 +1,4 @@
-const VERSION = "neul-v0.40.9-auto-custom3d-pipeline";
+const VERSION = "neul-v0.40.8-auto-ticket-lifecycle";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const APP_SHELL = [

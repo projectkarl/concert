@@ -5,7 +5,7 @@
     "failed": 0,
     "uniqueLayouts": 75,
     "officialSeatMap": 9,
-    "needsReview": 67,
+    "needsReview": 66,
     "calibrated": 8,
     "auto": 67,
     "levels": {
@@ -118,7 +118,7 @@
       "officialSeatMap": true,
       "priceRules": 7,
       "priceSync": true,
-      "needsReview": true,
+      "needsReview": false,
       "stageShape": "center",
       "hasRunway": false,
       "extraStageRects": 0

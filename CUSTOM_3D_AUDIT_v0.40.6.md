@@ -4,7 +4,7 @@
 - 通過「逐場唯一客製 3D」：75/75
 - 唯一 event layout：75/75
 - 已直接綁定官方座位圖／人工校正：9
-- 初始為場館衍生、等待官方圖自動校正：67
+- 初始為場館衍生、等待官方圖自動校正：66
 - 人工校正 layout：8
 - 自動 event-specific layout：67
 
@@ -17,7 +17,7 @@
 | KIM JI WON | LEGACY TERA | auto-kim-ji-won-wonederland-taipei-2026 | venue-derived | — | 需 | PASS |
 | TREASURE | 高雄巨蛋 Kaohsiung Arena | auto-treasure-new-wav-kaohsiung-2026 | venue-derived | — | 需 | PASS |
 | Stray Kids | 臺北大巨蛋 Taipei Dome | skz-run-it-2026 | hand-calibrated-official-map | ✓ | — | PASS |
-| Asia Artist Awards | 高雄國家體育場（世運主場館） | auto-aaa-2026-kaohsiung | official-map-linked | ✓ | 需 | PASS |
+| Asia Artist Awards | 高雄國家體育場（世運主場館） | auto-aaa-2026-kaohsiung | official-map-linked | ✓ | — | PASS |
 | PLAVE | NTSU ARENA (LINKOU ARENA) | plave-keep-it-manic-2026 | hand-calibrated-official-map | ✓ | — | PASS |
 | YESUNG | NTSU ARENA | auto-yesung-ordinary-taipei-2026 | venue-derived | — | 需 | PASS |
 | NCT 127 | 臺北小巨蛋 Taipei Arena | auto-nct127-redline-taipei-2027 | venue-derived | — | 需 | PASS |

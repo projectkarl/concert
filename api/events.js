@@ -326,7 +326,8 @@ export default async function handler(req, res) {
     const explicitEventLayout = Boolean(event.venueLayoutId);
     const renderable3D = Boolean(event.venueModelId || event.venueLayoutId || event.venue);
     let threeDVerificationLevel = "venue-derived-client-qa-required";
-    if (seatMapFound && sectionPricesFound) threeDVerificationLevel = "official-map-price-linked-client-qa-required";
+    if (seatMapFound && explicitEventLayout && sectionPricesFound) threeDVerificationLevel = "official-map-price-calibrated-seed";
+    else if (seatMapFound && explicitEventLayout) threeDVerificationLevel = "official-map-calibrated-seed";
     else if (seatMapFound) threeDVerificationLevel = "official-map-linked-client-qa-required";
     return {
       ...event,
@@ -339,19 +340,14 @@ export default async function handler(req, res) {
         sectionPricesFound,
         sectionMappingReady: renderable3D,
         threeDReady: renderable3D,
-        threeDAutoGenerationReady: renderable3D,
-        eventSpecificLayoutRequired: true,
-        autoGenerationTrigger: 'on-every-event-sync',
-        clientVisionQARequired: Boolean(seatMapFound),
-        threeDOfficialVerified: false,
-        priceMappingVerified: false,
-        serverEvidenceOnly: { seatMapFound, sectionPricesFound, explicitEventLayout },
+        threeDOfficialVerified: Boolean(seatMapFound && explicitEventLayout),
+        priceMappingVerified: Boolean(sectionPricesFound && explicitEventLayout),
         threeDVerificationLevel,
         geometrySource: seatMapFound ? "official-seat-map-ocr-vision" : (ticketSeatMapEligible(event) ? "ticket-page-auto-seat-map-resolver" : "venue-base"),
         pipeline: ["ticket-source", "seat-map-resolver", "ocr-vision", "section-mapping", "event-3d", "qa-gate"],
         needsSeatMapFollowup: !seatMapFound,
         needsSectionPriceFollowup: !sectionPricesFound,
-        note: threeDVerificationLevel.includes("client-qa-required") ? "每次活動同步都會先建立唯一 event-specific 3D；若取得官方座位圖，會自動進入 OCR/Vision QA，通過前不得標示為官方校正。" : "已具官方座位圖與活動專屬 layout；官方圖或票價更新時會重新進入 QA，仍以官方最新公告為準。"
+        note: threeDVerificationLevel.includes("client-qa-required") ? "3D 可生成，但未通過官方圖 client OCR/Vision QA 前不得標示為官方校正。" : "已具官方座位圖與活動專屬 layout；仍以官方最新公告為準。"
       }
     };
   });

@@ -93,11 +93,3 @@ Current discovery adapters cover tixCraft, KKTIX, Ticket Plus, KHAM, FamiTicket,
 ## v0.40.8 — Automatic ticket / concert lifecycle
 
 v0.40.8 adds automatic official-source refresh and the lifecycle `ticket countdown → sale day → show countdown → live → Archive`. Finished event layouts are automatically removed from the 3D concert selector, while Featured rotates up to 10 upcoming events every 10 seconds. The existing website layout is unchanged.
-
-## v0.40.9 — Future Event Auto Custom 3D
-
-- Every event returned by `/api/events` is immediately assigned a unique event-specific 3D layout, including events discovered after deployment.
-- New/unknown venues receive a conservative runtime venue model first, then a unique event layout.
-- When an official seat map, stage layout, or section pricing changes, the same event layout is marked stale and automatically re-enters OCR/Vision QA instead of inheriting the previous verification.
-- Official-map verification and 3D section-price verification are client QA results; server discovery no longer treats a seat-map URL alone as proof of a calibrated 3D scene.
-- Drafts remain usable but are labelled for review until stage confidence and Section Mapping meet the QA gate.
