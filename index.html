@@ -187,6 +187,15 @@
       <div class="seat-preview-card">
         <div class="preview-title">座位視角預覽（<span id="previewSeatLabel">下層 · 106區 18排</span>）<button id="expandPreviewBtn" aria-label="放大預覽">↗</button></div>
         <div class="seat-preview-img"><canvas id="seatPreviewCanvas" aria-label="依所選座位區即時計算的舞台視角模擬"></canvas></div>
+        <div class="official-seatmap-inline" id="officialSeatMapPanel" hidden>
+          <div class="official-seatmap-head"><span>本場官方座位圖</span><a id="officialSeatMapSourceLink" href="#" target="_blank" rel="noopener noreferrer">官方來源 ↗</a></div>
+          <div class="official-seatmap-frame" id="officialSeatMapFrame">
+            <img id="officialSeatMapImage" alt="本場演唱會官方座位圖" loading="lazy" decoding="async">
+            <button class="official-seatmap-marker" id="officialSeatMapMarker" type="button" hidden aria-label="目前選擇票區"></button>
+            <div class="official-seatmap-loading" id="officialSeatMapLoading">載入官方座位圖…</div>
+          </div>
+          <div class="official-seatmap-meta"><span id="officialSeatMapSource"></span><span id="officialSeatMapSync"></span></div>
+        </div>
         <div class="seat-warning" id="seatWarning" hidden></div>
         <p>視角方向依官方場館資料與可取得的活動配置重建；未有本場專屬舞台圖時採場館基準，非實際拍攝畫面。</p>
         <div class="preview-tools"><span>↔ 左右觀看</span><span>⊕ 放大縮小</span><span>↻ 拖曳旋轉</span></div>
@@ -245,7 +254,17 @@
         <button type="button" data-events-window="90">未來 90 天</button>
       </div>
       <div class="events-modal-summary" id="eventsModalSummary"></div>
-      <div class="events-modal-list" id="eventsModalList"></div>
+      <section class="events-calendar-shell" aria-label="每日演唱會行事曆">
+        <div class="events-calendar-head">
+          <button type="button" id="eventsCalendarPrev" aria-label="上個月">‹</button>
+          <div><span>DAILY CONCERT CALENDAR</span><strong id="eventsCalendarMonthLabel">—</strong></div>
+          <button type="button" id="eventsCalendarNext" aria-label="下個月">›</button>
+        </div>
+        <div class="events-calendar-weekdays" aria-hidden="true"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+        <div class="events-calendar-grid" id="eventsCalendarGrid"></div>
+      </section>
+      <div class="events-agenda-head"><strong id="eventsAgendaDateLabel">選擇日期</strong><span>點活動可查看官方來源與本場 3D</span></div>
+      <div class="events-modal-list events-agenda-list" id="eventsModalList"></div>
     </section>
   </div>
 

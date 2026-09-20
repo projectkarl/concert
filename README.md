@@ -1,3 +1,29 @@
+# NEUL
+
+## v0.40.6 Taiwan Coverage / Daily Concert Calendar / 3D QA (2026-09-20)
+
+- The website/homepage design remains locked to the v0.40 line. The only visible layout addition is inside the existing **「查看更多活動」** modal: a month calendar plus per-day concert agenda.
+- Curated offline fallback increased from 66 to **75 officially cross-checked Taiwan events**. Live discovery remains the primary source and now has deeper tixCraft/KKTIX/Ticket Plus/ERA/ibon coverage plus complete iNDIEVOX index ingestion.
+- `/api/events` exposes source-health and explicitly sets `completenessGuaranteed: false`; NEUL no longer equates a fixed seed count with “all concerts in Taiwan”.
+- Each event still receives its own event-specific 3D layout, but 3D quality is graded separately: `official-map-calibrated`, `official-map-auto-verified`, `official-map-partial`, `official-map-linked-pending`, or `venue-derived-draft`.
+- A venue-derived draft is renderable 3D, **not proof that it matches the official event map**. Official-map status requires the event map plus OCR/Vision QA; section pricing is never guessed from color order alone.
+- Current static audit: **75/75 unique event-specific layouts**, 9 with direct official-map/manual calibration in the packaged fallback, and 66 requiring live official-map discovery / QA before being presented as officially calibrated.
+- Newly cross-checked fallback events include Engelbert Humperdinck, STAYC, Novelbright, Hitsujibungaku, Fujii Kaze, Jason Mraz, yung kai, BINI and Gareth Gates.
+
+See `DATA_COVERAGE_3D_AUDIT_v0.40.6.md`, `CUSTOM_3D_AUDIT_v0.40.6.md`, `TEST_REPORT_v0.40.6.md`, and `V0.40.6_CHANGELOG.md`.
+
+## v0.40.4 BTS / BABYMONSTER / Auto-generation audit (2026-09-20)
+
+- Website design remains locked to the v0.40 line; `index.html` and `styles.css` are unchanged from v0.40.3.
+- BTS Kaohsiung uses a manually calibrated central circular core plus four diagonal extensions, with complete A1–A13 / M1–M13 / Y1–Y14 / R1–R14 floor families.
+- Central-stage shows no longer inherit the generic end-stage rear LED wall.
+- BABYMONSTER Taipei has an event-specific main stage + runway + end platform + FOH layout and complete published zone-price bindings.
+- Seat-map automation now attempts Traditional-Chinese + English OCR, expands section ranges such as `VIP A～E` / `特A～C` / `黃3A～J`, anchors dark-stage selection with the OCR `STAGE` token when available, and requires diagonal evidence before generating an X-stage.
+- Calibrated special-stage geometry is protected from low-confidence auto-regeneration; price colors are never guessed from palette order without OCR legend evidence.
+- Ticket-page seat-map eligibility checks secondary/ticket URLs in addition to the primary source URL.
+
+See `AUTO_GENERATION_AUDIT_v0.40.4.md`, `V0.40.4_CHANGELOG.md`, and `TEST_REPORT_v0.40.4.md`.
+
 
 ## v0.40.2 Full Audit (2026-09-20)
 - Fixed premature “ended” state with session-aware lifecycle rules.
@@ -15,7 +41,7 @@ Taiwan-only concert discovery and true WebGL venue/seat-view prototype for Verce
 - The browser-side `seat-map-intelligence.js` analyzes the actual official image pixels to derive a conservative stage profile and ticket-zone blocks for auto-generated event drafts.
 - Auto-generated events consume an official map immediately. Hand-calibrated high-profile layouts establish a verified baseline; if the official seat-map image bytes later change, the new hash triggers a fresh event-specific analysis instead of silently keeping the stale layout.
 - Official ticket pages are still the authority for prices. Image analysis does not invent ticket prices; only recognizable official section-price data is mapped into 3D.
-- The six-hour official monitor now checks both `sourceUrl` and `secondarySourceUrl`. This fixes cases such as BTS where Live Nation is the main source but the detailed official map/prices live on tixCraft.
+- The official monitor checks primary and secondary/ticket URLs so sale dates, prices and seat maps can refresh from the actual ticket page. This fixes cases such as BTS where Live Nation is the main source but the detailed official map/prices live on tixCraft.
 - KKTIX discovery now covers the global event index through multiple pages plus promoter subdomains including WANIN Visual (`wve.kktix.cc`), which fixes the missing T-ARA event.
 - BTS WORLD TOUR 'ARIRANG' IN KAOHSIUNG now uses a calibrated event layout based on the official tixCraft map: central stage, four diagonal stage arms, floor-zone families and section prices.
 - T-ARA Fancon 2026 in Taiwan is included with the official KKTIX seat map, event-specific Kaohsiung Music Center layout and section-price bands.
@@ -43,7 +69,7 @@ Automatic image analysis is a conservative fallback, not an OCR/CAD engine. Publ
 
 Automatic public-source layers include Live Nation Taiwan, official Taipei/Kaohsiung venue calendars, artist/agency tour pages, and nine Taiwan ticket-platform families: tixCraft, KKTIX, Ticket Plus/遠大, KHAM/寬宏, FamiTicket, udn tickets, ibon, MNA/牛耳 and 年代售票.
 
-`/api/events` is cached for six hours. On active use, stale data revalidates after that interval; the UI shows the actual last-sync timestamp and calculated next expected refresh time. A daily Vercel warm-up cron remains for Hobby-friendly background warming.
+`/api/events` is cached for one hour. While the page is open, NEUL automatically revalidates the merged official feed every hour; returning to a stale tab also triggers a refresh. A daily Vercel warm-up cron remains as a no-traffic safety net. Event/ticket lifecycle transitions are recalculated locally every minute, so Archive and 3D selections do not wait for the next network refresh.
 
 ## v0.40.1 automatic seat-map pipeline
 
@@ -59,3 +85,27 @@ This build keeps the v0.40 interface and extends only the automation path:
 8. Cache the compact analysis on the device; unchanged official maps skip repeated OCR.
 
 Current discovery adapters cover tixCraft, KKTIX, Ticket Plus, KHAM, FamiTicket, udn, ibon, MNA, ERA/ticket.com.tw, TixFun, OPENTIX, FANSI GO and Books Tickets, plus artist/venue official feeds. Sites can block automated fetching or change markup; those cases fall back to the verified venue model instead of inventing a seat map.
+
+
+## v0.40.7 活動資料來源 i
+活動卡、每日演唱會行事曆與活動明細提供小型 `i` 圖示；桌機 hover、手機點擊可查看該場目前實際使用的官方售票、藝人/主辦、場館、官方座位圖與 3D 校正來源。
+
+## v0.40.8 — Automatic ticket / concert lifecycle
+
+v0.40.8 adds automatic official-source refresh and the lifecycle `ticket countdown → sale day → show countdown → live → Archive`. Finished event layouts are automatically removed from the 3D concert selector, while Featured rotates up to 10 upcoming events every 10 seconds. The existing website layout is unchanged.
+
+## v0.40.9 — Future Event Auto Custom 3D
+
+- Every event returned by `/api/events` is immediately assigned a unique event-specific 3D layout, including events discovered after deployment.
+- New/unknown venues receive a conservative runtime venue model first, then a unique event layout.
+- When an official seat map, stage layout, or section pricing changes, the same event layout is marked stale and automatically re-enters OCR/Vision QA instead of inheriting the previous verification.
+- Official-map verification and 3D section-price verification are client QA results; server discovery no longer treats a seat-map URL alone as proof of a calibrated 3D scene.
+- Drafts remain usable but are labelled for review until stage confidence and Section Mapping meet the QA gate.
+
+
+## v0.40.10 Seat-map resolver
+官方座位圖採 recursive-v2 多來源自動解析：完整 sourceRefs、JSON/lazy asset、detail-page follow、hash cache 與每小時缺圖優先輪替驗證。一次抓取失敗不代表官方未公布。
+
+## v0.40.11 Full Coverage Auditor
+
+v0.40.11 no longer treats the fallback event count as the Taiwan concert total. It cross-checks ticket/promoter discovery with independent official venue calendars (TMC, TICC, Zepp New Taipei, KPMC/LIVE WAREHOUSE, plus the existing Taipei Arena and Kaohsiung Arena sources). Venue-only events are backfilled and flagged for ticket-source follow-up. New activities still automatically receive event-specific 3D drafts and upgrade when official seat maps/prices are found and pass QA.

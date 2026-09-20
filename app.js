@@ -1,9 +1,10 @@
 import { seedEvents } from "./data/events.js";
 import { seedArtists } from "./data/artists.js";
-import { venueModels, venueLayouts, layoutsForVenue, getVenueModel, getVenueLayout, getVenueTier, getVenueSection, venueSectionPosition, venueSectionWarning, sectionTicketLabel, venueIdFromName, effectiveTiers, effectiveSections, ensureAutoEventLayout, applyAutoSeatMapAnalysis, baseLayoutIdForVenue } from "./data/multi-venue-geometry.js";
+import { venueModels, venueLayouts, layoutsForVenue, getVenueModel, getVenueLayout, getVenueTier, getVenueSection, venueSectionPosition, venueSectionWarning, sectionTicketLabel, venueIdFromName, effectiveTiers, effectiveSections, ensureAutoEventLayout, ensureVenueModelForEvent, applyAutoSeatMapAnalysis, baseLayoutIdForVenue } from "./data/multi-venue-geometry.js";
 import { createVenueWebGL } from "./webgl-venue.js";
 import { analyzeSeatMap, canAnalyzeSeatMap } from "./seat-map-intelligence.js";
 import { saveFollowed, saveMode, recordEventChanges, saveOfflineSnapshot, loadFollowed } from "./storage.js";
+import { ticketSaleLifecycle } from "./lib/ticket-lifecycle.js";
 
 const $ = (q, root = document) => root.querySelector(q);
 const $$ = (q, root = document) => [...root.querySelectorAll(q)];
@@ -15,6 +16,8 @@ const state = {
   nextUpdateAt: null,
   autoUpdateEnabled: true,
   upstream: "curated-fallback",
+  coverage: null,
+  discoveryHealth: null,
   officialUpdatedAt: null,
   officialMonitorCount: 0,
   query: "",
@@ -66,6 +69,105 @@ const friendlySourceName = value => {
   return v.replace(/\s*API\s*/gi, " ").trim();
 };
 
+
+function normalizeSourceUrl(value="") {
+  try {
+    const u=new URL(value);
+    u.hash="";
+    for(const key of [...u.searchParams.keys()]) if(/^(?:utm_.+|fbclid|gclid|ref)$/i.test(key)) u.searchParams.delete(key);
+    return u.href.replace(/\/$/,"");
+  } catch { return ""; }
+}
+function sourceRoleFor(event={}, url="", fallback="") {
+  const normalized=normalizeSourceUrl(url);
+  const seat=normalizeSourceUrl(event.seatLayoutSourceUrl||"");
+  const primary=normalizeSourceUrl(event.sourceUrl||"");
+  const secondary=normalizeSourceUrl(event.secondarySourceUrl||"");
+  if(seat && normalized===seat) return "官方座位圖 · Section / 3D 校正";
+  if(primary && normalized===primary) return event.price && !/依.*公告|tba/i.test(String(event.price)) ? "活動資訊 · 售票 · 價位" : "活動資訊 · 售票";
+  if(secondary && normalized===secondary) return "補充公告 · 主辦 / 藝人 / 場館核對";
+  const host=(()=>{try{return new URL(url).hostname.toLowerCase()}catch{return ""}})();
+  if(/tixcraft|kktix|ticketplus|kham|ibon|famiticket|udnfunlife|ticket\.mna|ticket\.com\.tw|opentix|tixfun|fansi|indievox|books\.com\.tw/.test(host)) return "官方售票 / 活動資料";
+  if(/livenation/.test(host)) return "主辦 / 活動公告";
+  if(/weverse|ygfamily|jype|smtown|hybe/.test(host)) return "藝人官方公告";
+  if(/arena|stadium|tmc|ticc|kph|gov\.tw|edu\.tw/.test(host)) return "場館 / 3D 校正";
+  return fallback || "活動資料核對";
+}
+function eventSourceEntries(event={}) {
+  const out=[]; const seen=new Set();
+  const add=(name,url,role)=>{
+    const safe=normalizeSourceUrl(url); if(!safe||safe==="#"||seen.has(safe)) return;
+    seen.add(safe); out.push({name:friendlySourceName(name||"官方來源"),url:safe,role:role||sourceRoleFor(event,safe)});
+  };
+  add(event.sourceName||event.ticketing,event.sourceUrl,sourceRoleFor(event,event.sourceUrl));
+  for(const ref of (event.sourceRefs||[])) add(ref?.name||"官方來源",ref?.url,sourceRoleFor(event,ref?.url));
+  add("補充官方公告",event.secondarySourceUrl,"補充公告 · 主辦 / 藝人 / 場館核對");
+  add("官方座位配置",event.seatLayoutSourceUrl,"官方座位圖 · Section / 3D 校正");
+  add(event.autoSourceName||"自動發現來源",event.autoSourceUrl,"自動發現 / 交叉比對");
+  try {
+    const model=getVenueModel(eventVenueModelId(event));
+    if(model?.sourceUrl) add(model.sourceName||"場館官方資料",model.sourceUrl,"場館幾何 · 3D 基準校正");
+    const layout=getVenueLayout(eventVenueLayoutId(event));
+    if(layout?.sourceUrl) add(layout.sourceName||"本場 3D 配置來源",layout.sourceUrl,layout.seatMapDetected?"本場座位圖 · 3D 客製校正":"本場 3D 配置參考");
+  } catch {}
+  return out.slice(0,8);
+}
+function sourceInfoTriggerMarkup(event={}, extraClass="") {
+  const count=eventSourceEntries(event).length;
+  return `<span class="source-info-trigger ${escapeHtml(extraClass)}" data-source-info-event="${escapeHtml(event.id||"")}" aria-label="查看目前活動資料來源" title="資料來源 ${count ? `${count} 項` : "資訊"}">i</span>`;
+}
+let sourceInfoPopover=null, sourceInfoCloseTimer=null, sourceInfoEventId="";
+function ensureSourceInfoPopover(){
+  if(sourceInfoPopover) return sourceInfoPopover;
+  sourceInfoPopover=document.createElement("div");
+  sourceInfoPopover.className="source-info-popover";
+  sourceInfoPopover.hidden=true;
+  sourceInfoPopover.setAttribute("role","dialog");
+  sourceInfoPopover.setAttribute("aria-label","目前活動資料來源");
+  document.body.appendChild(sourceInfoPopover);
+  sourceInfoPopover.addEventListener("mouseenter",()=>clearTimeout(sourceInfoCloseTimer));
+  sourceInfoPopover.addEventListener("mouseleave",scheduleSourceInfoClose);
+  sourceInfoPopover.addEventListener("click",e=>e.stopPropagation());
+  return sourceInfoPopover;
+}
+function sourceInfoQualityLabel(event={}){
+  try{
+    const q=eventCustom3DMeta(event);
+    if(q.officialMapVerified) return q.priceMapped3D ? "3D：官方座位圖與價位已對照" : "3D：官方座位圖已對照";
+    if(q.officialSeatMap) return "3D：已取得官方座位圖，待完整校正";
+    return "3D：場館衍生草稿，待官方圖校正";
+  }catch{return "";}
+}
+function openSourceInfoPopover(trigger,event){
+  if(!trigger||!event) return;
+  clearTimeout(sourceInfoCloseTimer);
+  const pop=ensureSourceInfoPopover(); const entries=eventSourceEntries(event);
+  sourceInfoEventId=event.id||"";
+  pop.innerHTML=`<div class="source-info-head"><b>目前活動資料來源</b><span>${entries.length} 項</span></div><div class="source-info-event">${escapeHtml(event.artist)} · ${escapeHtml(event.title||"")}</div><div class="source-info-list">${entries.length?entries.map(x=>`<a href="${safeUrl(x.url)}" target="_blank" rel="noopener noreferrer"><strong>${escapeHtml(x.name)}</strong><small>${escapeHtml(x.role)}</small><em>↗</em></a>`).join(""):`<div class="source-info-empty">目前僅有已核對的活動資料，尚未保留可開啟來源網址。</div>`}</div><div class="source-info-quality">${escapeHtml(sourceInfoQualityLabel(event))}</div>`;
+  pop.hidden=false; pop.classList.add("open");
+  const mobile=window.innerWidth<=620;
+  if(mobile){pop.style.left="12px";pop.style.right="12px";pop.style.top="auto";pop.style.bottom="calc(14px + env(safe-area-inset-bottom))";pop.style.width="auto";}
+  else{
+    const r=trigger.getBoundingClientRect(), width=Math.min(340,window.innerWidth-24);
+    const left=Math.max(12,Math.min(r.left-width/2+r.width/2,window.innerWidth-width-12));
+    let top=r.bottom+8; if(top+300>window.innerHeight) top=Math.max(12,r.top-288);
+    Object.assign(pop.style,{left:`${left}px`,right:"auto",top:`${top}px`,bottom:"auto",width:`${width}px`});
+  }
+}
+function closeSourceInfoPopover(){ if(!sourceInfoPopover)return; sourceInfoPopover.classList.remove("open"); sourceInfoPopover.hidden=true; sourceInfoEventId=""; }
+function scheduleSourceInfoClose(){ clearTimeout(sourceInfoCloseTimer); sourceInfoCloseTimer=setTimeout(closeSourceInfoPopover,160); }
+function wireSourceInfoTriggers(root=document){
+  $$('[data-source-info-event]',root).forEach(trigger=>{
+    if(trigger.dataset.sourceInfoWired==="1") return; trigger.dataset.sourceInfoWired="1";
+    const getEvent=()=>state.events.find(x=>x.id===trigger.dataset.sourceInfoEvent);
+    trigger.addEventListener("mouseenter",()=>openSourceInfoPopover(trigger,getEvent()));
+    trigger.addEventListener("mouseleave",scheduleSourceInfoClose);
+    trigger.addEventListener("click",ev=>{ev.preventDefault();ev.stopPropagation(); const event=getEvent(); if(sourceInfoPopover&&!sourceInfoPopover.hidden&&sourceInfoEventId===event?.id) closeSourceInfoPopover(); else openSourceInfoPopover(trigger,event);});
+  });
+}
+document.addEventListener("click",e=>{if(sourceInfoPopover&&!sourceInfoPopover.hidden&&!e.target.closest('.source-info-popover')&&!e.target.closest('[data-source-info-event]')) closeSourceInfoPopover();});
+window.addEventListener("resize",()=>{if(sourceInfoPopover&&!sourceInfoPopover.hidden) closeSourceInfoPopover();});
+
 const TAIWAN_VENUE_CITIES = new Set(["Taipei","New Taipei","Taoyuan","Taichung","Tainan","Kaohsiung","Hsinchu","Keelung","Chiayi","Pingtung","Yilan","Hualien","Taitung","Penghu"]);
 const taiwanEventsOnly = events => (Array.isArray(events) ? events : []).filter(e => e?.region === "TW");
 const taiwanVenueModels = () => Object.values(venueModels).filter(v => TAIWAN_VENUE_CITIES.has(String(v.city || "")));
@@ -107,6 +209,7 @@ function eventLifecycle(event={}, now=Date.now()) {
   return {state:'ended',ended:true,active:false,upcoming:false,startTs,endTs};
 }
 
+
 function relativeTime(iso) {
   if (!iso) return "";
   const ts = new Date(iso).getTime();
@@ -127,28 +230,29 @@ function relativeTime(iso) {
 }
 
 function eventBadge(event) {
-  const life=eventLifecycle(event);
+  const now=Date.now(), life=eventLifecycle(event,now);
   if (event?.historical || life.ended) return "已結束";
   if (life.active) return "演出進行中";
-  const now = Date.now();
+  const sale=ticketSaleLifecycle(event,now);
   const startTs = new Date(event.start || 0).getTime();
-  const saleTs = event.generalSale ? new Date(event.generalSale).getTime() : NaN;
+  if (sale.state==='pre-sale') return `搶票 ${relativeTime(new Date(sale.saleTs).toISOString())}`;
+  if (sale.state==='sale-day') return "今日開賣";
   if (Number.isFinite(startTs) && startTs >= now && startTs - now <= 7 * dayMs) return "本週登場";
-  if (Number.isFinite(saleTs) && saleTs > now) return `售票 ${relativeTime(event.generalSale)}`;
-  if (Number.isFinite(saleTs) && saleTs <= now && Number.isFinite(startTs) && startTs > now) return "已開賣";
+  if (sale.state==='post-sale-day' && Number.isFinite(startTs) && startTs > now) return "已開賣";
   return event.statusLabel || event.type || "活動";
 }
 
 function nextAction(event) {
-  if (event?.historical) return { label: "歷史案例", value: "活動已結束 · 保留作為座位配置與視角重建案例" };
+  if (event?.historical || eventLifecycle(event).ended) return { label: "歷史案例", value: "活動已結束 · 已自動移入 Archive" };
   const now = Date.now();
   const startTs = new Date(event.start || 0).getTime();
-  const saleTs = event.generalSale ? new Date(event.generalSale).getTime() : NaN;
-  if (Number.isFinite(saleTs) && saleTs > now) {
-    return { label: "下一步：準備正式售票", value: `${fmtDate(event.generalSale)} ${fmtTime(event.generalSale)} · ${relativeTime(event.generalSale)}` };
+  const sale=ticketSaleLifecycle(event,now);
+  if (sale.state==='pre-sale') {
+    return { label: "下一步：搶票倒數", value: `${fmtDate(new Date(sale.saleTs).toISOString())} ${fmtTime(new Date(sale.saleTs).toISOString())} · ${relativeTime(new Date(sale.saleTs).toISOString())}` };
   }
+  if (sale.state==='sale-day') return {label:"今日開賣",value:"今天為官方售票日；售票狀態與餘票請以官方售票頁為準"};
   if (Number.isFinite(startTs) && startTs > now) {
-    return { label: "下一步：確認演出資訊", value: `${fmtDate(event.start, event.end)}${event.end ? "" : ` ${fmtEventTime(event)}`} · ${relativeTime(event.start)}` };
+    return { label: "下一步：演出倒數", value: `${fmtDate(event.start, event.end)}${event.end ? "" : ` ${fmtEventTime(event)}`} · ${relativeTime(event.start)}` };
   }
   return { label: "活動狀態", value: "請回官方來源確認最新公告" };
 }
@@ -210,7 +314,7 @@ function applyOfficialResults(data) {
 async function loadOfficialUpdates({ force = false } = {}) {
   const cacheKey = "neul-official-check-at";
   const last = Number(localStorage.getItem(cacheKey) || 0);
-  if (!force && last && Date.now() - last < 6 * 3600000) return;
+  if (!force && last && Date.now() - last < 3600000) return;
   try {
     const res = await fetch("/api/official", { headers: { Accept: "application/json" } });
     if (!res.ok) return;
@@ -269,14 +373,15 @@ function renderEvents() {
     <button class="event-row" data-event-id="${escapeHtml(e.id)}">
       <span class="event-poster">${escapeHtml(posterCode(e))}</span>
       <span class="event-info">
-        <strong>${escapeHtml(e.artist)}</strong>
+        <span class="event-artist-line"><strong>${escapeHtml(e.artist)}</strong>${sourceInfoTriggerMarkup(e,"event-row-info")}</span>
         <span class="title">${escapeHtml(e.title)}</span>
         <span class="date">${fmtDate(e.start, e.end)}${e.end ? "" : ` · ${escapeHtml(fmtEventTime(e))}`}</span>
         <span class="venue">${escapeHtml(e.venue)}</span>
       </span>
       <span class="event-arrow"><span class="event-tag">${escapeHtml(eventBadge(e))}</span><b>›</b></span>
     </button>`).join("");
-  $$(".event-row", root).forEach(btn => btn.addEventListener("click", () => openDetail(btn.dataset.eventId)));
+  $$(".event-row", root).forEach(btn => btn.addEventListener("click", ev => { if(ev.target.closest('[data-source-info-event]')) return; openDetail(btn.dataset.eventId); }));
+  wireSourceInfoTriggers(root);
   if (more) {
     more.hidden = list.length <= 5;
     more.textContent = "查看更多活動 →";
@@ -316,7 +421,7 @@ function featuredEvents() {
   return [...state.events]
     .filter(e => e.region === "TW" && !eventLifecycle(e).ended && e.start && eventEffectiveEndTs(e) >= threshold)
     .sort((a, b) => new Date(a.start) - new Date(b.start))
-    .slice(0, 5);
+    .slice(0, 10);
 }
 
 function pickFeaturedEvent() {
@@ -498,6 +603,16 @@ function countdownTarget(event) {
   const now = Date.now();
   const life=eventLifecycle(event,now);
   if(life.active) return {active:true,label:"演出進行中",note:"活動尚未結束；結束時間以最後場次與官方公告為準",kind:"active"};
+  if(life.ended) return null;
+
+  const sale=ticketSaleLifecycle(event,now);
+  if(sale.state==='pre-sale') {
+    return {ts:sale.saleTs,label:"搶票倒數",note:`${sale.candidate?.label||"正式售票"} · ${fmtDate(new Date(sale.saleTs).toISOString())} ${fmtTime(new Date(sale.saleTs).toISOString())}`,kind:"sale"};
+  }
+  if(sale.state==='sale-day') {
+    return {saleLive:true,label:"今日開賣",note:`${sale.candidate?.label||"官方售票"}今日開賣；餘票狀態以官方售票頁即時公告為準`,kind:"sale-live"};
+  }
+
   const futureSessions = (event?.sessions || [])
     .map(session => ({ session, date: parseSessionDateTime(session, event) }))
     .filter(x => x.date && x.date.getTime() > now)
@@ -517,20 +632,6 @@ function countdownTarget(event) {
     return { ts: startTs, label: "距離演出", note: `${fmtDate(event.start)} ${fmtEventTime(event)}`, kind: "show" };
   }
 
-  const saleTs = event?.generalSale ? new Date(event.generalSale).getTime() : NaN;
-  if (Number.isFinite(saleTs) && saleTs > now) {
-    return { ts: saleTs, label: "距離正式售票", note: `${fmtDate(event.generalSale)} ${fmtTime(event.generalSale)}`, kind: "sale" };
-  }
-
-  const futureTimeline = (event?.ticketTimeline || [])
-    .map(item => ({ item, date: parseTimelineDateTime(item, event) }))
-    .filter(x => x.date && x.date.getTime() > now)
-    .sort((a,b) => a.date - b.date);
-  if (futureTimeline.length) {
-    const next = futureTimeline[0];
-    return { ts: next.date.getTime(), label: `距離${next.item.label}`, note: next.item.time, kind: "sale" };
-  }
-
   if (Number.isFinite(startTs) && startTs > now && event?.timeConfirmed === false) {
     return { ts: startTs, label: "距離活動日期", note: "演出時間待官方公告，倒數以活動日期 00:00 為基準", kind: "date", approximate: true };
   }
@@ -542,6 +643,9 @@ function countdownMarkup(event) {
   const target = countdownTarget(event);
   if (target?.active) {
     return `<section class="concert-countdown countdown-live" data-countdown-live="true"><div class="countdown-eyebrow">LIVE NOW</div><div class="countdown-ended-title">演出進行中</div><p>${escapeHtml(target.note)}</p></section>`;
+  }
+  if (target?.saleLive) {
+    return `<section class="concert-countdown countdown-sale-live" data-countdown-sale-live="true"><div class="countdown-eyebrow">TICKET DAY</div><div class="countdown-ended-title">今日開賣</div><p>${escapeHtml(target.note)}</p></section>`;
   }
   if (!target) {
     return `<section class="concert-countdown countdown-ended" data-countdown-ended="true">
@@ -657,7 +761,7 @@ function sectionPriceRulesMarkup(rules = []) {
   return `<section class="detail-section"><h3>官方票區價位</h3><div class="section-price-grid">${clean.map(x => `<div><span>${escapeHtml(x.label)}</span><strong>${escapeHtml(x.price)}</strong></div>`).join("")}</div><p class="section-price-note">能與 NEUL 票區名稱可靠對上的價位會自動顯示在 3D；名稱不一致時只保留官方價位，不會猜測配對。</p></section>`;
 }
 
-function eventVenueModelId(event) { return event?.venueModelId || venueIdFromName(event?.venue || ""); }
+function eventVenueModelId(event) { return ensureVenueModelForEvent(event) || event?.venueModelId || venueIdFromName(event?.venue || ""); }
 function eventBaseLayoutId(event) {
   const venueId = eventVenueModelId(event);
   return venueId ? baseLayoutIdForVenue(venueId) : null;
@@ -667,12 +771,47 @@ function eventVenueLayoutId(event) {
   if (!venueId) return null;
   return ensureAutoEventLayout({ ...event, venueModelId: venueId }) || event?.venueLayoutId || getVenueModel(venueId).baseLayoutId;
 }
+function eventCustom3DMeta(event={}) {
+  const venueModelId=eventVenueModelId(event);
+  if(!venueModelId) return {ready:false,grade:"no-venue-model",requiresReview:true};
+  const venueLayoutId=eventVenueLayoutId({...event,venueModelId});
+  const layout=venueLayoutId?getVenueLayout(venueLayoutId):null;
+  if(!layout) return {ready:false,grade:"no-event-layout",requiresReview:true,venueModelId};
+  const officialSeatMap=Boolean(event.seatLayoutSourceUrl||layout.seatMapDetected||layout.latestSeatLayoutSourceUrl);
+  const mappedCount=Number(layout.sectionMapping?.mappedCount||0);
+  const analyzed=Boolean(layout.autoMapAnalyzedAt||layout.seatMapFingerprint);
+  const stageConfidence=Number(layout.autoStageConfidence||0);
+  const manualOfficial=Boolean(!layout.autoGenerated && officialSeatMap);
+  const officialMapVerified=manualOfficial || Boolean(layout.qaGate?.officialMapVerified) || Boolean(analyzed && stageConfidence>=.82 && mappedCount>=2);
+  const priceDataFound=Boolean((event.sectionPriceRules?.length||0)||event.price);
+  const mappedPriceCount=Object.keys(layout.sectionPriceLabels||{}).length+Object.keys(layout.priceLabels||{}).length;
+  const priceMapped3D=Boolean(layout.qaGate?.priceMappingVerified) || Boolean(priceDataFound && mappedPriceCount>0);
+  let grade='venue-derived-draft';
+  if(manualOfficial) grade='official-map-calibrated';
+  else if(officialMapVerified) grade='official-map-auto-verified';
+  else if(officialSeatMap&&analyzed) grade='official-map-partial';
+  else if(officialSeatMap) grade='official-map-linked-pending';
+  return {ready:Boolean(layout.eventId===event.id&&layout.stage?.main),venueModelId,layoutId:venueLayoutId,uniqueEventLayout:Boolean(layout.eventId===event.id),officialSeatMap,officialMapVerified,priceDataFound,priceMapped3D,mappedCount,stageConfidence,grade,generationState:layout.generationState||grade,pipelineVersion:layout.autoPipelineVersion||null,seatMapNeedsRefresh:Boolean(layout.seatMapNeedsRefresh),verifiedAgainstCurrentSource:Boolean(layout.verifiedAgainstCurrentSource||manualOfficial),requiresReview:Boolean(layout.qaGate?.requiresReview||!officialMapVerified)};
+}
+function hydrateResolvedSeatMapFromCache(event={}) {
+  try {
+    const key=`neul-seatmap-hash:${event.id}`;
+    const resolved=localStorage.getItem(`${key}:resolvedUrl`);
+    const checkedAt=localStorage.getItem(`${key}:checkedAt`);
+    if(!resolved) return event;
+    const refs=[...(event.sourceRefs||[])];
+    if(!refs.some(ref=>normalizeSourceUrl(ref?.url)===normalizeSourceUrl(resolved))) refs.push({name:'官方座位圖（自動解析）',url:resolved});
+    return {...event,seatLayoutSourceUrl:event.seatLayoutSourceUrl||resolved,seatMapResolvedAt:checkedAt||event.seatMapResolvedAt||null,sourceRefs:refs};
+  } catch { return event; }
+}
 function prepareEvents3D(events = []) {
-  return events.map(event => {
+  return events.map(rawEvent => {
+    const event=hydrateResolvedSeatMapFromCache(rawEvent);
     const venueModelId = eventVenueModelId(event);
-    if (!venueModelId) return event;
+    if (!venueModelId) return { ...event, custom3D:eventCustom3DMeta(event) };
     const venueLayoutId = eventVenueLayoutId({ ...event, venueModelId });
-    return { ...event, venueModelId, venueLayoutId, baseVenueLayoutId: baseLayoutIdForVenue(venueModelId) };
+    const prepared={ ...event, venueModelId, venueLayoutId, baseVenueLayoutId: baseLayoutIdForVenue(venueModelId) };
+    return { ...prepared, custom3D:eventCustom3DMeta(prepared) };
   });
 }
 
@@ -689,7 +828,7 @@ function openDetail(id) {
     : (activityLayout?.eventId ? "CALIBRATED 3D · 本場專屬配置" : "");
   $("#detailContent").innerHTML = `
     <div class="detail-kicker">${escapeHtml(e.statusLabel || e.type)} · ${e.historical ? "HISTORICAL VERIFIED" : (e.officialCheck?.status === "live" ? "OFFICIAL LIVE" : "OFFICIAL CHECKED")}</div>
-    <h2>${escapeHtml(e.artist)}</h2>
+    <div class="detail-heading-line"><h2>${escapeHtml(e.artist)}</h2>${sourceInfoTriggerMarkup(e,"detail-info")}</div>
     <div class="detail-title">${escapeHtml(e.title)}</div>
     <p class="detail-title">${escapeHtml(e.summary || "")}</p>
     ${countdownMarkup(e)}
@@ -705,7 +844,7 @@ function openDetail(id) {
     <section class="detail-section"><h3>售票時間軸</h3><div class="timeline">${timelineHtml(e.ticketTimeline || [])}</div></section>
     ${detailList("粉絲福利", e.benefits)}
     ${detailList("需要注意", e.notes)}
-    ${activity3DStatus ? `<div class="detail-3d-status"><b>${escapeHtml(activity3DStatus)}</b><span>${activityLayout?.autoGenerated ? "活動新增／官方資料更新時會重新建立本場草稿；一般場館 3D 永遠保留。" : "此場已有活動專屬配置，可另切換一般場館 3D 查看固定位置。"}</span></div>` : ""}
+    ${activity3DStatus ? (()=>{const q=eventCustom3DMeta(e);const qtext=q.officialMapVerified?`官方座位圖已完成 3D 對照 · ${q.mappedCount||0} 個 Section 映射${q.priceMapped3D?" · 價位已同步":""}`:(q.officialSeatMap?"已取得官方座位圖，OCR/Vision 尚未達自動發布門檻":"尚未取得可解析官方座位圖，目前為場館衍生客製草稿");return `<div class="detail-3d-status"><b>${escapeHtml(activity3DStatus)}</b><span>${escapeHtml(qtext)}</span></div>`;})() : ""}
     <div class="detail-source">
       <a href="${safeUrl(e.sourceUrl)}" target="_blank" rel="noopener noreferrer">官方來源 ↗</a>
       ${e.secondarySourceUrl ? `<a href="${safeUrl(e.secondarySourceUrl)}" target="_blank" rel="noopener noreferrer">補充公告 ↗</a>` : ""}
@@ -719,6 +858,7 @@ function openDetail(id) {
   $("#detailDrawer").setAttribute("aria-hidden", "false");
   document.body.style.overflow = "hidden";
   startCountdown();
+  wireSourceInfoTriggers($("#detailContent"));
   const df = $(".drawer-follow");
   if (df) df.addEventListener("click", () => { toggleFollow(e.artist); df.textContent = state.followed.has(e.artist) ? "✓ 已追蹤" : "+ 加入追蹤"; });
   const wireVenueJump = selector => {
@@ -744,10 +884,13 @@ function closeDetail() {
 function updateFreshness() {
   const el = $("#dataFreshness");
   if (!el) return;
-  const cadence = `<span class="freshness-cadence">約每 6 小時檢查可用官方來源 · 每日排程同步</span>`;
+  const sourceCount=Number(state.coverage?.sourceCount||0);
+  const warningCount=Number(state.coverage?.sourceWarnings||0);
+  const health=sourceCount?`<span class="freshness-next">官方來源 ${sourceCount} 類${warningCount?` · ${warningCount} 項需重試`:" · 正常"}</span>`:"";
+  const cadence = `<span class="freshness-cadence">約每 1 小時自動檢查官方來源 · 每日排程同步</span>`;
   if (!state.dataUpdatedAt) {
-    el.innerHTML = `目前顯示已核對活動${cadence}`;
-    el.title = "活動資料採 6 小時快取；快取到期後由下一次造訪觸發背景重新驗證，並另有每日排程同步。";
+    el.innerHTML = `目前顯示已核對活動${health}${cadence}`;
+    el.title = "活動資料採 1 小時快取；頁面開啟時會自動重新驗證，並另有每日排程同步。";
     return;
   }
   const t = new Intl.DateTimeFormat(uiLocale(), { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Taipei" }).format(new Date(state.dataUpdatedAt));
@@ -755,8 +898,8 @@ function updateFreshness() {
   const headline = officialTime ? `官方資訊更新 ${officialTime}` : (state.autoUpdateEnabled ? `台灣活動同步 ${t}` : `已核對資料 · ${t}`);
   const next = state.nextUpdateAt ? new Intl.DateTimeFormat(uiLocale(), { month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", hour12:false, timeZone:"Asia/Taipei" }).format(new Date(state.nextUpdateAt)) : null;
   const schedule = next ? `<span class="freshness-next">下次預計更新 ${next}</span>` : "";
-  el.innerHTML = `${headline}${schedule}${cadence}`;
-  el.title = "活動資料採 6 小時快取；快取到期後由下一次造訪觸發背景重新驗證，並另有每日排程同步。詳細內容仍以官方最新公告為準。";
+  el.innerHTML = `${headline}${schedule}${health}${cadence}`;
+  el.title = "活動資料採 1 小時快取；頁面開啟時會自動重新驗證，並另有每日排程同步。詳細內容仍以官方最新公告為準。";
 }
 
 function updateSearchScope() {
@@ -769,7 +912,7 @@ function updateSearchScope() {
   el.textContent = `目前已收錄資料自 ${label} 起；更早場次持續補齊。搜尋會同時查近期與已收錄 Archive。`;
 }
 
-async function loadEvents() {
+async function loadEvents({ preserveOnFailure = false } = {}) {
   try {
     const res = await fetch("/api/events", { headers: { Accept: "application/json" } });
     if (!res.ok) throw new Error("events unavailable");
@@ -777,16 +920,22 @@ async function loadEvents() {
     if (Array.isArray(data.events) && data.events.length) state.events = prepareEvents3D(taiwanEventsOnly(data.events));
     if (Array.isArray(data.artists) && data.artists.length) state.artists = data.artists;
     state.dataUpdatedAt = data.updatedAt || null;
-    state.nextUpdateAt = data.nextUpdateAt || (data.updatedAt ? new Date(new Date(data.updatedAt).getTime()+21600000).toISOString() : null);
+    state.nextUpdateAt = data.nextUpdateAt || (data.updatedAt ? new Date(new Date(data.updatedAt).getTime()+3600000).toISOString() : null);
     state.autoUpdateEnabled = data.autoUpdateEnabled !== false;
     state.upstream = data.upstream || "curated-fallback";
+    state.coverage = data.coverage || null;
+    state.discoveryHealth = data.discovery?.sourceHealth || null;
   } catch {
-    state.events = prepareEvents3D(taiwanEventsOnly(seedEvents));
-    state.artists = seedArtists.map(a => ({ ...a, upcomingEventCount: seedEvents.filter(e => e.artist.toLowerCase() === a.name.toLowerCase()).length, nextEvent: null, eventIds: [] }));
-    state.dataUpdatedAt = null;
-    state.nextUpdateAt = null;
-    state.autoUpdateEnabled = false;
-    state.upstream = "curated-fallback";
+    if (!preserveOnFailure || !state.events.length) {
+      state.events = prepareEvents3D(taiwanEventsOnly(seedEvents));
+      state.artists = seedArtists.map(a => ({ ...a, upcomingEventCount: seedEvents.filter(e => e.artist.toLowerCase() === a.name.toLowerCase()).length, nextEvent: null, eventIds: [] }));
+      state.dataUpdatedAt = null;
+      state.nextUpdateAt = null;
+      state.autoUpdateEnabled = false;
+      state.upstream = "curated-fallback";
+      state.coverage = {completenessGuaranteed:false,sourceCount:0,sourceWarnings:1,note:"即時官方來源暫不可用，使用已核對 fallback。"};
+      state.discoveryHealth = null;
+    }
   }
   await recordEventChanges(state.events);
   await saveOfflineSnapshot({ at: state.dataUpdatedAt || new Date().toISOString(), upstream: state.upstream, count: state.events.length });
@@ -795,6 +944,7 @@ async function loadEvents() {
   renderFollowing();
   renderFeatured();
   startFeaturedAutoplay();
+  renderLayoutOptions();
   updateFreshness();
   updateSearchScope();
   window.dispatchEvent(new CustomEvent("neul:dataupdated", { detail: { events: state.events, updatedAt: state.dataUpdatedAt } }));
@@ -802,6 +952,33 @@ async function loadEvents() {
   idle(async () => { await loadOfficialUpdates(); await hydrateSeatMapGeometry(state.events); });
 }
 
+
+let eventsAutoRefreshTimer=null;
+let lifecycleSyncTimer=null;
+function startAutomaticEventVerification(){
+  clearInterval(eventsAutoRefreshTimer);
+  clearInterval(lifecycleSyncTimer);
+  // CDN caching makes this global rather than per-user crawling: while a page is open,
+  // re-check the merged official event feed hourly without requiring a reload.
+  eventsAutoRefreshTimer=setInterval(()=>{ if(!document.hidden) loadEvents({preserveOnFailure:true}); },3600000);
+  // Lifecycle transitions are local-time calculations, so Archive / 3D / Featured can switch
+  // within a minute even when no network request is needed.
+  lifecycleSyncTimer=setInterval(()=>{
+    renderEvents();
+    renderFeatured();
+    const previousLayoutId=state.layoutId;
+    renderLayoutOptions();
+    if(state.layoutId!==previousLayoutId) setVenue(state.venueId,state.layoutId);
+    updateFreshness();
+    if(state.detailId) openDetail(state.detailId);
+  },60000);
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden) return;
+    const last=new Date(state.dataUpdatedAt||0).getTime();
+    if(!Number.isFinite(last)||Date.now()-last>=3600000) loadEvents({preserveOnFailure:true});
+    renderLayoutOptions();
+  });
+}
 
 async function hydrateSeatMapGeometry(events=[]) {
   const now=Date.now();
@@ -814,18 +991,27 @@ async function hydrateSeatMapGeometry(events=[]) {
       const layoutId=eventVenueLayoutId(event), layout=getVenueLayout(layoutId), model=getVenueModel(eventVenueModelId(event));
       const key=`neul-seatmap-hash:${event.id}`, previous=localStorage.getItem(key)||'';
       let cachedAnalysis=null;try{cachedAnalysis=JSON.parse(localStorage.getItem(`${key}:analysis`)||'null');}catch{}
-      const analysis=await analyzeSeatMap(event,model,{hash:previous,analysis:cachedAnalysis}); if(!analysis?.hash) return false;
+      const referenceSections=effectiveSections(model.id,layoutId);
+      const analysis=await analyzeSeatMap(event,model,{hash:previous,analysis:cachedAnalysis},{referenceSections});
+      if(!analysis?.hash){
+        const failKey=`${key}:resolverFailure`;let fail={count:0};try{fail=JSON.parse(localStorage.getItem(failKey)||'{"count":0}');}catch{}
+        localStorage.setItem(failKey,JSON.stringify({count:Number(fail.count||0)+1,checkedAt:new Date().toISOString(),sourceSignature:JSON.stringify([event.sourceUrl,event.secondarySourceUrl,event.autoSourceUrl,event.ticketUrl,event.ticketSourceUrl,(event.sourceRefs||[]).map(x=>x?.url)])}));
+        return false;
+      }
       const firstSeen=!previous, hashChanged=Boolean(previous&&previous!==analysis.hash);
-      // Auto-generated drafts consume the official map immediately. Hand-calibrated layouts keep
-      // their verified geometry on first load, then regenerate when the official map image bytes change.
-      const shouldApply=Boolean(layout?.autoGenerated || (layout?.seatMapAutoRegenerate && hashChanged));
-      const applied=Boolean(shouldApply && applyAutoSeatMapAnalysis(layoutId,analysis));
+      // Geometry and metadata have different trust thresholds. Every verified image refresh can
+      // update OCR/Section mapping; stage geometry is allowed to move only with strong shape evidence.
+      const profileOk=!layout?.autoMapProfileExpected || analysis.profile===layout.autoMapProfileExpected;
+      const autoGeometryOk=Boolean(layout?.autoGenerated && Number(analysis.stageConfidence||0)>=.72);
+      const calibratedGeometryOk=Boolean(layout?.seatMapAutoRegenerate && hashChanged && layout?.autoGeometryPolicy!=='manual-protected' && profileOk && Number(analysis.stageConfidence||0)>=.90);
+      const geometryAllowed=autoGeometryOk || calibratedGeometryOk;
+      const applied=Boolean(applyAutoSeatMapAnalysis(layoutId,analysis,{geometry:geometryAllowed,replaceSections:Boolean(layout?.autoGenerated)}));
       localStorage.setItem(key,analysis.hash);
       localStorage.setItem(`${key}:profile`,analysis.profile||'unknown');
       if(analysis.resolvedUrl){event.seatLayoutSourceUrl=analysis.resolvedUrl;localStorage.setItem(`${key}:resolvedUrl`,analysis.resolvedUrl);}
-      localStorage.setItem(`${key}:mapping`,JSON.stringify({confidence:analysis.confidence,ocr:analysis.ocr?.engine||'vision-only',mappedCount:analysis.ocr?.mappedCount||0}));
+      localStorage.setItem(`${key}:mapping`,JSON.stringify({confidence:analysis.confidence,ocr:analysis.ocr?.engine||'vision-only',mappedCount:analysis.ocr?.mappedCount||0,profile:analysis.profile||'unknown',stageConfidence:Number(analysis.stageConfidence||0),legendConfidence:analysis.legendConfidence||'unverified-no-price-guess',geometryApplied:geometryAllowed}));
       if(!analysis.cacheHit){try{const compact={...analysis,ocr:{...(analysis.ocr||{}),text:''}};localStorage.setItem(`${key}:analysis`,JSON.stringify(compact));}catch{}}
-      localStorage.setItem(`${key}:checkedAt`,new Date().toISOString());
+      localStorage.setItem(`${key}:checkedAt`,new Date().toISOString()); localStorage.removeItem(`${key}:resolverFailure`);
       if(firstSeen && layout?.seatMapAutoRegenerate) localStorage.setItem(`${key}:baseline`,analysis.hash);
       return applied;
     }catch{return false;}
@@ -838,9 +1024,12 @@ async function hydrateSeatMapGeometry(events=[]) {
     await new Promise(r=>setTimeout(r,0));
   }
   if(changed){
+    // Recompute per-event 3D QA metadata after OCR/Vision mutates runtime layouts.
+    // This keeps newly discovered future events and upgraded official maps in sync without a reload.
+    state.events=prepareEvents3D(state.events);
     renderEvents(); renderFeatured();
     if(state.detailId) openDetail(state.detailId);
-    try{renderVenueOptions();renderLayoutOptions();drawVenueOverview();drawSeatPreview();}catch{}
+    try{renderVenueOptions();renderLayoutOptions();drawVenueOverview();drawSeatPreview();renderOfficialSeatMap(true);}catch{}
   }
 }
 
@@ -871,6 +1060,11 @@ const eventsStartFilter = $("#eventsStartFilter");
 const eventsEndFilter = $("#eventsEndFilter");
 const eventsAreaSearch = $("#eventsAreaSearch");
 const eventsCityFilter = $("#eventsCityFilter");
+const eventsCalendarGrid = $("#eventsCalendarGrid");
+const eventsCalendarMonthLabel = $("#eventsCalendarMonthLabel");
+const eventsAgendaDateLabel = $("#eventsAgendaDateLabel");
+let eventsCalendarMonth = "";
+let eventsCalendarDate = "";
 
 function cityLabel(city) {
   return ({Taipei:"台北",NewTaipei:"新北",Taoyuan:"桃園",Taichung:"台中",Tainan:"台南",Kaohsiung:"高雄",Hsinchu:"新竹",Keelung:"基隆",Chiayi:"嘉義",Changhua:"彰化",Pingtung:"屏東",Yilan:"宜蘭",Hualien:"花蓮",Taitung:"台東",Miaoli:"苗栗",Nantou:"南投",Yunlin:"雲林",Penghu:"澎湖",Kinmen:"金門",Matsu:"馬祖"})[city] || city || "其他";
@@ -921,25 +1115,94 @@ function modalFilteredEvents() {
   const areaQ = normalizeSearch(eventsAreaSearch?.value || "");
   if (city !== "ALL") list = list.filter(e => String(e.city||"") === city);
   if (areaQ) list = list.filter(e => normalizeSearch(`${e.artist} ${e.title} ${e.venue} ${e.city} ${cityLabel(e.city)} ${(e.tags||[]).join(" ")}`).includes(areaQ));
-  if (month) list = list.filter(e => taipeiDateKey(e.start).startsWith(month));
-  if (start) list = list.filter(e => taipeiDateKey(e.start) >= start);
-  if (end) list = list.filter(e => taipeiDateKey(e.start) <= end);
+  if (month) list = list.filter(e => occurrenceDateKeys(e).some(k => k.startsWith(month)));
+  if (start) list = list.filter(e => occurrenceDateKeys(e).some(k => k >= start));
+  if (end) list = list.filter(e => occurrenceDateKeys(e).some(k => k <= end));
   return list;
+}
+function occurrenceDateKeys(event={}) {
+  const sessions=(event.sessions||[]).map(s=>String(s.date||'').replaceAll('/','-')).filter(x=>/^20\d{2}-\d{2}-\d{2}$/.test(x));
+  if(sessions.length) return [...new Set(sessions)];
+  const start=taipeiDateKey(event.start); if(!start) return [];
+  const end=event.end?taipeiDateKey(event.end):start;
+  if(!end || end===start) return [start];
+  const out=[]; let cursor=new Date(`${start}T12:00:00+08:00`), stop=new Date(`${end}T12:00:00+08:00`);
+  for(let guard=0;guard<14 && cursor<=stop;guard++,cursor=new Date(cursor.getTime()+dayMs)) out.push(taipeiDateKey(cursor));
+  return out.length?out:[start];
+}
+function calendarOccurrences(list=[]) {
+  const out=[];
+  for(const event of list) for(const dateKey of occurrenceDateKeys(event)) out.push({event,dateKey});
+  return out.sort((a,b)=>a.dateKey.localeCompare(b.dateKey)||new Date(a.event.start||0)-new Date(b.event.start||0));
+}
+function taipeiMonthKey(value=new Date()) { const k=taipeiDateKey(value); return k?k.slice(0,7):''; }
+function monthLabel(month='') {
+  const m=String(month).match(/^(20\d{2})-(\d{2})$/); if(!m) return '—';
+  return new Intl.DateTimeFormat(uiLocale(),{year:'numeric',month:'long',timeZone:TAIPEI_TZ}).format(new Date(`${month}-15T12:00:00+08:00`));
+}
+function shiftMonth(month,delta){
+  const m=String(month).match(/^(20\d{2})-(\d{2})$/); if(!m) return taipeiMonthKey();
+  const d=new Date(Date.UTC(Number(m[1]),Number(m[2])-1+delta,15));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`;
+}
+function calendarWeekdayIndex(dateKey){
+  const wd=new Intl.DateTimeFormat('en-US',{weekday:'short',timeZone:TAIPEI_TZ}).format(new Date(`${dateKey}T12:00:00+08:00`));
+  return ({Mon:0,Tue:1,Wed:2,Thu:3,Fri:4,Sat:5,Sun:6})[wd] ?? 0;
+}
+function ensureCalendarSelection(list){
+  const occ=calendarOccurrences(list);
+  let month=eventsMonthFilter?.value || eventsCalendarMonth || taipeiMonthKey();
+  if(!occ.some(x=>x.dateKey.startsWith(month)) && occ.length) month=occ[0].dateKey.slice(0,7);
+  eventsCalendarMonth=month;
+  const today=taipeiDateKey(new Date());
+  const monthDates=occ.filter(x=>x.dateKey.startsWith(month)).map(x=>x.dateKey);
+  if(!eventsCalendarDate || !eventsCalendarDate.startsWith(month)) eventsCalendarDate=monthDates.includes(today)?today:(monthDates[0]||`${month}-01`);
+  return {occ,month};
+}
+function renderDailyCalendar(list){
+  if(!eventsCalendarGrid) return;
+  const {occ,month}=ensureCalendarSelection(list);
+  if(eventsCalendarMonthLabel) eventsCalendarMonthLabel.textContent=monthLabel(month);
+  const [y,m]=month.split('-').map(Number); const days=new Date(Date.UTC(y,m,0)).getUTCDate();
+  const firstIndex=calendarWeekdayIndex(`${month}-01`); const byDate=new Map();
+  for(const item of occ){ if(!item.dateKey.startsWith(month)) continue; const a=byDate.get(item.dateKey)||[]; a.push(item.event); byDate.set(item.dateKey,a); }
+  const today=taipeiDateKey(new Date()); const cells=[];
+  for(let i=0;i<firstIndex;i++) cells.push('<span class="events-calendar-spacer" aria-hidden="true"></span>');
+  for(let d=1;d<=days;d++){
+    const key=`${month}-${String(d).padStart(2,'0')}`; const events=byDate.get(key)||[];
+    const names=[...new Set(events.map(e=>e.artist))].slice(0,2);
+    cells.push(`<button type="button" class="events-calendar-day${events.length?' has-events':''}${key===eventsCalendarDate?' active':''}${key===today?' today':''}" data-calendar-date="${key}" aria-label="${key} ${events.length} 場活動"><span class="events-calendar-number">${d}</span>${events.length?`<b>${events.length}</b><small>${names.map(escapeHtml).join(' · ')}</small>`:''}</button>`);
+  }
+  eventsCalendarGrid.innerHTML=cells.join('');
+  $$('[data-calendar-date]',eventsCalendarGrid).forEach(btn=>btn.addEventListener('click',()=>{eventsCalendarDate=btn.dataset.calendarDate;renderAllEventsModal();}));
+  const selected=occ.filter(x=>x.dateKey===eventsCalendarDate).map(x=>x.event);
+  if(eventsAgendaDateLabel){
+    const label=new Intl.DateTimeFormat(uiLocale(),{year:'numeric',month:'long',day:'numeric',weekday:'short',timeZone:TAIPEI_TZ}).format(new Date(`${eventsCalendarDate}T12:00:00+08:00`));
+    eventsAgendaDateLabel.textContent=`${label} · ${selected.length} 場`;
+  }
+  return {selected,occ,month};
 }
 function renderAllEventsModal() {
   if (!allEventsList) return;
   const list = modalFilteredEvents();
-  if (allEventsSummary) allEventsSummary.textContent = list.length ? `${list.length} 場符合時間條件的活動` : "沒有符合時間條件的活動";
-  allEventsList.innerHTML = list.length ? list.map(e => `
-    <button class="events-modal-row" data-event-id="${escapeHtml(e.id)}">
-      <span class="events-modal-date">${escapeHtml(fmtDate(e.start,e.end))}</span>
-      <span class="events-modal-copy"><strong>${escapeHtml(e.artist)}</strong><span>${escapeHtml(e.title)}</span><small>${escapeHtml(e.venue)} · ${escapeHtml(fmtEventTime(e))}</small></span>
+  const cal=renderDailyCalendar(list)||{selected:list,occ:calendarOccurrences(list),month:''};
+  const monthCount=cal.occ.filter(x=>!cal.month||x.dateKey.startsWith(cal.month)).length;
+  if (allEventsSummary) allEventsSummary.textContent = list.length ? `${list.length} 場符合條件 · ${monthLabel(cal.month)} 共 ${monthCount} 個演出日` : "沒有符合時間條件的活動";
+  const selected=cal.selected||[];
+  allEventsList.innerHTML = selected.length ? selected.map(e => {
+    const layout=eventCustom3DMeta(e); const quality=layout.officialMapVerified?'官方圖已對照':(layout.officialSeatMap?'官方圖待解析':'場館草稿待校正');
+    return `<button class="events-modal-row" data-event-id="${escapeHtml(e.id)}">
+      <span class="events-modal-date">${escapeHtml(fmtEventTime(e)||'時間待公告')}</span>
+      <span class="events-modal-copy"><span class="events-modal-artist-line"><strong>${escapeHtml(e.artist)}</strong>${sourceInfoTriggerMarkup(e,"calendar-info")}</span><span>${escapeHtml(e.title)}</span><small>${escapeHtml(cityLabel(e.city))} · ${escapeHtml(e.venue)} · ${escapeHtml(eventBadge(e))} · ${escapeHtml(quality)}</small></span>
       <span class="events-modal-arrow">›</span>
-    </button>`).join("") : `<div class="events-modal-empty">目前沒有符合條件的近期活動。</div>`;
-  $$(".events-modal-row", allEventsList).forEach(btn => btn.addEventListener("click", () => {
+    </button>`;
+  }).join("") : `<div class="events-modal-empty">這一天目前沒有符合篩選條件的演唱會。</div>`;
+  $$(".events-modal-row", allEventsList).forEach(btn => btn.addEventListener("click", ev => {
+    if(ev.target.closest('[data-source-info-event]')) return;
     closeAllEventsModal();
     openDetail(btn.dataset.eventId);
   }));
+  wireSourceInfoTriggers(allEventsList);
   window.NEUL_I18N?.apply?.();
 }
 function openAllEventsModal() {
@@ -960,6 +1223,7 @@ function setQuickEventWindow(days) {
   const today = new Date();
   const start = new Intl.DateTimeFormat("en-CA",{year:"numeric",month:"2-digit",day:"2-digit",timeZone:TAIPEI_TZ}).format(today);
   eventsMonthFilter.value = "";
+  eventsCalendarMonth = ""; eventsCalendarDate = "";
   if (days === "all") { eventsStartFilter.value = ""; eventsEndFilter.value = ""; if(eventsAreaSearch) eventsAreaSearch.value=""; if(eventsCityFilter) eventsCityFilter.value="ALL"; }
   else {
     const endDate = new Date(today.getTime() + Number(days)*dayMs);
@@ -975,8 +1239,11 @@ $("#allEventsClose")?.addEventListener("click", closeAllEventsModal);
 allEventsModal?.addEventListener("click", e => { if (e.target === allEventsModal) closeAllEventsModal(); });
 [eventsMonthFilter,eventsStartFilter,eventsEndFilter,eventsCityFilter].filter(Boolean).forEach(input => input.addEventListener("change", () => {
   $$("[data-events-window]").forEach(b => b.classList.remove("active"));
+  if(input===eventsMonthFilter){ eventsCalendarMonth=eventsMonthFilter.value||""; eventsCalendarDate=""; }
   renderAllEventsModal();
 }));
+$("#eventsCalendarPrev")?.addEventListener("click",()=>{eventsCalendarMonth=shiftMonth(eventsCalendarMonth||eventsMonthFilter?.value||taipeiMonthKey(),-1);eventsCalendarDate="";if(eventsMonthFilter)eventsMonthFilter.value=eventsCalendarMonth;renderAllEventsModal();});
+$("#eventsCalendarNext")?.addEventListener("click",()=>{eventsCalendarMonth=shiftMonth(eventsCalendarMonth||eventsMonthFilter?.value||taipeiMonthKey(),1);eventsCalendarDate="";if(eventsMonthFilter)eventsMonthFilter.value=eventsCalendarMonth;renderAllEventsModal();});
 eventsAreaSearch?.addEventListener("input", renderAllEventsModal);
 $("#eventsFilterReset")?.addEventListener("click", () => setQuickEventWindow("all"));
 $$('[data-events-window]').forEach(btn => btn.addEventListener("click", () => setQuickEventWindow(btn.dataset.eventsWindow)));
@@ -1016,11 +1283,136 @@ const postureTabs = $("#postureTabs");
 const lensTabs = $("#lensTabs");
 const previewCanvas = $("#seatPreviewCanvas");
 const overviewCanvas = $("#venueOverviewCanvas");
+const officialSeatMapPanel = $("#officialSeatMapPanel");
+const officialSeatMapFrame = $("#officialSeatMapFrame");
+const officialSeatMapImage = $("#officialSeatMapImage");
+const officialSeatMapMarker = $("#officialSeatMapMarker");
+const officialSeatMapLoading = $("#officialSeatMapLoading");
+const officialSeatMapSource = $("#officialSeatMapSource");
+const officialSeatMapSync = $("#officialSeatMapSync");
+const officialSeatMapSourceLink = $("#officialSeatMapSourceLink");
+let officialSeatMapKey = "";
 let venueWebGL = null;
 let webglStatus = "loading";
 
 function activeVenueModel() { return getVenueModel(state.venueId); }
 function currentVenueLayout() { return getVenueLayout(state.layoutId); }
+function activeLayoutEvent() {
+  const layout = currentVenueLayout();
+  return layout?.eventId ? state.events.find(e => e.id === layout.eventId) || null : null;
+}
+function officialSeatMapSourceForCurrentLayout() {
+  const layout = currentVenueLayout();
+  const event = activeLayoutEvent();
+  if (!layout?.eventId || !event) return null;
+  const machineRaw = event.seatLayoutSourceUrl || layout.seatMapResolvedUrl || layout.latestSeatLayoutSourceUrl || (layout.seatMapDetected && !event.seatLayoutDisplayUrl ? layout.sourceUrl : null);
+  const displayRaw = event.seatLayoutDisplayUrl || machineRaw;
+  if (!displayRaw) return null;
+  return { event, layout, raw: displayRaw, machineRaw, displayOnly: Boolean(event.seatLayoutDisplayUrl && !event.seatLayoutSourceUrl), proxied: event.seatLayoutDisplayUrl || `/api/seat-map-image?url=${encodeURIComponent(machineRaw)}` };
+}
+function normalizeSeatMapSectionLabel(value = "") {
+  return String(value || "").toUpperCase().replace(/[區席票座位\s_]/g, "").replace(/[（）()]/g, "").replace(/[^A-Z0-9\-\u4e00-\u9fff]/g, "");
+}
+function seatMapMappings(layout, event) {
+  let cached = null;
+  try { cached = JSON.parse(localStorage.getItem(`neul-seatmap-hash:${event.id}:analysis`) || 'null'); } catch {}
+  const mapped = Array.isArray(layout?.sectionMapping?.mapped) && layout.sectionMapping.mapped.length
+    ? layout.sectionMapping.mapped
+    : (Array.isArray(cached?.ocr?.mapped) ? cached.ocr.mapped : []);
+  const withCoordinates = mapped.filter(m => Number.isFinite(Number(m.x)) && Number.isFinite(Number(m.y)));
+  if (withCoordinates.length) return withCoordinates;
+  // Hand-calibrated layouts are intentionally protected from OCR geometry overwrite. For those
+  // events, use exact OCR label/token matches only to connect the official image to verified 3D sections.
+  const tokens = Array.isArray(layout?.sectionMapping?.tokens) ? layout.sectionMapping.tokens : (Array.isArray(cached?.ocr?.tokens) ? cached.ocr.tokens : []);
+  const sections = effectiveSections(state.venueId, state.layoutId);
+  const byAlias = new Map();
+  for (const sec of sections) for (const alias of [sec.id, sec.label, sec.officialId, ...(sec.aliases || [])]) {
+    const key = normalizeSeatMapSectionLabel(alias);
+    if (key && !byAlias.has(key)) byAlias.set(key, String(sec.id));
+  }
+  const out = [];
+  for (const token of tokens) {
+    const key = normalizeSeatMapSectionLabel(token.text);
+    const section = byAlias.get(key);
+    if (!section || !Number.isFinite(Number(token.x)) || !Number.isFinite(Number(token.y))) continue;
+    out.push({ token: token.text, section, confidence: token.confidence, score: 100, x: Number(token.x), y: Number(token.y), exactTokenMatch: true });
+  }
+  return out;
+}
+function seatMapImagePoint(normalizedX, normalizedY) {
+  if (!officialSeatMapImage?.naturalWidth || !officialSeatMapFrame) return null;
+  const fw = officialSeatMapFrame.clientWidth, fh = officialSeatMapFrame.clientHeight;
+  const iw = officialSeatMapImage.naturalWidth, ih = officialSeatMapImage.naturalHeight;
+  const scale = Math.min(fw / iw, fh / ih);
+  const rw = iw * scale, rh = ih * scale, ox = (fw - rw) / 2, oy = (fh - rh) / 2;
+  return { x: ox + normalizedX * rw, y: oy + normalizedY * rh, ox, oy, rw, rh };
+}
+function updateOfficialSeatMapMarker() {
+  if (!officialSeatMapPanel || officialSeatMapPanel.hidden || !officialSeatMapMarker) return;
+  const source = officialSeatMapSourceForCurrentLayout();
+  if (!source) { officialSeatMapMarker.hidden = true; return; }
+  const match = seatMapMappings(source.layout, source.event).find(m => String(m.section) === String(state.section) && Number.isFinite(Number(m.x)) && Number.isFinite(Number(m.y)));
+  if (!match) { officialSeatMapMarker.hidden = true; return; }
+  const pt = seatMapImagePoint(Number(match.x), Number(match.y));
+  if (!pt) { officialSeatMapMarker.hidden = true; return; }
+  officialSeatMapMarker.hidden = false;
+  officialSeatMapMarker.style.left = `${pt.x}px`;
+  officialSeatMapMarker.style.top = `${pt.y}px`;
+  officialSeatMapMarker.title = `官方座位圖：${match.token || match.section} → ${match.section}`;
+}
+function selectMappedSeatMapSection(sectionId) {
+  const tiers = availableVenueTiers();
+  const tier = tiers.find(t => (t.sections || []).map(String).includes(String(sectionId)));
+  if (!tier) return false;
+  state.floor = tier.id;
+  state.section = String(sectionId);
+  renderTierTabs();
+  refreshSectionOptions(false);
+  updateSeatLabel();
+  return true;
+}
+function renderOfficialSeatMap(force = false) {
+  if (!officialSeatMapPanel || !officialSeatMapImage) return;
+  const source = officialSeatMapSourceForCurrentLayout();
+  if (!source) {
+    officialSeatMapPanel.hidden = true;
+    officialSeatMapKey = "";
+    officialSeatMapImage.removeAttribute('src');
+    return;
+  }
+  officialSeatMapPanel.hidden = false;
+  if (officialSeatMapSource) officialSeatMapSource.textContent = source.event.seatLayoutDisplaySource || source.layout.sourceName || source.event.sourceName || source.event.ticketing || '官方座位配置';
+  if (officialSeatMapSync) {
+    const mapped = seatMapMappings(source.layout, source.event).length;
+    officialSeatMapSync.textContent = mapped ? `OCR/Vision 已對應 ${mapped} 區` : '官方原圖 · 等待/使用票區校正';
+  }
+  if (officialSeatMapSourceLink) { officialSeatMapSourceLink.href = safeUrl(source.event.sourceUrl || source.layout.sourceUrl || source.event.seatLayoutSourceUrl || source.layout.latestSeatLayoutSourceUrl); }
+  const key = `${source.event.id}|${source.raw}`;
+  if (!force && key === officialSeatMapKey && officialSeatMapImage.getAttribute('src')) { updateOfficialSeatMapMarker(); return; }
+  officialSeatMapKey = key;
+  if (officialSeatMapLoading) { officialSeatMapLoading.hidden = false; officialSeatMapLoading.textContent = '載入官方座位圖…'; }
+  officialSeatMapMarker.hidden = true;
+  officialSeatMapImage.onload = () => { if (officialSeatMapLoading) officialSeatMapLoading.hidden = true; updateOfficialSeatMapMarker(); };
+  officialSeatMapImage.onerror = () => { if (officialSeatMapLoading) { officialSeatMapLoading.hidden = false; officialSeatMapLoading.textContent = '本場官方座位圖目前無法載入，3D 仍保留已校正資料。'; } officialSeatMapMarker.hidden = true; };
+  officialSeatMapImage.src = source.proxied;
+}
+function handleOfficialSeatMapClick(ev) {
+  const source = officialSeatMapSourceForCurrentLayout();
+  if (!source || !officialSeatMapImage?.naturalWidth || !officialSeatMapFrame) return;
+  const rect = officialSeatMapFrame.getBoundingClientRect();
+  const fw = rect.width, fh = rect.height, iw = officialSeatMapImage.naturalWidth, ih = officialSeatMapImage.naturalHeight;
+  const scale = Math.min(fw / iw, fh / ih), rw = iw * scale, rh = ih * scale, ox = (fw - rw) / 2, oy = (fh - rh) / 2;
+  const x = ev.clientX - rect.left, y = ev.clientY - rect.top;
+  if (x < ox || x > ox + rw || y < oy || y > oy + rh) return;
+  const nx = (x - ox) / rw, ny = (y - oy) / rh;
+  let best = null, bestD = .11;
+  for (const m of seatMapMappings(source.layout, source.event)) {
+    if (!Number.isFinite(Number(m.x)) || !Number.isFinite(Number(m.y))) continue;
+    const d = Math.hypot(nx - Number(m.x), ny - Number(m.y));
+    if (d < bestD) { bestD = d; best = m; }
+  }
+  if (best && selectMappedSeatMapSection(best.section)) updateOfficialSeatMapMarker();
+}
 function tierById(id) { return getVenueTier(state.venueId, id, state.layoutId); }
 function availableVenueTiers() {
   const model = activeVenueModel();
@@ -1047,17 +1439,33 @@ function renderVenueOptions() {
 function renderLayoutOptions() {
   const now=Date.now();
   const model=activeVenueModel();
-  const options=layoutsForVenue(state.venueId).filter(layout=>{
+  const all=layoutsForVenue(state.venueId);
+  const options=all.filter(layout=>{
     if(layout.id===model.baseLayoutId || !layout.eventId) return !layout.historical;
-    if(layout.id===state.layoutId) return true; // archive/deep-link may temporarily show its selected layout
     const event=state.events.find(e=>e.id===layout.eventId);
     if(!event || event.historical) return false;
     return !eventLifecycle(event,now).ended;
+  }).sort((a,b)=>{
+    if(a.id===model.baseLayoutId) return -1;
+    if(b.id===model.baseLayoutId) return 1;
+    const ea=state.events.find(e=>e.id===a.eventId), eb=state.events.find(e=>e.id===b.eventId);
+    return new Date(ea?.start||0)-new Date(eb?.start||0);
   });
-  if (!options.some(x => x.id === state.layoutId)) state.layoutId = model.baseLayoutId;
+  if (!options.some(x => x.id === state.layoutId)) {
+    // If the selected concert has just ended, immediately move the 3D selector to the next
+    // upcoming event at this venue instead of leaving an archived layout visible.
+    const nextEventLayout=options
+      .filter(x=>x.eventId)
+      .sort((a,b)=>{
+        const ea=state.events.find(e=>e.id===a.eventId), eb=state.events.find(e=>e.id===b.eventId);
+        return new Date(ea?.start||0)-new Date(eb?.start||0);
+      })[0];
+    state.layoutId=nextEventLayout?.id||model.baseLayoutId;
+  }
   layoutSelect.innerHTML = options.map(x => `<option value="${escapeHtml(x.id)}" ${x.id===state.layoutId?"selected":""}>${escapeHtml(x.label)}</option>`).join("");
   layoutSelect.title = getVenueLayout(state.layoutId)?.label || "";
 }
+
 function setVenue(venueId, layoutId = null) {
   const model = getVenueModel(venueId);
   state.venueId = model.id;
@@ -1072,6 +1480,7 @@ function setVenue(venueId, layoutId = null) {
   renderLayoutOptions();
   renderTierTabs();
   refreshSectionOptions(true);
+  renderOfficialSeatMap(true);
 }
 function renderTierTabs() {
   const tabs = $("#floorTabs");
@@ -1158,6 +1567,8 @@ function updateSeatLabel() {
   updateSeatWarning();
   drawSeatPreview();
   drawVenueOverview();
+  renderOfficialSeatMap(false);
+  updateOfficialSeatMapMarker();
 }
 
 venueSelect?.addEventListener("change", e => setVenue(e.target.value));
@@ -1170,6 +1581,7 @@ layoutSelect.addEventListener("change", e => {
   if (layout.defaultRow) state.row = String(layout.defaultRow);
   renderTierTabs();
   refreshSectionOptions(false);
+  renderOfficialSeatMap(true);
 });
 sectionSelect.addEventListener("change", e => { state.section = e.target.value; refreshRowOptions(); updateSeatLabel(); });
 rowSelect.addEventListener("change", e => { state.row = e.target.value; updateSeatLabel(); });
@@ -1177,6 +1589,8 @@ seatNumberInput?.addEventListener("input", e => { state.seatNumber = String(e.ta
 viewerHeightSelect?.addEventListener("change", e => { state.viewerHeight = Number(e.target.value)||160; updateSeatLabel(); });
 postureTabs?.addEventListener("click", e => { const b=e.target.closest("button[data-posture]"); if(!b)return; state.posture=b.dataset.posture; $$("button",postureTabs).forEach(x=>x.classList.toggle("active",x===b)); updateSeatLabel(); });
 lensTabs?.addEventListener("click", e => { const b=e.target.closest("button[data-lens]"); if(!b)return; state.lens=b.dataset.lens; $$("button",lensTabs).forEach(x=>x.classList.toggle("active",x===b)); updateSeatLabel(); requestVenueFrame(); });
+officialSeatMapFrame?.addEventListener("click", handleOfficialSeatMapClick);
+window.addEventListener("resize", () => updateOfficialSeatMapMarker(), { passive: true });
 $("#seatPreviewBtn").addEventListener("click", () => { updateSeatLabel(); openViewer(true); });
 $("#open3dBtn").addEventListener("click", () => openViewer(false));
 $("#expandPreviewBtn").addEventListener("click", () => openViewer(true));
@@ -1377,10 +1791,11 @@ function renderVenueScene(targetCanvas, opts = {}) {
   poly([[-model.field.x,-25,-model.field.z],[model.field.x,-25,-model.field.z],[model.field.x,-25,model.field.z],[-model.field.x,-25,model.field.z]],isLight?"#d9dde1":"#b8c0c7",isLight?"#aeb7bf":"#8f9aa3");
   const isLight=document.body.classList.contains("light-mode");
   const selectedId=String(state.section), allowedTiers=availableVenueTiers(), palette=isLight?["#69859a","#7890a3","#8d789b","#71889a","#7c92a2","#657f96"]:["#27313b","#313945","#3b3340","#2f3740","#333b45","#303943"];
-  for(const tier of allowedTiers) for(const id of tier.sections){const sec=getVenueSection(state.venueId,id,state.layoutId);if(!sec)continue;const selected=id===selectedId,restricted=layout.restrictedViewSections?.includes(id),floorFacing=layout.bStageFacingSections?.includes(id);let fill=(sec.tier==="FLOOR"||sec.shape==="block")?"#252a31":palette[Math.max(0,allowedTiers.findIndex(t=>t.id===sec.tier))%palette.length];if(layout.id==="plave-keep-it-manic-2026"){const groupFill={vip6300:"#4a262d","5300":"#24433d","3800":"#47442a","2900":"#253b29"};fill=groupFill[sec.group]||fill;}if(layout.id==="le-sserafim-pureflow-2026"){const groupFill={"6980":"#294f8e","6380":"#a7e1e7","5880":"#82c7ee","4680":"#777ac0","3680-4680":"#416fae"};fill=groupFill[sec.group]||fill;}if(layout.id==="ive-show-what-i-am-2026"){const groupFill={vip7800:"#b44785","5800":"#426b86","4800":"#9b5c62","3800":"#3f827f",side2f:"#52657d","3fRange":"#66507c",box4800:"#76545d"};fill=groupFill[sec.group]||fill;}if(restricted)fill=isLight?"#b97837":"#5a4334";if(floorFacing&&!restricted)fill=isLight?"#7c708c":"#343042";if(selected)fill=isLight?"#dc55e8":"#c47ae3";poly(sectionPoly(sec),fill,selected?(isLight?"#fff1ff":"#f4daf2"):restricted?(isLight?"#f2c27a":"#c29a69"):(isLight?"#9db1c0":"#4a5661"),selected?2.2:.95);}
+  for(const tier of allowedTiers) for(const id of tier.sections){const sec=getVenueSection(state.venueId,id,state.layoutId);if(!sec)continue;const selected=id===selectedId,restricted=layout.restrictedViewSections?.includes(id),floorFacing=layout.bStageFacingSections?.includes(id);let fill=(sec.tier==="FLOOR"||sec.shape==="block")?"#252a31":palette[Math.max(0,allowedTiers.findIndex(t=>t.id===sec.tier))%palette.length];if(layout.id==="plave-keep-it-manic-2026"){const groupFill={vip6300:"#4a262d","5300":"#24433d","3800":"#47442a","2900":"#253b29"};fill=groupFill[sec.group]||fill;}if(layout.id==="le-sserafim-pureflow-2026"){const groupFill={"6980":"#294f8e","6380":"#a7e1e7","5880":"#82c7ee","4680":"#777ac0","3680-4680":"#416fae"};fill=groupFill[sec.group]||fill;}if(layout.id==="babymonster-choom-taipei-2026"){const groupFill={bm6780:"#486ca7",bm5800:"#c27d4a",bm4800:"#9f5360",bm3range:"#64745f"};fill=groupFill[sec.group]||fill;}if(layout.id==="ive-show-what-i-am-2026"){const groupFill={vip7800:"#b44785","5800":"#426b86","4800":"#9b5c62","3800":"#3f827f",side2f:"#52657d","3fRange":"#66507c",box4800:"#76545d"};fill=groupFill[sec.group]||fill;}if(restricted)fill=isLight?"#b97837":"#5a4334";if(floorFacing&&!restricted)fill=isLight?"#7c708c":"#343042";if(selected)fill=isLight?"#dc55e8":"#c47ae3";poly(sectionPoly(sec),fill,selected?(isLight?"#fff1ff":"#f4daf2"):restricted?(isLight?"#f2c27a":"#c29a69"):(isLight?"#9db1c0":"#4a5661"),selected?2.2:.95);}
   const stage=activeStage(),m=stage.main;
-  poly([[m.x-m.width/2,m.y,m.z-m.depth/2],[m.x+m.width/2,m.y,m.z-m.depth/2],[m.x+m.width/2,m.y,m.z+m.depth/2],[m.x-m.width/2,m.y,m.z+m.depth/2]],"#090b0f","#d2b4cd",1.2);
-  if(Array.isArray(layout.extraStageRects)) for(const r of layout.extraStageRects){poly([[r.x-r.width/2,r.y,r.z-r.depth/2],[r.x+r.width/2,r.y,r.z-r.depth/2],[r.x+r.width/2,r.y,r.z+r.depth/2],[r.x-r.width/2,r.y,r.z+r.depth/2]],"#11131a","#a78da2",1.05);}
+  if(m.shape==='circle') poly(circlePoly(m.x,m.y,m.z,Number(m.radius||Math.min(m.width,m.depth)/2),36),"#090b0f","#d2b4cd",1.2);
+  else poly([[m.x-m.width/2,m.y,m.z-m.depth/2],[m.x+m.width/2,m.y,m.z-m.depth/2],[m.x+m.width/2,m.y,m.z+m.depth/2],[m.x-m.width/2,m.y,m.z+m.depth/2]],"#090b0f","#d2b4cd",1.2);
+  if(Array.isArray(layout.extraStageRects)) for(const r of layout.extraStageRects){const a=Number(r.ry||0),ca=Math.cos(a),sa=Math.sin(a),pts=[[-r.width/2,-r.depth/2],[r.width/2,-r.depth/2],[r.width/2,r.depth/2],[-r.width/2,r.depth/2]].map(([x,z])=>[r.x+x*ca+z*sa,r.y,r.z-x*sa+z*ca]);poly(pts,"#11131a","#a78da2",1.05);}
   if(stage.runway){const r=stage.runway;poly([[r.x-r.width/2,r.y,r.z1],[r.x+r.width/2,r.y,r.z1],[r.x+r.width/2,r.y,r.z2],[r.x-r.width/2,r.y,r.z2]],"#11131a","#9f879d");}
   if(stage.bStage)poly(circlePoly(stage.bStage.x,stage.bStage.y,stage.bStage.z,stage.bStage.radius,stage.bStage.shape==="octagon"?8:18),"#14151c","#b49bb0",1.1);
   if(layout.foh){const f=layout.foh;poly([[f.x-f.width/2,f.y,f.z-f.depth/2],[f.x+f.width/2,f.y,f.z-f.depth/2],[f.x+f.width/2,f.y,f.z+f.depth/2],[f.x-f.width/2,f.y,f.z+f.depth/2]],"#34383d","#858b91",1);}
@@ -1458,6 +1873,7 @@ setVenue(state.venueId, state.layoutId);
 
 loadFollowed().then(names => { if (Array.isArray(names) && names.length) { state.followed = new Set(names); renderFollowing(); } });
 loadEvents();
+startAutomaticEventVerification();
 renderFollowing();
 renderFeatured();
 updateSeatLabel();
@@ -1467,6 +1883,12 @@ window.addEventListener("neul:languagechange", () => {
   renderFollowing();
   renderFeatured();
   startFeaturedAutoplay();
+  try {
+    renderVenueOptions();
+    const previousLayoutId=state.layoutId;
+    renderLayoutOptions();
+    if(state.layoutId!==previousLayoutId) setVenue(state.venueId,state.layoutId);
+  } catch {}
   updateFreshness();
   updateSearchScope();
   updateSeatLabel();

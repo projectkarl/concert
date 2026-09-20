@@ -5,6 +5,8 @@ import { discoverKaohsiungArena } from "../lib/kaohsiung-arena-discovery.js";
 import { discoverTaipeiArena } from "../lib/taipei-arena-discovery.js";
 import { discoverArtistOfficialTours } from "../lib/artist-official-discovery.js";
 import { discoverTaiwanTicketPlatforms } from "../lib/taiwan-ticket-platform-discovery.js";
+import { discoverVenueCalendars } from "../lib/venue-calendar-discovery.js";
+import { auditCoverage } from "../lib/coverage-auditor.js";
 
 const dateKey = iso => {
   if (!iso) return "";
@@ -190,11 +192,15 @@ export function mergeAndDedupe(seeds, discovered) {
 
 
 function ticketSeatMapEligible(event={}) {
-  const raw=event.seatLayoutSourceUrl||event.sourceUrl||"";
-  try {
-    const host=new URL(raw).hostname.toLowerCase();
-    return /(tixcraft\.com|kktix\.(?:com|cc)|ticketplus\.com\.tw|kham\.com\.tw|ticket\.ibon\.com\.tw|famiticket\.com\.tw|tickets\.udnfunlife\.com|ticket\.mna\.com\.tw|ticket\.com\.tw|opentix\.life|tixfun\.com|go\.fansi\.me|(?:www\.)?indievox\.com|tickets\.books\.com\.tw)$/.test(host);
-  } catch { return false; }
+  const refUrls=(event.sourceRefs||[]).flatMap(ref=>[ref?.url,ref?.sourceUrl]);
+  const candidates=[event.seatLayoutSourceUrl,event.ticketUrl,event.ticketSourceUrl,event.secondarySourceUrl,event.autoSourceUrl,event.sourceUrl,...refUrls].filter(Boolean);
+  for(const raw of candidates){
+    try {
+      const host=new URL(raw).hostname.toLowerCase();
+      if(/((?:^|\.)tixcraft\.com$|(?:^|\.)kktix\.(?:com|cc)$|(?:^|\.)ticketplus\.com\.tw$|(?:^|\.)kham\.com\.tw$|^ticket\.ibon\.com\.tw$|(?:^|\.)famiticket\.com\.tw$|^tickets\.udnfunlife\.com$|^ticket\.mna\.com\.tw$|(?:^|\.)ticket\.com\.tw$|(?:^|\.)opentix\.life$|(?:^|\.)tixfun\.com$|^go\.fansi\.me$|(?:^|\.)indievox\.com$|^tickets\.books\.com\.tw$)/.test(host)) return true;
+    } catch {}
+  }
+  return false;
 }
 
 function buildArtists(events) {
@@ -242,18 +248,45 @@ function buildArtists(events) {
   });
 }
 
+function coverageSnapshot(discovery = {}, events = [], auditor = null) {
+  const health = Array.isArray(discovery.sourceHealth) ? discovery.sourceHealth : [];
+  const emptySources = health.filter(x => Number(x.discovered || 0) === 0).map(x => x.name);
+  const sourceWarnings = (discovery.indexErrors?.length || 0) + (discovery.pageErrors?.length || 0);
+  const officialMapCount = events.filter(e => e.seatLayoutSourceUrl).length;
+  const priceMappedCount = events.filter(e => Array.isArray(e.sectionPriceRules) && e.sectionPriceRules.length).length;
+  return {
+    completenessGuaranteed: false,
+    scope: 'Taiwan public music/concert events discoverable from configured official ticket, promoter, artist and venue sources',
+    sourceCount: health.length + 4,
+    sourceWarnings,
+    emptySources,
+    officialMapCount,
+    priceMappedCount,
+    auditor: auditor ? {
+      futureEvents: auditor.futureEvents,
+      crossVerified: auditor.crossVerified,
+      singleSource: auditor.singleSource,
+      venueOnlyNeedsTicketBackfill: auditor.venueOnlyNeedsTicketBackfill,
+      detectedCoverageGaps: auditor.detectedCoverageGaps,
+      sourceHealthWarnings: auditor.sourceHealthWarnings
+    } : null,
+    note: 'No public source can guarantee every Taiwan performance. NEUL reconciles ticket platforms, promoter/artist pages and independent official venue calendars; detected gaps are automatically backfilled and flagged for ticket-source follow-up.'
+  };
+}
+
 export default async function handler(req, res) {
-  // Six-hour CDN cache keeps Hobby usage low. Stale content remains usable while Vercel revalidates.
-  res.setHeader("Cache-Control", "s-maxage=21600, stale-while-revalidate=86400");
+  // One-hour CDN cache lets ticket-sale dates/new events update automatically without per-user crawling.
+  res.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate=21600");
 
   let discovery = { events: [], checkedUrls: 0, indexErrors: [], pageErrors: [], source: "Taiwan official public pages" };
   let autoUpdateError = null;
-  const [liveNationResult, kaohsiungResult, taipeiArenaResult, artistOfficialResult, ticketPlatformResult] = await Promise.allSettled([
+  const [liveNationResult, kaohsiungResult, taipeiArenaResult, artistOfficialResult, ticketPlatformResult, venueCalendarResult] = await Promise.allSettled([
     discoverLiveNationTaiwan(),
     discoverKaohsiungArena(),
     discoverTaipeiArena(),
     discoverArtistOfficialTours(),
-    discoverTaiwanTicketPlatforms()
+    discoverTaiwanTicketPlatforms(),
+    discoverVenueCalendars()
   ]);
   const sources = [];
   const errors = [];
@@ -296,29 +329,60 @@ export default async function handler(req, res) {
     discovery.sourceHealth = d.sourceHealth || [];
     sources.push(d.source || "台灣售票平台");
   } else errors.push(ticketPlatformResult.reason?.message || "Taiwan ticket platforms unavailable");
+  if (venueCalendarResult.status === "fulfilled") {
+    const d = venueCalendarResult.value;
+    discovery.events.push(...(d.events || []));
+    discovery.checkedUrls += d.checkedUrls || 0;
+    discovery.indexErrors.push(...(d.indexErrors || []));
+    discovery.pageErrors.push(...(d.pageErrors || []));
+    discovery.venueSourceHealth = d.sourceHealth || [];
+    sources.push(d.source || "官方場館行事曆");
+  } else errors.push(venueCalendarResult.reason?.message || "Venue calendars unavailable");
   if (errors.length) autoUpdateError = errors.join(" · ");
   discovery.source = sources.join(" + ") || "curated fallback";
 
-  const events = mergeAndDedupe(seedEvents, discovery.events || []).map(event => ({
-    ...event,
-    automation: {
-      eventFound: true,
-      ticketSourceFound: ticketSeatMapEligible(event),
-      seatMapFound: Boolean(event.seatLayoutSourceUrl),
-      seatMapAutoResolveReady: ticketSeatMapEligible(event),
-      ocrVisionReady: Boolean(event.venueModelId || event.venueLayoutId || event.venue),
-      sectionPricesFound: Boolean(event.sectionPriceRules?.length),
-      sectionMappingReady: Boolean(event.venueModelId || event.venueLayoutId || event.venue),
-      threeDReady: Boolean(event.venueModelId || event.venueLayoutId || event.venue),
-      geometrySource: event.seatLayoutSourceUrl ? "official-seat-map-ocr-vision" : (ticketSeatMapEligible(event) ? "ticket-page-auto-seat-map-resolver" : "venue-base"),
-      pipeline: ["ticket-source", "seat-map-resolver", "ocr-vision", "section-mapping", "event-3d"],
-      needsSeatMapFollowup: !event.seatLayoutSourceUrl && !ticketSeatMapEligible(event),
-      needsSectionPriceFollowup: !event.sectionPriceRules?.length
-    }
-  }));
+  const mergedEvents = mergeAndDedupe(seedEvents, discovery.events || []);
+  const events = mergedEvents.map(event => {
+    const seatMapFound = Boolean(event.seatLayoutSourceUrl);
+    const sectionPricesFound = Boolean(event.sectionPriceRules?.length);
+    const explicitEventLayout = Boolean(event.venueLayoutId);
+    const renderable3D = Boolean(event.venueModelId || event.venueLayoutId || event.venue);
+    let threeDVerificationLevel = "venue-derived-client-qa-required";
+    if (seatMapFound && sectionPricesFound) threeDVerificationLevel = "official-map-price-linked-client-qa-required";
+    else if (seatMapFound) threeDVerificationLevel = "official-map-linked-client-qa-required";
+    return {
+      ...event,
+      automation: {
+        eventFound: true,
+        ticketSourceFound: ticketSeatMapEligible(event),
+        seatMapFound,
+        seatMapAutoResolveReady: ticketSeatMapEligible(event),
+        ocrVisionReady: renderable3D,
+        sectionPricesFound,
+        sectionMappingReady: renderable3D,
+        threeDReady: renderable3D,
+        threeDAutoGenerationReady: renderable3D,
+        eventSpecificLayoutRequired: true,
+        autoGenerationTrigger: 'on-every-event-sync',
+        clientVisionQARequired: Boolean(seatMapFound),
+        threeDOfficialVerified: false,
+        priceMappingVerified: false,
+        serverEvidenceOnly: { seatMapFound, sectionPricesFound, explicitEventLayout },
+        threeDVerificationLevel,
+        geometrySource: seatMapFound ? "official-seat-map-ocr-vision" : (ticketSeatMapEligible(event) ? "ticket-page-auto-seat-map-resolver" : "venue-base"),
+        pipeline: ["ticket-source", "seat-map-resolver", "ocr-vision", "section-mapping", "event-3d", "qa-gate"],
+        needsSeatMapFollowup: !seatMapFound,
+        needsSectionPriceFollowup: !sectionPricesFound,
+        note: threeDVerificationLevel.includes("client-qa-required") ? "每次活動同步都會先建立唯一 event-specific 3D；若取得官方座位圖，會自動進入 OCR/Vision QA，通過前不得標示為官方校正。" : "已具官方座位圖與活動專屬 layout；官方圖或票價更新時會重新進入 QA，仍以官方最新公告為準。"
+      }
+    };
+  });
+  const combinedSourceHealth = [...(discovery.sourceHealth || []), ...(discovery.venueSourceHealth || [])];
+  discovery.sourceHealth = combinedSourceHealth;
+  const coverageAudit = auditCoverage({events, rawDiscovered: discovery.events || [], sourceHealth: combinedSourceHealth});
   const artists = buildArtists(events);
   const updatedAt = new Date();
-  const nextUpdateAt = new Date(updatedAt.getTime() + 21600000);
+  const nextUpdateAt = new Date(updatedAt.getTime() + 3600000);
   return res.status(200).json({
     updatedAt: updatedAt.toISOString(),
     nextUpdateAt: nextUpdateAt.toISOString(),
@@ -331,8 +395,13 @@ export default async function handler(req, res) {
       checkedUrls: discovery.checkedUrls || 0,
       discoveredCount: discovery.events?.length || 0,
       sourceWarnings: (discovery.indexErrors?.length || 0) + (discovery.pageErrors?.length || 0) + (autoUpdateError ? 1 : 0),
-      sourceHealth: discovery.sourceHealth || []
+      sourceHealth: discovery.sourceHealth || [],
+      venueSourceHealth: discovery.venueSourceHealth || [],
+      coverageGaps: coverageAudit.gaps || [],
+      needsTicketBackfill: coverageAudit.needsTicketBackfill || []
     },
+    coverage: coverageSnapshot(discovery, events, coverageAudit),
+    coverageAudit,
     count: events.length,
     artistCount: artists.length,
     events,

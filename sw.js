@@ -1,4 +1,4 @@
-const VERSION = "neul-v0.40.2-full-audit";
+const VERSION = "neul-v0.40.11-full-coverage-auditor";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const APP_SHELL = [
@@ -10,6 +10,7 @@ const APP_SHELL = [
   "/pwa.js",
   "/webgl-venue.js",
   "/seat-map-intelligence.js",
+  "/lib/ticket-lifecycle.js",
   "/enhancements.js",
   "/storage.js",
   "/manifest.webmanifest",
