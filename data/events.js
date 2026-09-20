@@ -911,14 +911,18 @@ export const seedEvents = [
   {
     id: "babymonster-choom-taipei-2026", artist: "BABYMONSTER", shortArtist: "BM", market: "KR",
     title: "2026–27 BABYMONSTER WORLD TOUR [춤 (CHOOM)] IN TAIPEI", type: "CONCERT", region: "TW", start: "2026-11-21T19:30:00+08:00", end: "2026-11-22T18:00:00+08:00", timeConfirmed: true,
-    venue: "臺北小巨蛋 Taipei Arena", city: "Taipei", statusLabel: "演唱會", ticketStatus: "UPCOMING SALE", generalSale: "2026-10-14T12:00:00+08:00", ticketing: "Ticket Plus 遠大售票", price: "NT$6,780 / 5,800 / 4,800 / 4,200 / 3,600 / 2,600 / 800",
+    venue: "臺北小巨蛋 Taipei Arena", city: "Taipei", statusLabel: "演唱會", ticketStatus: "UPCOMING SALE", generalSale: "2026-10-14T12:00:00+08:00", ticketing: "Ticket Plus 遠大售票", price: "NT$6,780 / 5,800 / 4,800 / 4,200 / 3,600 / 2,600 / 800；輪椅席 NT$400",
     sectionPriceRules: [
-      {label:"VIP A",price:"NT$6,780"},{label:"VIP B",price:"NT$6,780"},{label:"VIP C",price:"NT$6,780"},{label:"VIP D",price:"NT$6,780"},{label:"VIP E",price:"NT$6,780"},
-      {label:"紫2B",price:"NT$6,780"},{label:"紫2C",price:"NT$6,780"},{label:"紅2B",price:"NT$6,780"},{label:"紅2C",price:"NT$6,780"}
+      {label:"VIP A～E / 紫2B / 紫2C / 紅2B / 紅2C",price:"NT$6,780"},
+      {label:"特A～C / 紫2D / 紫2E / 紅2D / 紅2E",price:"NT$5,800"},
+      {label:"黃2A～E",price:"NT$4,800"},
+      {label:"黃3A～J",price:"NT$4,200 / 3,600 / 2,600 / 800（依官方圖排數色帶）"}
     ],
-    sourceName: "YG Entertainment / SuperDome 公告", sourceUrl: "https://artist.ygfamily.co.kr/ARTISTS/BABYMONSTER/concert/worldtourchoom/index.html", secondarySourceUrl: "https://www.facebook.com/superdometw", verified: true, checkedAt: "2026-09-17T15:40:00+08:00",
-    tags: ["KR","K-POP","2 DAYS","TAIPEI ARENA","YG OFFICIAL","AUTO SYNC"], venueModelId: "taipei-arena", venueLayoutId: "taipei-arena-far",
-    summary: "台北小巨蛋 11/21 19:30、11/22 18:00；主辦已公布全場座位席、Ticket Plus 售票與 7 段票價。NEUL 僅把能可靠對應到官方票區名稱的價格套進 3D。",
+    sourceName: "YG Entertainment / SuperDome 公告", sourceUrl: "https://ygfamily.com/ko/artists/babymonster/notice/258", secondarySourceUrl: "https://www.facebook.com/superdometw", verified: true, checkedAt: "2026-09-20T15:35:00+08:00",
+    seatLayoutDisplayUrl: "https://neww.tw/wp-content/uploads/2026/09/babymonster-concert-seat-1024x683.webp",
+    seatLayoutDisplaySource: "SuperDome 官方座位圖（公開轉載）",
+    tags: ["KR","K-POP","2 DAYS","TAIPEI ARENA","YG OFFICIAL","OFFICIAL SEAT MAP","AUTO SYNC"], venueModelId: "taipei-arena", venueLayoutId: "babymonster-choom-taipei-2026",
+    summary: "台北小巨蛋 11/21 19:30、11/22 18:00；主辦已公布主舞台＋中央延伸舞台、FOH、全場對號座與完整票價分區。3F 黃區同一大區依排數跨四種票價，未公布逐排界線前不假造單排精準價。",
     sessions: [{date:"2026/11/21",time:"19:30"},{date:"2026/11/22",time:"18:00"}],
     ticketTimeline: [
       {label:"Fanclub 登記",at:"2026-09-17T11:00:00+08:00",end:"2026-09-20T11:00:00+08:00"},
@@ -1003,7 +1007,11 @@ export const seedEvents = [
     sourceName: "Live Nation Taiwan", sourceUrl: "https://www.livenation.com.tw/event/bts-world-tour-arirang-in-kaohsiung-kaohsiung-tickets-edp1675887", secondarySourceUrl: "https://tixcraft.com/activity/detail/26_btskns", verified: true, checkedAt: "2026-09-17T15:25:00+08:00",
     tags: ["KR","K-POP","BTS","KAOHSIUNG STADIUM","OFFICIAL SEAT MAP"], venueModelId: "kaohsiung-stadium", venueLayoutId: "bts-arirang-kaohsiung-2026",
     seatLayoutSourceUrl: "https://static.tixcraft.com/images/activity/field/26_btskns_299447f2cd153382c7af192304de21d1.jpg",
-    sectionPriceRules:[{label:"VIP A1/A2/A3/M1/M2/M3",price:"VIP NT$9,380"},{label:"Y1–Y14 / R1–R14",price:"NT$7,980"},{label:"A9–A13 / M9–M13",price:"NT$6,980"}],
+    sectionPriceRules:[
+      {label:"A1 / A2 / A3 / A5 / A6 / A7 / M1 / M2 / M3 / M5 / M6 / M7",price:"VIP NT$9,380"},
+      {label:"A4 / A8 / M4 / M8 / Y1–Y14 / R1–R14",price:"NT$7,980"},
+      {label:"A9–A13 / M9–M13",price:"NT$6,980"}
+    ],
     sessions: [{date:"2026/11/19",time:"19:00"},{date:"2026/11/21",time:"19:00"},{date:"2026/11/22",time:"19:00"}]
   },
   {
@@ -1121,6 +1129,215 @@ export const seedEvents = [
   },
   {
     id:"boynextdoor-knock-on-vol2-taipei-2027",artist:"BOYNEXTDOOR",shortArtist:"BND",market:"KR",title:"BOYNEXTDOOR TOUR ‘KNOCK ON Vol.2’ IN TAIPEI",type:"CONCERT",region:"TW",start:"2027-01-08T00:00:00+08:00",end:"2027-01-10T00:00:00+08:00",timeConfirmed:false,venue:"國立體育大學綜合體育館 NTSU ARENA",city:"Taoyuan",statusLabel:"演唱會",ticketStatus:"CHECK OFFICIAL",ticketing:"tixCraft 拓元",price:"依官方售票頁公告",sourceName:"tixCraft 拓元活動列表",sourceUrl:"https://tixcraft.com/activity",sharedSourceUrl:true,verified:true,checkedAt:"2026-09-20T15:00:00+08:00",tags:["KR","K-POP","BOYNEXTDOOR","NTSU"],venueModelId:"ntsu-arena",venueLayoutId:"ntsu-base"
+  },
+
+
+  {
+    id:"engelbert-legacy-of-love-taipei-2026",artist:"Engelbert Humperdinck",shortArtist:"EH",market:"UK",
+    title:"Engelbert Humperdinck Legacy of Love 2026 World Tour – Taipei",type:"CONCERT",region:"TW",start:"2026-09-23T19:30:00+08:00",timeConfirmed:true,
+    venue:"TICC 臺北國際會議中心",city:"Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"KKTIX",
+    price:"NT$4,500 / 4,000 / 3,500 / 3,000 / 2,500；身障席另依官方公告",
+    sourceName:"KKTIX 官方售票頁",sourceUrl:"https://globalmusic.kktix.cc/events/5dee326c",verified:true,checkedAt:"2026-09-20T16:50:00+08:00",
+    tags:["UK","POP","TICC","OFFICIAL"],venueModelId:"ticc",
+    summary:"KKTIX 官方確認 2026/09/23 19:30 於 TICC 演出。"
+  },
+  {
+    id:"stayc-stay-closer-taipei-2026",artist:"STAYC",shortArtist:"STAYC",market:"KR",
+    title:"2026 STAYC FAN CONCERT TOUR [STAY CLOSER] IN TAIPEI",type:"CONCERT",region:"TW",start:"2026-10-11T17:00:00+08:00",timeConfirmed:true,
+    venue:"TICC 臺北國際會議中心",city:"Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"KKTIX",
+    price:"VIP NT$7,800 / 5,800 / 4,800 / 3,800 / 2,800",
+    sourceName:"KKTIX / 遠雄創藝官方",sourceUrl:"https://farglorycreative.kktix.cc/events/cacf3d76",verified:true,checkedAt:"2026-09-20T16:50:00+08:00",
+    tags:["KR","K-POP","STAYC","TICC","OFFICIAL"],venueModelId:"ticc",
+    summary:"全場劃位座席；票區與逐區價位須待官方座位圖解析後才寫入 3D。"
+  },
+  {
+    id:"novelbright-pyramid-taipei-2026",artist:"Novelbright",shortArtist:"NB",market:"JP",
+    title:"Novelbright ASIA TOUR 2026 〜PYRAMID〜 IN TAIPEI",type:"CONCERT",region:"TW",start:"2026-10-24T18:00:00+08:00",timeConfirmed:true,
+    venue:"新北市工商展覽中心 New Taipei City Exhibition Hall",city:"New Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"年代售票",
+    price:"A NT$3,900 / B NT$3,600 / C NT$2,800 / D NT$2,000 / 輪椅席 NT$1,950",
+    sourceName:"Novelbright Official / 年代售票",sourceUrl:"https://ticket.com.tw/application/UTK02/UTK0201_.aspx?PRODUCT_ID=P19QK265",secondarySourceUrl:"https://novelbright.jp/news/detail/2355",verified:true,checkedAt:"2026-09-20T16:50:00+08:00",
+    tags:["JP","J-ROCK","NEW TAIPEI","OFFICIAL"],venueModelId:"new-taipei-exhibition-hall",
+    summary:"官方確認 10/24 18:00；A/B/C/D 價位已公布，Section 幾何仍以年代官方場地示意圖解析結果為準。"
+  },
+  {
+    id:"hitsujibungaku-su-ha-kaohsiung-2026",artist:"羊文学 Hitsujibungaku",shortArtist:"羊文学",market:"JP",
+    title:"羊文学 Hitsujibungaku TOUR 2026 ‘SU———HA———’ IN KAOHSIUNG",type:"CONCERT",region:"TW",start:"2026-10-24T18:30:00+08:00",end:"2026-10-25T18:30:00+08:00",timeConfirmed:true,
+    venue:"LIVE WAREHOUSE 大庫",city:"Kaohsiung",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"KKTIX",
+    price:"預售 NT$2,200 / 愛心票 NT$1,100",sourceName:"KKTIX / 宝島制作委員会",sourceUrl:"https://baodaorecords.kktix.cc/events/ff315f99",secondarySourceUrl:"https://baodaorecords.kktix.cc/events/7d4a9a50",verified:true,checkedAt:"2026-09-20T16:50:00+08:00",
+    tags:["JP","BAND","KAOHSIUNG","LIVE WAREHOUSE","STANDING"],venueModelId:"live-warehouse",sessions:[{date:"2026/10/24",time:"18:30"},{date:"2026/10/25",time:"18:30"}],
+    summary:"10/24 與 10/25 加場皆為站票序號入場；3D 以場地/舞台/FOH/走道為主，不虛構固定座席。"
+  },
+  {
+    id:"fujii-kaze-prema-kaohsiung-2026",artist:"Fujii Kaze 藤井風",shortArtist:"FK",market:"JP",
+    title:"Fujii Kaze Prema World Tour - Kaohsiung",type:"CONCERT",region:"TW",start:"2026-10-31T19:00:00+08:00",timeConfirmed:true,
+    venue:"高雄國家體育場（世運主場館）",city:"Kaohsiung",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"KKTIX",
+    price:"NT$5,800 / 4,800 / 3,800 / 2,800 / 1,800（全場座席）",sourceName:"KKTIX / KKLIVE Taiwan",sourceUrl:"https://kklivetw.kktix.cc/events/34473ba4",verified:true,checkedAt:"2026-09-20T16:50:00+08:00",
+    tags:["JP","J-POP","KAOHSIUNG STADIUM","OFFICIAL"],venueModelId:"kaohsiung-stadium",
+    summary:"官方另公告多個視線遮蔽區；3D 需在官方座位圖解析後把遮擋區與價位共同映射。"
+  },
+  {
+    id:"jason-mraz-asia-tour-taipei-2026",artist:"Jason Mraz",shortArtist:"JM",market:"US",
+    title:"Jason Mraz ASIA TOUR 2026 IN TAIPEI",type:"CONCERT",region:"TW",start:"2026-11-02T19:30:00+08:00",timeConfirmed:true,
+    venue:"台北南港展覽館一館四樓",city:"Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"年代售票",
+    price:"NT$8,880 / 5,880 / 5,280 / 4,880 / 3,880 / 2,880",sourceName:"年代售票官方",sourceUrl:"https://ticket.com.tw/Application/UTK02/UTK0201_.aspx?PRODUCT_ID=P1AT93WA",verified:true,checkedAt:"2026-09-20T16:50:00+08:00",
+    tags:["US","POP","NANGANG EXHIBITION","OFFICIAL"],
+    summary:"年代官方頁含場地示意圖；只有在該圖成功抓取並通過 Vision/Section QA 後才標記官方圖校正 3D。"
+  },
+  {
+    id:"yung-kai-ocean-taipei-2026",artist:"yung kai",shortArtist:"YK",market:"CA",
+    title:"yung kai - stay with the ocean, i'll find you: asia tour 2026",type:"CONCERT",region:"TW",start:"2026-11-11T20:00:00+08:00",timeConfirmed:true,
+    venue:"Zepp New Taipei",city:"New Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"tixCraft 拓元",
+    price:"NT$1,680–2,380；VIP Meet & Greet NT$4,680",sourceName:"tixCraft 拓元官方",sourceUrl:"https://tixcraft.com/activity/detail/26_yungkai",verified:true,checkedAt:"2026-09-20T16:50:00+08:00",
+    tags:["CA","INDIE POP","ZEPP NEW TAIPEI","OFFICIAL"],venueModelId:"zepp-new-taipei",
+    summary:"官方確認 11/11 20:00；VIP 為站票套票，逐區幾何以本場售票圖為準。"
+  },
+  {
+    id:"bini-signals-taipei-2026",artist:"BINI",shortArtist:"BINI",market:"PH",
+    title:"BINI: SIGNALS WORLD TOUR 2026 TAIPEI",type:"CONCERT",region:"TW",start:"2026-11-15T17:00:00+08:00",timeConfirmed:true,
+    venue:"新北市工商展覽中心 New Taipei Exhibition Hall",city:"New Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"tixCraft 拓元",
+    price:"Diamond NT$5,068 / Platinum NT$4,068 / Gold NT$3,068 / Silver NT$2,068 / Accessible NT$1,034",sourceName:"tixCraft 拓元官方",sourceUrl:"https://tixcraft.com/activity/detail/26_bini",verified:true,checkedAt:"2026-09-20T16:50:00+08:00",
+    tags:["PH","P-POP","NEW TAIPEI","OFFICIAL"],venueModelId:"new-taipei-exhibition-hall",
+    summary:"拓元官方已確認日期、場館與五級票價；Section 價格只有在官方座位圖 OCR/Vision 對應成功後才寫入 3D。"
+  },
+  {
+    id:"gareth-gates-25th-taipei-2027",artist:"Gareth Gates",shortArtist:"GG",market:"UK",
+    title:"Gareth Gates 25th Anniversary Concert Taipei",type:"CONCERT",region:"TW",start:"2027-01-24T18:00:00+08:00",timeConfirmed:true,
+    venue:"Zepp New Taipei",city:"New Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"KKTIX",
+    price:"Cat 1 NT$3,900 / Cat 2 NT$3,200 / Cat 3 NT$2,900 / 愛心席 NT$1,450",sourceName:"KKTIX 官方售票頁",sourceUrl:"https://createwonderfullife.kktix.cc/events/339d88a-a01",verified:true,checkedAt:"2026-09-20T16:50:00+08:00",
+    tags:["UK","POP","ZEPP NEW TAIPEI","FULLY SEATED"],venueModelId:"zepp-new-taipei",
+    summary:"官方明示本場 Zepp 改為全場全座位席；3D 不沿用一般 Zepp 站席配置，需依本場官方圖覆寫。"
+  },
+
+  {
+    id:"niel-fearless-taipei-2026",artist:"NIEL",shortArtist:"NIEL",market:"KR",title:"NIEL 無畏 FEARLESS SHOWCASE IN TAIPEI",type:"CONCERT",region:"TW",start:"2026-09-26T17:00:00+08:00",timeConfirmed:true,
+    venue:"Clapper Studio",city:"Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"tixCraft 拓元",price:"NT$4,980 / 3,980；身障席 NT$1,990",generalSale:"2026-09-03T18:00:00+08:00",
+    sourceName:"tixCraft 拓元官方",sourceUrl:"https://tixcraft.com/activity/detail/26_fearless",verified:true,checkedAt:"2026-09-20T20:20:00+08:00",tags:["KR","SHOWCASE","CLAPPER STUDIO","OFFICIAL"],summary:"官方確認 9/26 17:00；全場依本場官方配置自動建立活動專屬 3D。"
+  },
+  {
+    id:"tamaki-nami-asia-tour-taipei-2026",artist:"玉置成實 Tamaki Nami",shortArtist:"TAMAKI",market:"JP",title:"Nami Tamaki 2026 Asia Tour Taipei",type:"CONCERT",region:"TW",start:"2026-10-17T18:00:00+08:00",timeConfirmed:true,
+    venue:"Clapper Studio",city:"Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"KKTIX",price:"VIP NT$3,280 / General NT$2,280",generalSale:"2026-07-18T11:00:00+08:00",
+    sourceName:"KKTIX / ATC Taiwan",sourceUrl:"https://atc-twn.kktix.cc/events/f4841443",verified:true,checkedAt:"2026-09-20T20:20:00+08:00",tags:["JP","J-POP","CLAPPER STUDIO","OFFICIAL"]
+  },
+  {
+    id:"fear-and-loathing-las-vegas-taipei-2026",artist:"Fear, and Loathing in Las Vegas",shortArtist:"FALILV",market:"JP",title:"Fear, and Loathing in Las Vegas Taipei 2026",type:"CONCERT",region:"TW",start:"2026-10-18T18:00:00+08:00",timeConfirmed:true,
+    venue:"Clapper Studio",city:"Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"KKTIX",price:"VIP NT$2,980 / General NT$1,980",generalSale:"2026-07-05T11:00:00+08:00",
+    sourceName:"KKTIX / ATC Taiwan",sourceUrl:"https://atc-twn.kktix.cc/events/5c93827f",verified:true,checkedAt:"2026-09-20T20:20:00+08:00",tags:["JP","ROCK","CLAPPER STUDIO","OFFICIAL"]
+  },
+  {
+    id:"music-expo-live-taipei-2026",artist:"MUSIC EXPO LIVE",shortArtist:"MEX",market:"INTL",title:"MUSIC EXPO LIVE 2026 in TAIPEI",type:"CONCERT",region:"TW",start:"2026-10-24T18:00:00+08:00",end:"2026-10-25T23:59:00+08:00",timeConfirmed:true,
+    venue:"臺北小巨蛋 Taipei Arena",city:"Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"KHAM 寬宏",price:"NT$6,280 / 5,880 / 5,280 / 4,880 / 3,880 / 2,880 / 800",generalSale:"2026-07-28T12:00:00+08:00",
+    sourceName:"KHAM 寬宏官方",sourceUrl:"https://kham.com.tw/application/UTK02/UTK0201_.aspx?PRODUCT_ID=P1CXNJEX",verified:true,checkedAt:"2026-09-20T20:20:00+08:00",tags:["TAIPEI ARENA","OFFICIAL","MULTI ARTIST"],venueModelId:"taipei-arena",sessions:[{date:"2026/10/24",time:"18:00"},{date:"2026/10/25",time:"依官方公告"}],summary:"寬宏官方提供票價區示意圖；自動 resolver 會以官方圖建立本場客製 3D 與票價映射。"
+  },
+  {
+    id:"shizuka-kudo-dynamic-taipei-2026",artist:"工藤靜香 Shizuka Kudo",shortArtist:"SHIZUKA",market:"JP",title:"Shizuka Kudo 2026 \"Dynamic\" CONCERT in TAIPEI",type:"CONCERT",region:"TW",start:"2026-10-24T19:30:00+08:00",timeConfirmed:true,
+    venue:"TICC 臺北國際會議中心",city:"Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"KHAM 寬宏",price:"最高票價 NT$4,600；其餘依官方票價區公告",
+    sourceName:"KHAM 寬宏官方",sourceUrl:"https://kham.com.tw/application/UTK02/UTK0201_.aspx?PRODUCT_ID=P1BU3K7Z",verified:true,checkedAt:"2026-09-20T20:20:00+08:00",tags:["JP","TICC","OFFICIAL"],venueModelId:"ticc"
+  },
+  {
+    id:"mono-snowdrop-taipei-2026",artist:"MONO",shortArtist:"MONO",market:"JP",title:"MONO “Snowdrop” Asia Tour 2026 Taipei",type:"CONCERT",region:"TW",start:"2026-10-30T20:00:00+08:00",timeConfirmed:true,
+    venue:"SUB LIVE",city:"Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"KKTIX",price:"預售 NT$1,800 / 現場 NT$2,000",
+    sourceName:"KKTIX / Young Team Productions",sourceUrl:"https://youngteam.kktix.cc/events/snowdrop",verified:true,checkedAt:"2026-09-20T20:20:00+08:00",tags:["JP","POST ROCK","SUB LIVE","OFFICIAL"]
+  },
+  {
+    id:"shishi-taste-of-taipei-2026",artist:"孫盛希 Shi Shi",shortArtist:"SHISHI",market:"TW",title:"孫盛希 Shi Shi [The Taste of …] 台北演唱會",type:"CONCERT",region:"TW",start:"2026-11-01T18:00:00+08:00",timeConfirmed:true,
+    venue:"Legacy TERA",city:"Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"tixCraft 拓元",price:"VIP NT$3,100 / 一般站區 NT$2,500 / 身障 NT$1,250",generalSale:"2026-08-18T12:00:00+08:00",
+    sourceName:"tixCraft 拓元官方",sourceUrl:"https://tixcraft.com/activity/detail/26_shishi",verified:true,checkedAt:"2026-09-20T20:20:00+08:00",tags:["TW","LEGACY TERA","STANDING","OFFICIAL"]
+  },
+  {
+    id:"82major-out-of-control-taipei-2026",artist:"82MAJOR",shortArtist:"82M",market:"KR",title:"82MAJOR <82CLUB : OUT OF CONTROL> in TAIPEI",type:"CONCERT",region:"TW",start:"2026-11-08T17:00:00+08:00",timeConfirmed:true,
+    venue:"Clapper Studio",city:"Taipei",statusLabel:"演唱會",ticketStatus:"UPCOMING SALE",ticketing:"tixCraft 拓元",price:"NT$4,280 / 3,680 / 身障 NT$2,140",generalSale:"2026-09-27T12:00:00+08:00",
+    sourceName:"tixCraft 拓元官方",sourceUrl:"https://tixcraft.com/activity/detail/26_82major",verified:true,checkedAt:"2026-09-20T20:20:00+08:00",tags:["KR","K-POP","CLAPPER STUDIO","OFFICIAL"]
+  },
+  {
+    id:"fireball-fest-taoyuan-2026",artist:"FIREBALL Fest.",shortArtist:"FIREBALL",market:"TW",title:"2026 FIREBALL Fest. 火球祭 ROCKIN’ WONDERLAND",type:"CONCERT",region:"TW",start:"2026-11-14T00:00:00+08:00",end:"2026-11-15T23:59:00+08:00",timeConfirmed:false,
+    venue:"樂天桃園棒球場 Rakuten Taoyuan Baseball Stadium",city:"Taoyuan",statusLabel:"音樂祭",ticketStatus:"ON SALE",ticketing:"tixCraft 拓元",price:"依官方售票頁各票種公告",
+    sourceName:"tixCraft 拓元官方",sourceUrl:"https://tixcraft.com/activity/detail/26_fireball",verified:true,checkedAt:"2026-09-20T20:20:00+08:00",tags:["TW","FESTIVAL","TAOYUAN","OFFICIAL"],summary:"官方為雙主舞台音樂祭；自動 3D 應依官方圖辨識雙舞台／場內座席與活動區，不套用一般端景舞台。"
+  },
+  {
+    id:"domi-jd-beck-who-asked-taipei-2026",artist:"DOMi & JD BECK",shortArtist:"DOMI/JD",market:"US",title:"DOMi & JD BECK - WHO ASKED? Tour",type:"CONCERT",region:"TW",start:"2026-12-04T19:30:00+08:00",timeConfirmed:true,
+    venue:"Clapper Studio",city:"Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"tixCraft 拓元",price:"General NT$1,980",
+    sourceName:"tixCraft 拓元官方",sourceUrl:"https://tixcraft.com/activity/detail/26_domijd",verified:true,checkedAt:"2026-09-20T20:20:00+08:00",tags:["US","CLAPPER STUDIO","STANDING","OFFICIAL"]
+  },
+  {
+    id:"slowdive-live-taipei-2026",artist:"Slowdive",shortArtist:"SLOWDIVE",market:"UK",title:"Slowdive 2026 Live in Taipei",type:"CONCERT",region:"TW",start:"2026-12-10T20:00:00+08:00",timeConfirmed:true,
+    venue:"Zepp New Taipei",city:"New Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"tixCraft 拓元",price:"1F站位 NT$2,680 / 2F座位 NT$3,680 / 2F站位 NT$1,880",generalSale:"2026-07-22T12:00:00+08:00",
+    sourceName:"tixCraft 拓元官方",sourceUrl:"https://tixcraft.com/activity/detail/26_slowdive",verified:true,checkedAt:"2026-09-20T20:20:00+08:00",tags:["UK","SHOEGAZE","ZEPP NEW TAIPEI","OFFICIAL"],venueModelId:"zepp-new-taipei"
+  },
+  {
+    id:"kpop-prime-linkou-2026",artist:"KPOP PRIME",shortArtist:"KPOP",market:"KR",title:"2026 KPOP PRIME",type:"CONCERT",region:"TW",start:"2026-10-04T18:00:00+08:00",timeConfirmed:true,
+    venue:"國立體育大學綜合體育館 NTSU Arena",city:"Taoyuan",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"KHAM 寬宏",price:"NT$5,980 / 5,680 / 4,980 / 4,680 / 3,980 / 2,980",generalSale:"2026-07-14T12:00:00+08:00",
+    sourceName:"KHAM 寬宏官方",sourceUrl:"https://kham.com.tw/application/UTK02/UTK0201_.aspx?PRODUCT_ID=P1C2RGU6",verified:true,checkedAt:"2026-09-20T20:20:00+08:00",tags:["KR","K-POP","NTSU","OFFICIAL"],venueModelId:"ntsu-arena",summary:"寬宏官方含票價區示意圖；自動解析後才將票區價位寫入 3D。"
+  },
+  {
+    id:"age-factory-error-taipei-2026",artist:"Age Factory",shortArtist:"AGE",market:"JP",title:"Age Factory 静脈/ERROR Release Tour 2026 Taipei",type:"CONCERT",region:"TW",start:"2026-10-18T20:00:00+08:00",timeConfirmed:true,
+    venue:"SUB LIVE",city:"Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"KKTIX",price:"預售 NT$1,580 / 現場 NT$1,880",generalSale:"2026-08-21T12:00:00+08:00",
+    sourceName:"KKTIX / Young Team Productions",sourceUrl:"https://youngteam.kktix.cc/events/agefactory26",verified:true,checkedAt:"2026-09-20T20:20:00+08:00",tags:["JP","ROCK","SUB LIVE","OFFICIAL"]
+  },
+  {
+    id:"jessica-reflections-taipei-2026",artist:"JESSICA",shortArtist:"JESSICA",market:"KR",title:"JESSICA Concert Tour “Reflections” 2026 Taipei",type:"CONCERT",region:"TW",start:"2026-10-24T18:00:00+08:00",timeConfirmed:true,
+    venue:"臺大綜合體育館 NTU Sports Center 1F",city:"Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"KKTIX",price:"VIP NT$5,880 / Zone A NT$4,880 / Zone B NT$3,880 / 身障 NT$2,940",generalSale:"2026-08-29T13:00:00+08:00",
+    sourceName:"KKTIX / Asia Media",sourceUrl:"https://asiamedia-2.kktix.cc/events/vretar01",verified:true,checkedAt:"2026-09-20T20:20:00+08:00",tags:["KR","POP","NTU SPORTS CENTER","OFFICIAL"],venueModelId:"ntu-sports-center"
+  },
+
+  {
+    id:"ghibli-original-singers-taipei-2026",artist:"吉卜力動畫音樂原唱歌手",shortArtist:"GHIBLI",market:"JP",title:"2026吉卜力動畫音樂原唱歌手交響演唱會",type:"CONCERT",region:"TW",start:"2026-10-04T18:00:00+08:00",end:"2026-10-04T20:00:00+08:00",timeConfirmed:true,
+    venue:"臺北小巨蛋 Taipei Arena",city:"Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"KHAM 寬宏",price:"NT$4,200 / 3,800 / 2,800 / 2,500 / 2,100 / 1,700 / 1,300 / 800",generalSale:"2026-07-28T11:00:00+08:00",
+    sourceName:"KHAM 寬宏官方 / 臺北小巨蛋",sourceUrl:"https://kham.com.tw/application/UTK02/UTK0201_.aspx?PRODUCT_ID=P1D3G65E",secondarySourceUrl:"https://www.arena.taipei/News_Content.aspx?n=2E1489AFE4B1BEA1&s=DC7DDCA2A069B717&sms=F9A95D3F5A5C2C68",verified:true,checkedAt:"2026-09-20T22:50:00+08:00",tags:["JP","ORCHESTRA","TAIPEI ARENA","OFFICIAL"],venueModelId:"taipei-arena",summary:"官方已公布台北小巨蛋演出、八級票價與票價區示意；座位圖由 resolver 自動回填並觸發本場 3D QA。"
+  },
+  {
+    id:"eunhyuk-beware-rabbit-taipei-2026",artist:"EUNHYUK",shortArtist:"EH",market:"KR",title:"2026 EUNHYUK PRE-DEBUT FANCON ‘be: WARE OF THE RABBIT’ in TAIPEI",type:"CONCERT",region:"TW",start:"2026-10-16T20:00:00+08:00",end:"2026-10-17T18:00:00+08:00",timeConfirmed:true,
+    venue:"台北國際會議中心 TICC",city:"Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"KHAM 寬宏",price:"NT$6,280 / 5,680 / 4,880 / 3,880",generalSale:"2026-09-11T12:00:00+08:00",
+    sharedSourceUrl:true,sourceName:"KHAM 寬宏官方",sourceUrl:"https://kham.com.tw/application/UTK01/UTK0101_06.aspx?CATEGORY=205&TYPE=1",verified:true,checkedAt:"2026-09-20T22:50:00+08:00",tags:["KR","K-POP","TICC","OFFICIAL"],venueModelId:"ticc",sessions:[{date:"2026/10/16",time:"20:00"},{date:"2026/10/17",time:"16:00"}],summary:"官方演唱會分類已上架；座位圖與票價區由 KHAM detail resolver 後續自動回填。"
+  },
+  {
+    id:"n-flying-con5-kaohsiung-2026",artist:"N.Flying",shortArtist:"NF",market:"KR",title:"2026 N.Flying LIVE ‘&CON5 : into REM’ IN KAOHSIUNG",type:"CONCERT",region:"TW",start:"2026-11-21T18:00:00+08:00",timeConfirmed:true,
+    venue:"高雄流行音樂中心 海音館",city:"Kaohsiung",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"KHAM 寬宏",price:"NT$5,980 / 5,280 / 4,680 / 3,680",generalSale:"2026-09-10T14:00:00+08:00",
+    sharedSourceUrl:true,sourceName:"KHAM 寬宏官方",sourceUrl:"https://kham.com.tw/application/UTK01/UTK0101_06.aspx?CATEGORY=205&TYPE=1",verified:true,checkedAt:"2026-09-20T22:50:00+08:00",tags:["KR","BAND","KAOHSIUNG MUSIC CENTER","OFFICIAL"],venueModelId:"kaohsiung-music-center",summary:"官方分類已上架且主辦已公布四級票價；票區曾有調整，系統必須以最新官方圖 hash 重新 QA。"
+  },
+  {
+    id:"fenix-bbm-fan-concert-2026",artist:"FEniX",shortArtist:"FENIX",market:"TW",title:"FEniX BBM-2026 FAN CONCERT",type:"CONCERT",region:"TW",start:"2026-10-02T19:30:00+08:00",timeConfirmed:true,
+    venue:"Legacy TERA",city:"Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"KHAM 寬宏",price:"NT$2,999 / 1,999；福利套票另計",
+    sourceName:"KHAM 寬宏官方",sourceUrl:"https://kham.com.tw/application/UTK02/UTK0201_.aspx?PRODUCT_ID=P1E13RZG",verified:true,checkedAt:"2026-09-20T22:50:00+08:00",tags:["TW","FAN CONCERT","LEGACY TERA","OFFICIAL"],venueModelId:"legacy-tera"
+  },
+  {
+    id:"xiaoyu-imperfect-person-taipei-2026",artist:"小宇 宋念宇",shortArtist:"XIAOYU",market:"TW",title:"2026 小宇 宋念宇《不，完美的人》演唱會",type:"CONCERT",region:"TW",start:"2026-11-07T19:30:00+08:00",timeConfirmed:true,
+    venue:"臺北流行音樂中心表演廳",city:"Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"KHAM 寬宏",price:"最高 NT$4,280；其餘依官方票價區公告",generalSale:"2026-08-22T12:00:00+08:00",
+    sourceName:"KHAM 寬宏官方",sourceUrl:"https://kham.com.tw/application/UTK02/UTK0201_.aspx?PRODUCT_ID=P1DF32E2",verified:true,checkedAt:"2026-09-20T22:50:00+08:00",tags:["TW","POP","TAIPEI MUSIC CENTER","OFFICIAL"],venueModelId:"taipei-music-center"
+  },
+  {
+    id:"kuo-fuhua-original-song-taipei-2026",artist:"郭子&浮花樂隊",shortArtist:"FUHUA",market:"TW",title:"郭子&浮花樂隊 原來的那首歌 Live in Legacy Taipei",type:"CONCERT",region:"TW",start:"2026-10-16T20:00:00+08:00",timeConfirmed:true,
+    venue:"Legacy Taipei",city:"Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"KHAM 寬宏",price:"NT$1,980",
+    sourceName:"Legacy Taipei 官方",sourceUrl:"https://www.legacy.com.tw/article/page/taipei/3263",verified:true,checkedAt:"2026-09-20T22:50:00+08:00",tags:["TW","BAND","LEGACY TAIPEI","OFFICIAL"],venueModelId:"legacy-taipei"
+  },
+  {
+    id:"julia-peng-counting-days-taipei-2026",artist:"彭佳慧",shortArtist:"JULIA",market:"TW",title:"彭佳慧《數著時間的日子》巡迴演唱會 台北場",type:"CONCERT",region:"TW",start:"2026-10-03T19:30:00+08:00",timeConfirmed:true,
+    venue:"臺北小巨蛋 Taipei Arena",city:"Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"KHAM 寬宏",price:"NT$4,680 / 4,280 / 3,880 / 3,480 / 2,880 / 2,480 / 1,880 / 800",generalSale:"2026-08-03T12:00:00+08:00",
+    sharedSourceUrl:true,sourceName:"KHAM 寬宏官方",sourceUrl:"https://kham.com.tw/application/UTK02/UTK0201_.aspx?PRODUCT_ID=P1D3G65D",verified:true,checkedAt:"2026-09-20T22:50:00+08:00",tags:["TW","POP","TAIPEI ARENA","OFFICIAL"],venueModelId:"taipei-arena"
+  },
+  {
+    id:"julia-peng-counting-days-kaohsiung-2026",artist:"彭佳慧",shortArtist:"JULIA",market:"TW",title:"彭佳慧《數著時間的日子》巡迴演唱會 高雄場",type:"CONCERT",region:"TW",start:"2026-11-21T17:00:00+08:00",timeConfirmed:true,
+    venue:"高雄巨蛋 Kaohsiung Arena",city:"Kaohsiung",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"KHAM 寬宏",price:"NT$4,680 / 4,280 / 3,880 / 3,480 / 2,880 / 2,480 / 1,880 / 800",generalSale:"2026-08-03T12:00:00+08:00",
+    sharedSourceUrl:true,sourceName:"KHAM 寬宏官方",sourceUrl:"https://kham.com.tw/application/UTK02/UTK0201_.aspx?PRODUCT_ID=P1D3G65D",verified:true,checkedAt:"2026-09-20T22:50:00+08:00",tags:["TW","POP","KAOHSIUNG ARENA","OFFICIAL"],venueModelId:"kaohsiung-arena"
+  },
+  {
+    id:"roselyn-20hz-taipei-2026",artist:"劉芯妤 Roselyn",shortArtist:"ROSELYN",market:"TW",title:"劉芯妤 Roselyn 20Hz：Shine with Starlight",type:"CONCERT",region:"TW",start:"2026-10-16T19:30:00+08:00",timeConfirmed:true,
+    venue:"Clapper Studio",city:"Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"tixCraft 拓元",price:"VIP NT$2,020 / 一般 NT$1,020 / 身障 NT$510",generalSale:"2026-09-16T12:00:00+08:00",
+    sourceName:"tixCraft 拓元官方",sourceUrl:"https://tixcraft.com/activity/detail/26_roselyn",verified:true,checkedAt:"2026-09-20T22:50:00+08:00",tags:["TW","CLAPPER STUDIO","OFFICIAL"]
+  },
+  {
+    id:"the-boyz-westart-taipei-2026",artist:"潤少╳徐晧程╳c8ight陳全",shortArtist:"THEBOYZ",market:"TW",title:"潤少╳徐晧程╳c8ight陳全《男孩兒 THE BOYZ》演唱會",type:"CONCERT",region:"TW",start:"2026-10-24T19:00:00+08:00",timeConfirmed:true,
+    venue:"WESTAR Taipei",city:"Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"tixCraft 拓元",price:"一般站區 NT$990 / 身障 NT$495",generalSale:"2026-08-04T12:00:00+08:00",
+    sourceName:"tixCraft 拓元官方",sourceUrl:"https://tixcraft.com/activity/detail/26_theboyz",verified:true,checkedAt:"2026-09-20T22:50:00+08:00",tags:["TW","WESTAR","STANDING","OFFICIAL"],venueModelId:"westar-taipei"
+  },
+  {
+    id:"vash-hsu-love-volcano-taipei-2026",artist:"徐暐翔",shortArtist:"VASH",market:"TW",title:"徐暐翔《愛火山的人》專場演唱會",type:"CONCERT",region:"TW",start:"2026-11-08T18:00:00+08:00",timeConfirmed:true,
+    venue:"Legacy Taipei",city:"Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"tixCraft 拓元",price:"一般站區 NT$1,450 / 身障 NT$725；VIP Upgrade NT$600",generalSale:"2026-09-14T11:00:00+08:00",
+    sourceName:"tixCraft 拓元官方",sourceUrl:"https://tixcraft.com/activity/detail/26_vashhsu",verified:true,checkedAt:"2026-09-20T22:50:00+08:00",tags:["TW","LEGACY TAIPEI","STANDING","OFFICIAL"],venueModelId:"legacy-taipei"
+  },
+  {
+    id:"jeong-eunji-summer-i-taipei-2026",artist:"JEONG EUNJI",shortArtist:"EUNJI",market:"KR",title:"2026 JEONG EUNJI SOLO CONCERT ‘SUMMER, I’ ASIA TOUR in TAIPEI",type:"CONCERT",region:"TW",start:"2026-11-14T18:00:00+08:00",timeConfirmed:true,
+    venue:"台北國際會議中心 TICC",city:"Taipei",statusLabel:"演唱會",ticketStatus:"UPCOMING SALE",ticketing:"KHAM 寬宏",price:"NT$5,880 / 4,880 / 3,880 / 3,280",generalSale:"2026-09-23T12:00:00+08:00",
+    sharedSourceUrl:true,sourceName:"KHAM 寬宏官方",sourceUrl:"https://kham.com.tw/application/UTK01/UTK0101_06.aspx?CATEGORY=205&TYPE=1",verified:true,checkedAt:"2026-09-20T22:50:00+08:00",tags:["KR","K-POP","TICC","OFFICIAL"],venueModelId:"ticc",summary:"寬宏官方演唱會清單已上架；正式開賣後 detail page、座位圖與價位區會由 Auto Backfill 自動回填。"
   },
 
 ];

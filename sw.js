@@ -1,4 +1,4 @@
-const VERSION = "neul-v0.40.2-full-coverage-auditor";
+const VERSION = "neul-v0.40.2-complete2-auto3d-calendar";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const APP_SHELL = [

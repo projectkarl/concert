@@ -1,11 +1,11 @@
 {
   "name": "neul-mvp",
-  "version": "0.40.2-coverage.1",
+  "version": "0.40.2-complete.2",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vercel dev",
-    "check": "node scripts/check.mjs && node scripts/check-coverage.mjs"
+    "check": "node scripts/check.mjs && node scripts/check-coverage.mjs && node scripts/check-complete.mjs"
   },
   "engines": {
     "node": ">=20"

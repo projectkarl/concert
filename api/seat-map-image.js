@@ -7,7 +7,7 @@ const ALLOWED = [
   'tickets.udnfunlife.com','ticket.mna.com.tw','ticket.com.tw','www.ticket.com.tw','opentix.life','www.opentix.life','tixfun.com','www.tixfun.com','go.fansi.me','tickets.books.com.tw','indievox.com','www.indievox.com'
 ];
 function allowed(u){return u.protocol==='https:'&&ALLOWED.some(h=>u.hostname===h||u.hostname.endsWith('.'+h));}
-async function fetchOfficial(u,accept,fetchImpl=fetch){return fetchImpl(u.href,{headers:{'user-agent':'Mozilla/5.0 (compatible; NEUL/0.40.2-Coverage auto-seat-map)','accept':accept,'accept-language':'zh-TW,zh;q=0.9,en;q=0.7','referer':`${u.protocol}//${u.hostname}/`},redirect:'follow',signal:AbortSignal.timeout(7000)});}
+async function fetchOfficial(u,accept,fetchImpl=fetch){return fetchImpl(u.href,{headers:{'user-agent':'Mozilla/5.0 (compatible; NEUL/0.40.10 auto-seat-map)','accept':accept,'accept-language':'zh-TW,zh;q=0.9,en;q=0.7','referer':`${u.protocol}//${u.hostname}/`},redirect:'follow',signal:AbortSignal.timeout(7000)});}
 const contentType=r=>(r.headers.get('content-type')||'application/octet-stream').split(';')[0].toLowerCase();
 
 export async function resolveOfficialSeatMap(raw,{fetchImpl=fetch,maxPages=5,maxCandidates=8}={}){

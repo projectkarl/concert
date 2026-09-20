@@ -578,6 +578,76 @@ function autoStageForEvent(venueId, event={}) {
   return {...base,main,runway,bStage};
 }
 
+function compactHallGeometry(kind='club') {
+  if(kind==='exhibition'){
+    const floor=[...Array.from({length:8},(_,i)=>({...block(`F${i+1}`,'FLOOR',-70+(i%4)*46,-12+Math.floor(i/4)*58,38,48,'floor'),rowMin:1,rowMax:32,depthZ:34,rise:2}))];
+    const rear=[...arcGroup(['L1','L2','C1','C2','R1','R2'],'BOWL',132,98,18,2.72,.42)].map(s=>({...s,rowMin:1,rowMax:16,depthX:26,depthZ:19,rise:12}));
+    return {sections:[...floor,...rear],tiers:[{id:'FLOOR',label:'活動平面區',short:'平面',sections:floor.map(x=>x.id)},{id:'BOWL',label:'活動看台／臨時席',short:'看台',sections:rear.map(x=>x.id)}],field:{x:150,z:108},defaultTier:'FLOOR',defaultSection:'F4',defaultRow:12,stage:genericStage(-96,94,26)};
+  }
+  if(kind==='outdoor'){
+    const floor=[...Array.from({length:10},(_,i)=>({...block(`FIELD-${i+1}`,'FLOOR',-88+(i%5)*44,-8+Math.floor(i/5)*68,36,58,'standing'),standingOnly:true,rowMin:1,rowMax:1}))];
+    return {sections:floor,tiers:[{id:'FLOOR',label:'戶外活動區',short:'場地',sections:floor.map(x=>x.id)}],field:{x:190,z:138},defaultTier:'FLOOR',defaultSection:'FIELD-3',defaultRow:1,stage:genericStage(-116,110,30)};
+  }
+  const standing=kind==='club';
+  const floor=[
+    {...block('1F-L','FLOOR',-30,8,26,68,standing?'standing':'floor'),standingOnly:standing,rowMin:1,rowMax:standing?1:24,depthZ:32,rise:2},
+    {...block('1F-C','FLOOR',0,8,28,68,standing?'standing':'floor'),standingOnly:standing,rowMin:1,rowMax:standing?1:24,depthZ:32,rise:2},
+    {...block('1F-R','FLOOR',30,8,26,68,standing?'standing':'floor'),standingOnly:standing,rowMin:1,rowMax:standing?1:24,depthZ:32,rise:2}
+  ];
+  const balcony=kind==='theater' ? [
+    {...block('2F-L','2F',-30,42,28,24,'balcony'),y:11,rowMin:1,rowMax:10,seatEstimateMax:20,rise:9},
+    {...block('2F-C','2F',0,42,30,24,'balcony'),y:11,rowMin:1,rowMax:10,seatEstimateMax:22,rise:9},
+    {...block('2F-R','2F',30,42,28,24,'balcony'),y:11,rowMin:1,rowMax:10,seatEstimateMax:20,rise:9}
+  ] : [];
+  return {sections:[...floor,...balcony],tiers:[{id:'FLOOR',label:standing?'1F 活動站區':'1F 活動座席',short:'1F',sections:floor.map(x=>x.id)},...(balcony.length?[{id:'2F',label:'2F 看台',short:'2F',sections:balcony.map(x=>x.id)}]:[])],field:{x:70,z:72},defaultTier:'FLOOR',defaultSection:'1F-C',defaultRow:standing?1:10,stage:genericStage(-62,58,18)};
+}
+
+const AUTO_EVENT_3D_PIPELINE_VERSION='0.40.2-auto3d.2';
+function autoEvent3DSignature(event={},venueId=''){
+  const compactRules=(event.sectionPriceRules||[]).map(r=>[r?.label||'',r?.price||'']);
+  return JSON.stringify({
+    v:AUTO_EVENT_3D_PIPELINE_VERSION,
+    venueId,
+    eventId:event.id||'',
+    artist:event.artist||'',
+    title:event.title||'',
+    start:event.start||'',
+    end:event.end||'',
+    seat:event.seatLayoutSourceUrl||'',
+    ticket:event.ticketUrl||event.ticketSourceUrl||event.secondarySourceUrl||'',
+    price:event.price||'',
+    rules:compactRules
+  });
+}
+function autoEvent3DState(event={},linked=false){
+  if(linked) return 'official-map-pending';
+  if(event.ticketUrl||event.ticketSourceUrl||event.secondarySourceUrl||event.sourceUrl) return 'ticket-source-pending-seat-map';
+  return 'venue-derived-draft';
+}
+
+function runtimeVenueKind(event={}){
+  const text=`${event.venue||''} ${event.type||''}`.toLowerCase();
+  if(/outdoor|戶外|廣場|公園|園區|festival|waterbomb|stadium|主場館|體育場/.test(text)) return 'outdoor';
+  if(/展覽|exhibition|arena|巨蛋|體育館|gymnasium/.test(text)) return 'exhibition';
+  if(/legacy|live house|warehouse|westar|space|club|音樂空間/.test(text)) return 'club';
+  return 'theater';
+}
+export function ensureVenueModelForEvent(event={}){
+  const explicit=event.venueModelId;
+  if(explicit && venueModels[explicit]) return explicit;
+  const known=venueIdFromName(event.venue||'');
+  if(known && venueModels[known]) return known;
+  const venueName=String(event.venue||'').trim();
+  if(!venueName) return null;
+  const id=`runtime-${autoLayoutSlug(venueName)}`;
+  if(!venueModels[id]){
+    const geom=compactHallGeometry(runtimeVenueKind(event));
+    venueModels[id]={id,name:venueName,en:venueName.toUpperCase(),city:event.city||'Taiwan',...geom,baseLayoutId:`${id}-base`,sourceName:'自動新場館物理基準／等待官方場館或活動圖校正',sourceUrl:event.sourceUrl||null,confidence:'動態保守模型；不宣稱官方單椅精度',dynamicFallback:true};
+    venueLayouts[`${id}-base`]={id:`${id}-base`,venueId:id,label:'自動新場館基準',stage:geom.stage,dynamicFallback:true,notices:['此場館尚未有 NEUL 校正模型；先建立保守物理空間，活動官方座位圖取得後會再客製化。']};
+  }
+  return id;
+}
+
 /**
  * Register an activity-specific 3D draft at runtime.
  * - Existing hand-calibrated layouts always win.
@@ -586,17 +656,25 @@ function autoStageForEvent(venueId, event={}) {
  *   but NEUL still treats the geometry as provisional rather than claiming pixel-perfect image extraction.
  */
 export function ensureAutoEventLayout(event={}) {
-  const venueId=event.venueModelId || venueIdFromName(event.venue || '');
+  const venueId=ensureVenueModelForEvent(event);
   if (!venueId || !venueModels[venueId]) return null;
   const currentId=event.venueLayoutId;
   const current=currentId ? venueLayouts[currentId] : null;
   if (current?.eventId && !current.autoGenerated) {
     // Preserve hand-calibrated geometry/distances, but continuously sync official ticket metadata.
+    current.eventSpecific3D=true;
+    current.autoPipelineVersion=AUTO_EVENT_3D_PIPELINE_VERSION;
+    current.autoGenerationSignature=autoEvent3DSignature(event,venueId);
+    const officialMapLinked=Boolean(event.seatLayoutSourceUrl||current.latestSeatLayoutSourceUrl);
+    const officialMapVerified=Boolean(current.seatMapDetected && (current.verifiedAt||current.autoMapAnalyzedAt||current.seatMapFingerprint));
+    current.generationState=officialMapVerified ? 'hand-calibrated-official-map' : (officialMapLinked ? 'official-map-pending' : 'hand-calibrated');
+    current.customizationLevel=officialMapVerified ? 'hand-calibrated-official-map' : (officialMapLinked ? 'official-map-linked' : 'hand-calibrated');
+    current.qaGate={eventSpecific:true,stagePresent:Boolean(current.stage?.main),officialMapLinked,officialMapVerified,priceMappingVerified:Boolean((current.sectionPriceRules||[]).length||Object.keys(current.sectionPriceLabels||{}).length||Object.keys(current.priceLabels||{}).length),requiresReview:Boolean(officialMapLinked&&!officialMapVerified)};
     if (Array.isArray(event.sectionPriceRules)) current.sectionPriceRules=JSON.parse(JSON.stringify(event.sectionPriceRules));
     if (event.price) current.priceSummary=event.price;
     if (event.seatLayoutSourceUrl) {
       current.latestSeatLayoutSourceUrl=event.seatLayoutSourceUrl;
-      current.seatMapDetected=true;
+      current.seatMapNeedsRefresh=true;
     }
     current.ticketSyncSignature=JSON.stringify({seat:event.seatLayoutSourceUrl||null,price:event.price||null,rules:event.sectionPriceRules||[]});
     current.lastEventSyncAt=event.checkedAt || new Date().toISOString();
@@ -621,7 +699,15 @@ export function ensureAutoEventLayout(event={}) {
       sourceName: linked ? '官方座位配置連結＋場館基準自動生成' : '官方活動場館資訊＋場館基準自動生成',
       sourceUrl:event.seatLayoutSourceUrl || event.sourceUrl || model.sourceUrl,
       autoGenerated:true,
-      seatMapDetected:linked,
+      eventSpecific3D:true,
+      autoPipelineVersion:AUTO_EVENT_3D_PIPELINE_VERSION,
+      autoGenerationSignature:autoEvent3DSignature(event,venueId),
+      generationState:autoEvent3DState(event,linked),
+      seatMapNeedsRefresh:linked,
+      verifiedAgainstCurrentSource:false,
+      customizationLevel:linked ? 'official-map-linked' : 'venue-derived',
+      qaGate:{eventSpecific:true,stagePresent:true,officialMapLinked:linked,officialMapVerified:false,priceMappingVerified:false,requiresReview:true},
+      seatMapDetected:false,
       generationConfidence: linked ? 'seat-map-linked-draft' : 'venue-only-draft',
       sectionPriceRules:Array.isArray(event.sectionPriceRules) ? JSON.parse(JSON.stringify(event.sectionPriceRules)) : [],
       priceSummary:event.price || null,
@@ -638,14 +724,42 @@ export function ensureAutoEventLayout(event={}) {
     };
   } else if (venueLayouts[id].autoGenerated) {
     const layout=venueLayouts[id];
+    const nextSignature=autoEvent3DSignature(event,venueId);
+    const previousSignature=layout.autoGenerationSignature||'';
+    const sourceChanged=Boolean(previousSignature && previousSignature!==nextSignature);
+    const nextSeatSource=event.seatLayoutSourceUrl||null;
+    const seatSourceChanged=Boolean(layout.latestSeatLayoutSourceUrl && nextSeatSource && layout.latestSeatLayoutSourceUrl!==nextSeatSource);
     layout.stage=autoStageForEvent(venueId,event);
+    layout.eventSpecific3D=true;
+    layout.autoPipelineVersion=AUTO_EVENT_3D_PIPELINE_VERSION;
+    layout.autoGenerationSignature=nextSignature;
+    layout.customizationLevel=linked ? 'official-map-linked' : 'venue-derived';
     layout.sourceName=linked ? '官方座位配置連結＋場館基準自動生成' : '官方活動場館資訊＋場館基準自動生成';
     layout.sourceUrl=event.seatLayoutSourceUrl || event.sourceUrl || model.sourceUrl;
-    layout.seatMapDetected=linked;
+    layout.latestSeatLayoutSourceUrl=nextSeatSource || layout.latestSeatLayoutSourceUrl || null;
+    if(!linked) layout.seatMapDetected=false;
+    else if(sourceChanged || seatSourceChanged) layout.seatMapDetected=false;
+    else layout.seatMapDetected=Boolean(layout.seatMapDetected && layout.verifiedAgainstCurrentSource);
     layout.generationConfidence=linked ? 'seat-map-linked-draft' : 'venue-only-draft';
     layout.sectionPriceRules=Array.isArray(event.sectionPriceRules) ? JSON.parse(JSON.stringify(event.sectionPriceRules)) : [];
     layout.priceSummary=event.price || layout.priceSummary || null;
     layout.ticketSyncSignature=JSON.stringify({seat:event.seatLayoutSourceUrl||null,price:event.price||null,rules:event.sectionPriceRules||[]});
+    if(sourceChanged){
+      layout.lastSourceChangeAt=new Date().toISOString();
+      layout.seatMapNeedsRefresh=linked;
+      layout.verifiedAgainstCurrentSource=false;
+      layout.generationState=autoEvent3DState(event,linked);
+      layout.qaGate={eventSpecific:true,stagePresent:Boolean(layout.stage?.main),officialMapLinked:linked,officialMapVerified:false,priceMappingVerified:false,requiresReview:true,sourceChanged:true};
+      if(seatSourceChanged){
+        layout.previousSeatLayoutSourceUrl=layout.seatMapResolvedUrl||layout.previousSeatLayoutSourceUrl||null;
+        layout.autoMapAnalyzedAt=null;
+        layout.autoStageConfidence=0;
+        layout.sectionMapping=null;
+      }
+    } else {
+      layout.generationState=layout.generationState||autoEvent3DState(event,linked);
+      layout.qaGate={...(layout.qaGate||{}),eventSpecific:true,stagePresent:Boolean(layout.stage?.main),officialMapLinked:linked,requiresReview:Boolean(layout.qaGate?.requiresReview ?? true)};
+    }
     layout.generatedAt=new Date().toISOString();
     layout.notices=[
       linked
@@ -660,18 +774,28 @@ export function ensureAutoEventLayout(event={}) {
 }
 
 
-export function applyAutoSeatMapAnalysis(layoutId, analysis={}) {
+export function applyAutoSeatMapAnalysis(layoutId, analysis={}, options={}) {
   const layout=venueLayouts[layoutId];
   if(!layout || !analysis || !analysis.hash) return false;
-  if(!layout.autoGenerated && !layout.seatMapAutoRegenerate) return false;
-  if(analysis.stage) layout.stage=JSON.parse(JSON.stringify(analysis.stage));
-  if(Array.isArray(analysis.extraStageRects)) layout.extraStageRects=JSON.parse(JSON.stringify(analysis.extraStageRects));
+  if(!layout.autoGenerated && !layout.seatMapAutoRegenerate && !layout.seatMapDetected) return false;
+  const applyGeometry=options.geometry !== false;
+  const replaceSections=options.replaceSections ?? Boolean(layout.autoGenerated);
+  if(applyGeometry && analysis.stage) layout.stage=JSON.parse(JSON.stringify(analysis.stage));
+  if(applyGeometry && Array.isArray(analysis.extraStageRects)) layout.extraStageRects=JSON.parse(JSON.stringify(analysis.extraStageRects));
   if(Array.isArray(analysis.sections) && analysis.sections.length>=3){
-    layout.sections=JSON.parse(JSON.stringify(analysis.sections));
-    layout.tiers=JSON.parse(JSON.stringify(analysis.tiers||[]));
-    const priceLabels={}; for(const sec of analysis.sections) if(sec.autoPrice) priceLabels[sec.group]=sec.autoPrice;
-    layout.priceLabels={...(layout.priceLabels||{}),...priceLabels};
-    layout.replaceStructuralTiers=[...new Set([...(layout.replaceStructuralTiers||[]),'FLOOR'])];
+    if(replaceSections){
+      layout.sections=JSON.parse(JSON.stringify(analysis.sections));
+      layout.tiers=JSON.parse(JSON.stringify(analysis.tiers||[]));
+      const priceLabels={}; for(const sec of analysis.sections) if(sec.autoPrice) priceLabels[sec.group]=sec.autoPrice;
+      layout.priceLabels={...(layout.priceLabels||{}),...priceLabels};
+      layout.replaceStructuralTiers=[...new Set([...(layout.replaceStructuralTiers||[]),'FLOOR'])];
+    } else {
+      // Hand-calibrated geometry stays authoritative. OCR may still enrich exact matched
+      // sections with official prices without moving seats/stage blocks.
+      const exact={...(layout.sectionPriceLabels||{})};
+      for(const sec of analysis.sections) if(sec.ocrDerived && sec.autoPrice && sec.id) exact[String(sec.id)]=sec.autoPrice;
+      layout.sectionPriceLabels=exact;
+    }
   }
   layout.seatMapFingerprint=analysis.hash;
   layout.seatMapDetected=true;
@@ -679,8 +803,23 @@ export function applyAutoSeatMapAnalysis(layoutId, analysis={}) {
   layout.seatMapResolvedUrl=analysis.resolvedUrl||layout.sourceUrl||null;
   layout.sectionMapping=analysis.ocr?JSON.parse(JSON.stringify(analysis.ocr)):null;
   layout.autoMapProfile=analysis.profile||'unknown';
+  layout.autoStageConfidence=Number(analysis.stageConfidence||0);
+  layout.autoLegendConfidence=analysis.legendConfidence||'unverified-no-price-guess';
+  layout.autoGeometryApplied=Boolean(applyGeometry && analysis.stage);
   layout.autoMapAnalyzedAt=new Date().toISOString();
-  if(layout.sectionMapping?.mappedCount>=2){layout.sourceName='官方座位圖＋OCR/Vision Section Mapping 自動生成';layout.notices=[`已從官方座位圖辨識並映射 ${layout.sectionMapping.mappedCount} 個票區標籤；其餘區塊保留 Vision 幾何草稿。`,'同名區號會優先對回場館固定幾何，避免只靠圖片像素造成距離失真。','官方座位圖內容若更新，圖片 hash 改變後會自動重算本場 3D。'];}
+  layout.eventSpecific3D=true;
+  layout.autoPipelineVersion=AUTO_EVENT_3D_PIPELINE_VERSION;
+  layout.seatMapNeedsRefresh=false;
+  layout.verifiedAgainstCurrentSource=true;
+  const mappedCount=Number(layout.sectionMapping?.mappedCount||0);
+  const officialMapVerified=Number(layout.autoStageConfidence||0)>=0.82 && mappedCount>=2;
+  const mappedPriceCount=(analysis.sections||[]).filter(sec=>sec?.autoPrice).length+Object.keys(layout.sectionPriceLabels||{}).length+Object.keys(layout.priceLabels||{}).length;
+  const priceMappingVerified=mappedPriceCount>0 && Boolean((layout.sectionPriceRules||[]).length || (analysis.legend||[]).length);
+  layout.generationState=officialMapVerified ? 'official-map-verified' : 'official-map-partial';
+  layout.priceMappingState=priceMappingVerified ? 'verified' : ((layout.sectionPriceRules||[]).length ? 'pending-section-match' : 'no-section-price-evidence');
+  layout.customizationLevel=mappedCount>=2 ? 'official-map-ocr-mapped' : 'official-map-vision';
+  layout.qaGate={eventSpecific:true,stagePresent:Boolean(layout.stage?.main),officialMapLinked:true,officialMapVerified,priceMappingVerified,requiresReview:!officialMapVerified};
+  if(layout.sectionMapping?.mappedCount>=2 && layout.autoGenerated){layout.sourceName='官方座位圖＋OCR/Vision Section Mapping 自動生成';layout.notices=[`已從官方座位圖辨識並映射 ${layout.sectionMapping.mappedCount} 個票區標籤；其餘區塊保留 Vision 幾何草稿。`,'同名區號會優先對回場館固定幾何，避免只靠圖片像素造成距離失真。','官方座位圖內容若更新，圖片 hash 改變後會自動重算本場 3D。'];}
   return true;
 }
 

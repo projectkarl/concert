@@ -149,12 +149,6 @@
         <h2 id="venueTitle">台北大巨蛋</h2>
         <p>探索場館 · 選擇座位 · 預覽視角</p>
         <button class="pink-pill" id="open3dBtn">進入3D場館 →</button>
-        <div class="venue-event-demo" id="iveTaipeiDemo" hidden>
-          <span>RECENT DEMO</span>
-          <strong>IVE · SHOW WHAT I AM</strong>
-          <small>台北小巨蛋 · 官方票區圖重建</small>
-          <button type="button" id="iveDemoBtn">載入 IVE 3D 示範 →</button>
-        </div>
       </div>
       <div class="venue-render-wrap">
         <canvas id="venueOverviewCanvas" class="venue-render" aria-label="目前選擇場館的 3D 區域模型"></canvas>
@@ -189,6 +183,15 @@
         <div class="seat-preview-img"><canvas id="seatPreviewCanvas" aria-label="依所選座位區即時計算的舞台視角模擬"></canvas></div>
         <div class="seat-warning" id="seatWarning" hidden></div>
         <p>視角方向依官方場館資料與可取得的活動配置重建；未有本場專屬舞台圖時採場館基準，非實際拍攝畫面。</p>
+      <section class="official-seatmap-inline official-seatmap-below" id="officialSeatMapPanel" hidden aria-label="本場官方位置圖">
+        <div class="official-seatmap-head"><div><span>OFFICIAL MAP</span><strong>本場官方位置／座位配置圖</strong></div><a id="officialSeatMapSourceLink" href="#" target="_blank" rel="noopener noreferrer">官方來源 ↗</a></div>
+        <div class="official-seatmap-frame" id="officialSeatMapFrame">
+          <img id="officialSeatMapImage" alt="本場演唱會官方位置或座位配置圖" loading="lazy" decoding="async">
+          <button class="official-seatmap-marker" id="officialSeatMapMarker" type="button" hidden aria-label="目前選擇票區"></button>
+          <div class="official-seatmap-loading" id="officialSeatMapLoading">載入官方位置圖…</div>
+        </div>
+        <div class="official-seatmap-meta"><span id="officialSeatMapSource"></span><span id="officialSeatMapSync"></span></div>
+      </section>
         <div class="preview-tools"><span>↔ 左右觀看</span><span>⊕ 放大縮小</span><span>↻ 拖曳旋轉</span></div>
       </div>
       <div class="venue-tip"><span>TIP</span> 場館分區依官方資料重建；有本場售票配置時再疊加舞台方向。實際視野仍受舞台、欄杆、控台與設備影響。</div>
@@ -196,7 +199,7 @@
 
     <footer class="footer">
       <span>活動、售票、入場及視野資訊僅供參考，請以藝人、主辦單位、場館與官方售票平台最新公告為準。</span>
-      <span>資料約每 6 小時檢查可用官方來源 · 每日另做一次排程同步</span>
+      <span>活動清單約每 1 小時重新驗證官方來源 · 每日另做一次排程同步</span>
       <span>NEUL · Stay Close to What You Love.</span>
     </footer>
   </div>
@@ -245,6 +248,18 @@
         <button type="button" data-events-window="90">未來 90 天</button>
       </div>
       <div class="events-modal-summary" id="eventsModalSummary"></div>
+      <section class="events-calendar-shell" aria-label="每日演唱會行事曆">
+        <div class="events-calendar-head">
+          <button type="button" id="eventsCalendarPrev" aria-label="上個月">‹</button>
+          <div><span>DAILY CONCERT CALENDAR</span><strong id="eventsCalendarMonthLabel">—</strong></div>
+          <button type="button" id="eventsCalendarNext" aria-label="下個月">›</button>
+        </div>
+        <div class="events-calendar-weekdays" aria-hidden="true"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+        <div class="events-calendar-grid" id="eventsCalendarGrid"></div>
+      </section>
+      <div class="events-agenda-head"><strong id="eventsAgendaDateLabel">選擇日期</strong><span>點活動可查看明細與 3D</span></div>
+      <div class="events-modal-list events-agenda-list" id="eventsAgendaList"></div>
+      <div class="events-original-list-head"><strong>全部活動</strong></div>
       <div class="events-modal-list" id="eventsModalList"></div>
     </section>
   </div>
