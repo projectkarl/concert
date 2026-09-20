@@ -10,7 +10,7 @@ const ALLOWED = [
   'livenation.com.tw','weverse.io','ygfamily.com','xgalx.com','arena.taipei','kaoarena.com.tw','ticc.com.tw','kpmc.com.tw','penghumusicfestival.com','novelbright.jp','vaundy.jp','moba.garena.tw'
 ];
 function allowed(u){return u.protocol==='https:'&&ALLOWED.some(h=>u.hostname===h||u.hostname.endsWith('.'+h));}
-async function fetchOfficial(u,accept,fetchImpl=fetch){return fetchImpl(u.href,{headers:{'user-agent':'Mozilla/5.0 (compatible; NEUL/0.40.13 official-map-display)','accept':accept,'accept-language':'zh-TW,zh;q=0.9,en;q=0.7','referer':`${u.protocol}//${u.hostname}/`},redirect:'follow',signal:AbortSignal.timeout(7000)});}
+async function fetchOfficial(u,accept,fetchImpl=fetch){return fetchImpl(u.href,{headers:{'user-agent':'Mozilla/5.0 (compatible; NEUL/0.40.14 official-map-display)','accept':accept,'accept-language':'zh-TW,zh;q=0.9,en;q=0.7','referer':`${u.protocol}//${u.hostname}/`},redirect:'follow',signal:AbortSignal.timeout(7000)});}
 const contentType=r=>(r.headers.get('content-type')||'application/octet-stream').split(';')[0].toLowerCase();
 
 export async function resolveOfficialSeatMap(raw,{fetchImpl=fetch,maxPages=5,maxCandidates=8}={}){

@@ -936,3 +936,25 @@ body.light-mode .events-calendar-spacer{background:#f7f3f0;border-color:#e6dfda}
 body.light-mode .events-original-list-head{border-color:#ddd6d0}body.light-mode .events-original-list-head span{color:#7d756f}
 @media(max-width:900px){.seat-preview-reference-grid{grid-template-columns:1fr}.seat-preview-reference-grid .official-seatmap-frame{min-height:240px;height:300px}}
 @media(max-width:720px){.featured-progress{width:30px;min-width:30px!important}.events-original-list-head{align-items:start;flex-direction:column;gap:2px}.events-original-list-head span{text-align:left}.events-calendar-spacer{min-height:54px}.seat-preview-reference-grid .official-seatmap-frame{height:240px;min-height:220px}}
+
+/* v0.40.14 — activity explorer: full list visible first; calendar remains available beside/below it. */
+.events-modal-card{width:min(1180px,100%)}
+.events-browser-layout{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(360px,.92fr);gap:18px;align-items:start;margin-top:10px}
+.events-list-pane,.events-calendar-pane{min-width:0}
+.events-list-pane .events-original-list-head{margin:0 0 8px;padding:0 0 10px;border-top:0;border-bottom:1px solid #293038}
+.events-list-pane .events-modal-list{gap:8px}
+.events-list-pane .events-modal-row{grid-template-columns:120px minmax(0,1fr) 22px}
+.events-calendar-pane{position:sticky;top:0;align-self:start}
+.events-calendar-pane .events-calendar-shell{margin-top:0}
+.events-calendar-pane .events-agenda-list{max-height:260px;overflow:auto;padding-right:2px}
+body.light-mode .events-list-pane .events-original-list-head{border-bottom-color:#ddd6d0}
+@media(max-width:900px){
+  .events-modal-card{width:min(760px,100%)}
+  .events-browser-layout{grid-template-columns:1fr;gap:16px}
+  .events-list-pane{order:1}.events-calendar-pane{order:2;position:static}
+  .events-list-pane .events-modal-row{grid-template-columns:104px minmax(0,1fr) 18px}
+  .events-calendar-pane .events-agenda-list{max-height:none;overflow:visible}
+}
+@media(max-width:520px){
+  .events-list-pane .events-modal-row{grid-template-columns:82px minmax(0,1fr) 16px}
+}

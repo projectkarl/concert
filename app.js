@@ -1136,8 +1136,12 @@ function modalFilteredEvents() {
   const end = eventsEndFilter?.value || "";
   const city = eventsCityFilter?.value || "ALL";
   const areaQ = normalizeSearch(eventsAreaSearch?.value || "");
+  const areaTokens = areaQ.split(" " ).filter(Boolean);
   if (city !== "ALL") list = list.filter(e => String(e.city||"") === city);
-  if (areaQ) list = list.filter(e => normalizeSearch(`${e.artist} ${e.title} ${e.venue} ${e.city} ${cityLabel(e.city)} ${(e.tags||[]).join(" ")}`).includes(areaQ));
+  if (areaTokens.length) list = list.filter(e => {
+    const hay=normalizeSearch(`${e.artist} ${e.title} ${e.venue} ${e.city} ${cityLabel(e.city)} ${(e.tags||[]).join(" ")}`);
+    return areaTokens.every(token=>hay.includes(token));
+  });
   if (month) list = list.filter(e => occurrenceDateKeys(e).some(k => k.startsWith(month)));
   if (start) list = list.filter(e => occurrenceDateKeys(e).some(k => k >= start));
   if (end) list = list.filter(e => occurrenceDateKeys(e).some(k => k <= end));
@@ -1843,14 +1847,17 @@ function sectionPoly(section) {
 function circlePoly(x,y,z,r,n=18){return Array.from({length:n},(_,i)=>{const a=i/n*Math.PI*2;return[x+Math.cos(a)*r,y,z+Math.sin(a)*r];});}
 
 function renderVenueScene(targetCanvas, opts = {}) {
-  const context=targetCanvas.getContext("2d"), rect=targetCanvas.getBoundingClientRect(), dpr=Math.min(devicePixelRatio||1,2), w=Math.max(1,Math.floor(rect.width*dpr)), h=Math.max(1,Math.floor(rect.height*dpr));
+  if(!targetCanvas) return false;
+  const context=targetCanvas.getContext("2d");
+  if(!context) return false;
+  const rect=targetCanvas.getBoundingClientRect(), dpr=Math.min(devicePixelRatio||1,2), w=Math.max(1,Math.floor(rect.width*dpr)), h=Math.max(1,Math.floor(rect.height*dpr));
   if(targetCanvas.width!==w||targetCanvas.height!==h){targetCanvas.width=w;targetCanvas.height=h;} context.setTransform(dpr,0,0,dpr,0,0);
   const cw=rect.width,ch=rect.height,model=activeVenueModel(),layout=currentVenueLayout(),grad=context.createLinearGradient(0,0,0,ch); grad.addColorStop(0,"#111821");grad.addColorStop(.6,"#080c10");grad.addColorStop(1,"#050709");context.fillStyle=grad;context.fillRect(0,0,cw,ch);
   const viewSeat=opts.seatMode??seatMode, project=viewSeat?makeSeatProjector(cw,ch,opts.yaw??yaw,opts.pitch??pitch,opts.zoom??zoom):makeOrbitProjector(cw,ch,opts.yaw??yaw,opts.pitch??pitch,opts.zoom??zoom);
   const poly=(points,fill,stroke="#343942",width=1)=>{const pp=points.map(project).filter(Boolean);if(pp.length!==points.length)return;context.beginPath();pp.forEach((q,i)=>i?context.lineTo(q[0],q[1]):context.moveTo(q[0],q[1]));context.closePath();context.fillStyle=fill;context.fill();context.strokeStyle=stroke;context.lineWidth=width;context.stroke();};
   const line=(points,stroke,width=1)=>{const pp=points.map(project).filter(Boolean);if(pp.length<2)return;context.beginPath();pp.forEach((q,i)=>i?context.lineTo(q[0],q[1]):context.moveTo(q[0],q[1]));context.strokeStyle=stroke;context.lineWidth=width;context.stroke();};
-  poly([[-model.field.x,-25,-model.field.z],[model.field.x,-25,-model.field.z],[model.field.x,-25,model.field.z],[-model.field.x,-25,model.field.z]],isLight?"#d9dde1":"#b8c0c7",isLight?"#aeb7bf":"#8f9aa3");
   const isLight=document.body.classList.contains("light-mode");
+  poly([[-model.field.x,-25,-model.field.z],[model.field.x,-25,-model.field.z],[model.field.x,-25,model.field.z],[-model.field.x,-25,model.field.z]],isLight?"#d9dde1":"#b8c0c7",isLight?"#aeb7bf":"#8f9aa3");
   const selectedId=String(state.section), allowedTiers=availableVenueTiers(), palette=isLight?["#69859a","#7890a3","#8d789b","#71889a","#7c92a2","#657f96"]:["#27313b","#313945","#3b3340","#2f3740","#333b45","#303943"];
   for(const tier of allowedTiers) for(const id of tier.sections){const sec=getVenueSection(state.venueId,id,state.layoutId);if(!sec)continue;const selected=id===selectedId,restricted=layout.restrictedViewSections?.includes(id),floorFacing=layout.bStageFacingSections?.includes(id);let fill=(sec.tier==="FLOOR"||sec.shape==="block")?"#252a31":palette[Math.max(0,allowedTiers.findIndex(t=>t.id===sec.tier))%palette.length];if(layout.id==="plave-keep-it-manic-2026"){const groupFill={vip6300:"#4a262d","5300":"#24433d","3800":"#47442a","2900":"#253b29"};fill=groupFill[sec.group]||fill;}if(layout.id==="le-sserafim-pureflow-2026"){const groupFill={"6980":"#294f8e","6380":"#a7e1e7","5880":"#82c7ee","4680":"#777ac0","3680-4680":"#416fae"};fill=groupFill[sec.group]||fill;}if(layout.id==="babymonster-choom-taipei-2026"){const groupFill={bm6780:"#486ca7",bm5800:"#c27d4a",bm4800:"#9f5360",bm3range:"#64745f"};fill=groupFill[sec.group]||fill;}if(layout.id==="ive-show-what-i-am-2026"){const groupFill={vip7800:"#b44785","5800":"#426b86","4800":"#9b5c62","3800":"#3f827f",side2f:"#52657d","3fRange":"#66507c",box4800:"#76545d"};fill=groupFill[sec.group]||fill;}if(restricted)fill=isLight?"#b97837":"#5a4334";if(floorFacing&&!restricted)fill=isLight?"#7c708c":"#343042";if(selected)fill=isLight?"#dc55e8":"#c47ae3";poly(sectionPoly(sec),fill,selected?(isLight?"#fff1ff":"#f4daf2"):restricted?(isLight?"#f2c27a":"#c29a69"):(isLight?"#9db1c0":"#4a5661"),selected?2.2:.95);}
   const stage=activeStage(),m=stage.main;
@@ -1872,6 +1879,7 @@ function renderVenueScene(targetCanvas, opts = {}) {
     if(occ.some(o=>o.kind==="rail")){context.fillStyle="rgba(95,103,112,.78)";context.fillRect(0,ch*.69,cw,8);}
     const targetText=stage.bStage&&layout.bStageFacingSections?.includes(selectedId)?"B-STAGE ORIENTATION":"STAGE ORIENTATION";context.fillStyle="rgba(245,221,241,.72)";context.font="700 9px system-ui,sans-serif";context.fillText(targetText,14,ch-16);
   }
+  return true;
 }
 function venueWebGLConfig(){
   return {
@@ -1893,16 +1901,39 @@ function venueWebGLConfig(){
     occluders: activeOccluders()
   };
 }
+const canvas3DFallbackKey="neul-force-canvas-3d-v0414";
+function safariNeedsStableCanvas3D(){
+  const ua=navigator.userAgent||"";
+  return /Safari/i.test(ua) && !/(Chrome|Chromium|CriOS|Edg|OPR|Firefox|FxiOS)/i.test(ua);
+}
+function forceCanvas3D(){
+  try{return safariNeedsStableCanvas3D() || sessionStorage.getItem(canvas3DFallbackKey)==="1";}catch{return safariNeedsStableCanvas3D();}
+}
+function recover3DFromWebGLError(error){
+  console.warn("NEUL 3D WebGL fallback",error);
+  try{venueWebGL?.dispose?.();}catch{}
+  venueWebGL=null;
+  webglStatus="fallback";
+  // Once a canvas has acquired WebGL, browsers do not allow switching that same canvas to 2D.
+  // Reload once and initialize Canvas 3D from the start so Safari/context-loss never leaves blank panels.
+  if(!forceCanvas3D()){
+    try{sessionStorage.setItem(canvas3DFallbackKey,"1");location.reload();return;}catch{}
+  }
+}
+function tryWebGLRender(method,args=[]){
+  if(!venueWebGL) return false;
+  try{venueWebGL[method](...args);return true;}catch(error){recover3DFromWebGLError(error);return false;}
+}
 function drawSeatPreview(){
   if(!previewCanvas||previewCanvas.clientWidth<4)return;
   if(webglStatus === "loading") return;
-  if(venueWebGL){ venueWebGL.renderPreview(); return; }
+  if(tryWebGLRender("renderPreview")) return;
   renderVenueScene(previewCanvas,{seatMode:true,yaw:0,pitch:0,zoom:1.05});
 }
 function drawVenueOverview(){
   if(!overviewCanvas||overviewCanvas.clientWidth<4)return;
   if(webglStatus === "loading") return;
-  if(venueWebGL){ venueWebGL.renderOverview(); return; }
+  if(tryWebGLRender("renderOverview")) return;
   renderVenueScene(overviewCanvas,{seatMode:false,yaw:-.48,pitch:.72,zoom:1.05});
 }
 function requestVenueFrame(){ if(!raf) raf=requestAnimationFrame(drawVenue); }
@@ -1910,15 +1941,26 @@ function drawVenue(){
   raf=0;
   if(viewer.hidden)return;
   if(webglStatus === "loading") return;
-  if(venueWebGL){ venueWebGL.renderViewer({seatMode,yaw,pitch,zoom}); return; }
+  if(tryWebGLRender("renderViewer",[{seatMode,yaw,pitch,zoom}])) return;
   renderVenueScene(canvas);
 }
 async function initVenueWebGL(){
-  venueWebGL = await createVenueWebGL({
-    overviewCanvas, previewCanvas, viewerCanvas: canvas, getConfig: venueWebGLConfig,
-    onStatus: status => { webglStatus = status === "fallback" ? "fallback" : "ready"; }
-  });
+  if(forceCanvas3D()){
+    webglStatus="fallback";
+    venueWebGL=null;
+    drawVenueOverview(); drawSeatPreview(); if(!viewer.hidden) requestVenueFrame();
+    return;
+  }
+  try{
+    venueWebGL = await createVenueWebGL({
+      overviewCanvas, previewCanvas, viewerCanvas: canvas, getConfig: venueWebGLConfig,
+      onStatus: status => { webglStatus = status === "fallback" ? "fallback" : "ready"; }
+    });
+  }catch(error){
+    recover3DFromWebGLError(error);
+  }
   if(!venueWebGL && webglStatus === "loading") webglStatus = "fallback";
+  if(!venueWebGL && !forceCanvas3D()){ recover3DFromWebGLError(new Error("WebGL initialization unavailable")); return; }
   drawVenueOverview(); drawSeatPreview(); if(!viewer.hidden) requestVenueFrame();
 }
 

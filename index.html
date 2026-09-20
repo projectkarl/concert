@@ -251,19 +251,25 @@
         <button type="button" data-events-window="90">未來 90 天</button>
       </div>
       <div class="events-modal-summary" id="eventsModalSummary"></div>
-      <section class="events-calendar-shell" aria-label="每日演唱會行事曆">
-        <div class="events-calendar-head">
-          <button type="button" id="eventsCalendarPrev" aria-label="上個月">‹</button>
-          <div><span>DAILY CONCERT CALENDAR</span><strong id="eventsCalendarMonthLabel">—</strong></div>
-          <button type="button" id="eventsCalendarNext" aria-label="下個月">›</button>
-        </div>
-        <div class="events-calendar-weekdays" aria-hidden="true"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
-        <div class="events-calendar-grid" id="eventsCalendarGrid"></div>
-      </section>
-      <div class="events-agenda-head"><strong id="eventsAgendaDateLabel">選擇日期</strong><span>點活動可查看官方來源與本場 3D</span></div>
-      <div class="events-modal-list events-agenda-list" id="eventsAgendaList"></div>
-      <div class="events-original-list-head"><strong>所有符合條件活動</strong><span>保留原本清單，可直接往下瀏覽全部活動</span></div>
-      <div class="events-modal-list" id="eventsModalList"></div>
+      <div class="events-browser-layout">
+        <section class="events-list-pane" aria-label="全部活動">
+          <div class="events-original-list-head"><strong>全部活動</strong></div>
+          <div class="events-modal-list" id="eventsModalList"></div>
+        </section>
+        <section class="events-calendar-pane" aria-label="每日演唱會行事曆">
+          <section class="events-calendar-shell">
+            <div class="events-calendar-head">
+              <button type="button" id="eventsCalendarPrev" aria-label="上個月">‹</button>
+              <div><span>DAILY CONCERT CALENDAR</span><strong id="eventsCalendarMonthLabel">—</strong></div>
+              <button type="button" id="eventsCalendarNext" aria-label="下個月">›</button>
+            </div>
+            <div class="events-calendar-weekdays" aria-hidden="true"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+            <div class="events-calendar-grid" id="eventsCalendarGrid"></div>
+          </section>
+          <div class="events-agenda-head"><strong id="eventsAgendaDateLabel">選擇日期</strong><span>點活動可查看官方來源與本場 3D</span></div>
+          <div class="events-modal-list events-agenda-list" id="eventsAgendaList"></div>
+        </section>
+      </div>
     </section>
   </div>
 

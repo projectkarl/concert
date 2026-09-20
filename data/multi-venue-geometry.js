@@ -469,6 +469,7 @@ const hanaGeom=compactHallGeometry('club');
 const waterbombGeom=compactHallGeometry('outdoor');
 const penghuGeom=compactHallGeometry('outdoor');
 const liveWarehouseGeom=compactHallGeometry('club');
+const nangangExhibitionGeom=compactHallGeometry('exhibition');
 
 export const venueModels = {
   'taipei-dome': {
@@ -570,10 +571,15 @@ export const venueModels = {
     id:'zepp-new-taipei', name:'Zepp New Taipei', en:'ZEPP NEW TAIPEI', city:'New Taipei', sections:zeppSections, tiers:zeppTiers,
     baseLayoutId:'zepp-new-taipei-base', defaultTier:'2F', defaultSection:'2F-C', defaultRow:5, field:{x:62,z:68}, stage:genericStage(-66,54,18),
     sourceName:'Zepp New Taipei 公開場館資訊／官方售票票區圖交叉校正', sourceUrl:'https://tixcraft.com/activity/detail/26_izna', confidence:'場館比例＋活動票區圖動態校正'
+  },
+  'nangang-exhibition-hall-1': {
+    id:'nangang-exhibition-hall-1', name:'台北南港展覽館一館', en:'TAIPEI NANGANG EXHIBITION CENTER HALL 1', city:'Taipei', ...nangangExhibitionGeom,
+    baseLayoutId:'nangang-exhibition-hall-1-base', sourceName:'展覽館大型活動空間基準／官方活動圖優先', sourceUrl:'https://www.tainex.com.tw/', confidence:'大型展演空間保守模型；本場官方票區圖取得後自動覆寫'
   }
 };
 
 export const venueLayouts = {
+  'nangang-exhibition-hall-1-base': {id:'nangang-exhibition-hall-1-base',venueId:'nangang-exhibition-hall-1',label:'南港展覽館一館活動基準',stage:venueModels['nangang-exhibition-hall-1'].stage,notices:['展覽館配置會依活動大幅改變；官方票區／舞台圖取得後自動覆寫本場 3D。']},
   'taipei-dome-base': {...taipeiDomeBase, id:'taipei-dome-base', venueId:'taipei-dome', label:'場館基準', stage:venueModels['taipei-dome'].stage, notices:['固定看台依官方場館圖校正；舞台為通用遠端舞台示意。']},
   [strayKidsRunItLayout.id]: {...strayKidsRunItLayout, venueId:'taipei-dome'},
   'taipei-arena-far': {id:'taipei-arena-far',venueId:'taipei-arena',label:'遠端舞台基準',stage:venueModels['taipei-arena'].stage,sourceName:'臺北小巨蛋官方遠端座位視線導覽',sourceUrl:'https://www.arena.taipei/cp.aspx?n=95731497B5FCEDDB&s=1BE4A9B16EE8F2E8',notices:['官方提供遠端與中央舞台視線導覽；本場舞台尚未公布時僅作場館方向參考。']},
@@ -1166,6 +1172,7 @@ export function venueIdFromName(name='') {
   if (/台大綜合體育館|臺大綜合體育館|ntu sports center/.test(v)) return 'ntu-sports-center';
   if (/天母體育館|tianmu gymnasium/.test(v)) return 'tianmu-gymnasium';
   if (/zepp new taipei|zepp新北|zepp 新北/.test(v)) return 'zepp-new-taipei';
+  if (/南港展覽館.*一館|台北南港展覽館一館|臺北南港展覽館一館|nangang exhibition.*hall ?1|tainex ?1/.test(v)) return 'nangang-exhibition-hall-1';
   if (/legacy tera/.test(v)) return 'legacy-tera';
   if (/legacy taipei/.test(v)) return 'legacy-taipei';
   if (/next tv no\.?1 studio|next tv/.test(v)) return 'next-tv-studio';
