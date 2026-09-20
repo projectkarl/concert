@@ -654,8 +654,11 @@ export function applyAutoSeatMapAnalysis(layoutId, analysis={}) {
   layout.seatMapFingerprint=analysis.hash;
   layout.seatMapDetected=true;
   layout.generationConfidence=analysis.confidence||'map-pixel-derived';
+  layout.seatMapResolvedUrl=analysis.resolvedUrl||layout.sourceUrl||null;
+  layout.sectionMapping=analysis.ocr?JSON.parse(JSON.stringify(analysis.ocr)):null;
   layout.autoMapProfile=analysis.profile||'unknown';
   layout.autoMapAnalyzedAt=new Date().toISOString();
+  if(layout.sectionMapping?.mappedCount>=2){layout.sourceName='官方座位圖＋OCR/Vision Section Mapping 自動生成';layout.notices=[`已從官方座位圖辨識並映射 ${layout.sectionMapping.mappedCount} 個票區標籤；其餘區塊保留 Vision 幾何草稿。`,'同名區號會優先對回場館固定幾何，避免只靠圖片像素造成距離失真。','官方座位圖內容若更新，圖片 hash 改變後會自動重算本場 3D。'];}
   return true;
 }
 

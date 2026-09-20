@@ -183,7 +183,7 @@ if (!/zh-Hant/.test(i18n) || !/locale: 'en-US'/.test(i18n) || !/locale: 'ja-JP'/
 if (!/data-lang="zh-Hant"/.test(indexHtml) || !/data-lang="en"/.test(indexHtml) || !/data-lang="ja"/.test(indexHtml) || !/data-lang="ko"/.test(indexHtml)) { console.error("language selector buttons missing"); ok=false; }
 if (!/neul-language/.test(i18n) || !/neul:languagechange/.test(i18n) || !/MutationObserver/.test(i18n)) { console.error("dynamic language switching incomplete"); ok=false; }
 if (!/Noto\+Sans\+JP/.test(indexHtml)) { console.error("Japanese font support missing"); ok=false; }
-if (!/\/i18n\.js/.test(sw) || !/neul-v0\.40\.0/.test(sw)) { console.error("PWA multilingual cache update missing"); ok=false; }
+if (!/\/i18n\.js/.test(sw) || !/neul-v0\.40\.1-auto-seatmap-vision/.test(sw)) { console.error("PWA multilingual cache update missing"); ok=false; }
 if (!/uiLocale/.test(app) || !/neul:languagechange/.test(app)) { console.error("locale-aware dynamic render hook missing"); ok=false; }
 
 
@@ -369,8 +369,16 @@ const tara40=seedEvents.find(e=>e.id==="tara-fancon-kaohsiung-2026");
 const taraLayout=getVenueLayout("tara-fancon-kaohsiung-2026");
 if(!tara40 || !/wve\.kktix\.cc/.test(tara40.sourceUrl||"") || !/assets\.kktix\.io/.test(tara40.seatLayoutSourceUrl||"") || tara40.venueLayoutId!=="tara-fancon-kaohsiung-2026"){ console.error("T-ARA KKTIX/3D wiring missing",tara40); ok=false; }
 if(sectionTicketLabel("tara-fancon-kaohsiung-2026","1F-C")!=="NT$5,980" || sectionTicketLabel("tara-fancon-kaohsiung-2026","2F-A")!=="NT$5,680" || sectionTicketLabel("tara-fancon-kaohsiung-2026","2F-C")!=="NT$4,680" || sectionTicketLabel("tara-fancon-kaohsiung-2026","2F-B-REAR")!=="NT$3,680"){ console.error("T-ARA section pricing regression"); ok=false; }
-if (!/hydrateSeatMapGeometry/.test(app) || !/neul-seatmap-hash/.test(app) || !/hashChanged/.test(app) || /slice\(0,14\)/.test(app) || !/i\+=3/.test(app)) { console.error("client seat-map change regeneration pipeline missing/bounded to partial list"); ok=false; }
+if (!/hydrateSeatMapGeometry/.test(app) || !/neul-seatmap-hash/.test(app) || !/hashChanged/.test(app) || /slice\(0,14\)/.test(app) || !/i\+=1/.test(app)) { console.error("client seat-map change regeneration pipeline missing/bounded to partial list"); ok=false; }
 if (!/seatMapFound/.test(apiEventsCode) || !/sectionPricesFound/.test(apiEventsCode) || !/threeDReady/.test(apiEventsCode)) { console.error("four-stage automation status missing"); ok=false; }
-if (!/neul-v0\.40\.0/.test(sw) || !/seat-map-intelligence\.js/.test(sw)) { console.error("v0.40 service-worker cache regression"); ok=false; }
+if (!/neul-v0\.40\.1-auto-seatmap-vision/.test(sw) || !/seat-map-intelligence\.js/.test(sw)) { console.error("v0.40 service-worker cache regression"); ok=false; }
+
+// v0.40.1 OCR/Vision + precise section mapping + source expansion
+if (!/tesseract\.js@5/.test(seatVisionCode) || !/ocr-section-mapped/.test(seatVisionCode) || !/mapSectionTokenForQA/.test(seatVisionCode) || !/mappingScore/.test(seatVisionCode)) { console.error("OCR/Vision precise section mapping pipeline missing"); ok=false; }
+if (!/X-NEUL-SeatMap-Resolved/.test(seatProxyCode) || !/text\/html/.test(seatProxyCode) || !/extractOfficialSeatLayoutUrl/.test(seatProxyCode)) { console.error("ticket page -> seat-map resolver missing"); ok=false; }
+for (const source of ["TixFun","OPENTIX","FANSI GO","博客來售票"]) if (!ticketDiscoveryCode.includes(source)) { console.error("expanded ticket discovery source missing",source); ok=false; }
+if (!/data-src|data-original/.test(officialMonitorCode) || !/srcset/.test(officialMonitorCode)) { console.error("lazy/srcset seat-map extraction missing"); ok=false; }
+if (!/cacheHit/.test(seatVisionCode) || !/neul-seatmap-hash/.test(app) || !/\:analysis/.test(app)) { console.error("seat-map hash/OCR cache missing"); ok=false; }
+
 if (!ok) process.exit(1);
-console.log(`NEUL v0.40 checks passed · Taiwan-only · ${seedEvents.length} seed events · ${Object.keys(venueModels).length} venue models · 9 ticket sources + official artist/venue feeds · complete base-tier 3D merge · exact-section pricing · expired-layout cleanup · UI overflow audit · WebGL + Canvas fallback · PWA + IndexedDB`);
+console.log(`NEUL v0.40 checks passed · Taiwan-only · ${seedEvents.length} seed events · ${Object.keys(venueModels).length} venue models · 13 ticket sources + official artist/venue feeds · complete base-tier 3D merge · exact-section pricing · expired-layout cleanup · UI overflow audit · WebGL + Canvas fallback · PWA + IndexedDB`);

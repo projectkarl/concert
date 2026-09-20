@@ -188,6 +188,15 @@ export function mergeAndDedupe(seeds, discovered) {
   return collapsed.sort((a, b) => new Date(a.start || 0) - new Date(b.start || 0));
 }
 
+
+function ticketSeatMapEligible(event={}) {
+  const raw=event.seatLayoutSourceUrl||event.sourceUrl||"";
+  try {
+    const host=new URL(raw).hostname.toLowerCase();
+    return /(tixcraft\.com|kktix\.(?:com|cc)|ticketplus\.com\.tw|kham\.com\.tw|ticket\.ibon\.com\.tw|famiticket\.com\.tw|tickets\.udnfunlife\.com|ticket\.mna\.com\.tw|ticket\.com\.tw|opentix\.life|tixfun\.com|go\.fansi\.me|tickets\.books\.com\.tw)$/.test(host);
+  } catch { return false; }
+}
+
 function buildArtists(events) {
   const map = new Map(seedArtists.map(a => [a.name.toLowerCase(), { ...a, upcomingEventCount: 0, nextEvent: null, eventIds: [] }]));
   const now = Date.now();
@@ -293,11 +302,16 @@ export default async function handler(req, res) {
     ...event,
     automation: {
       eventFound: true,
+      ticketSourceFound: ticketSeatMapEligible(event),
       seatMapFound: Boolean(event.seatLayoutSourceUrl),
+      seatMapAutoResolveReady: ticketSeatMapEligible(event),
+      ocrVisionReady: Boolean(event.venueModelId || event.venueLayoutId || event.venue),
       sectionPricesFound: Boolean(event.sectionPriceRules?.length),
+      sectionMappingReady: Boolean(event.venueModelId || event.venueLayoutId || event.venue),
       threeDReady: Boolean(event.venueModelId || event.venueLayoutId || event.venue),
-      geometrySource: event.seatLayoutSourceUrl ? "official-seat-map-pending-client-analysis" : "venue-base",
-      needsSeatMapFollowup: !event.seatLayoutSourceUrl,
+      geometrySource: event.seatLayoutSourceUrl ? "official-seat-map-ocr-vision" : (ticketSeatMapEligible(event) ? "ticket-page-auto-seat-map-resolver" : "venue-base"),
+      pipeline: ["ticket-source", "seat-map-resolver", "ocr-vision", "section-mapping", "event-3d"],
+      needsSeatMapFollowup: !event.seatLayoutSourceUrl && !ticketSeatMapEligible(event),
       needsSectionPriceFollowup: !event.sectionPriceRules?.length
     }
   }));

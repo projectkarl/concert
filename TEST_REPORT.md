@@ -25,3 +25,20 @@ Date: 2026-09-17
 ## Accuracy boundary
 
 The container validates syntax, data wiring, source-monitor logic and geometry rules. It does not reproduce final Safari/Chrome GPU rendering. Automatic seat-map pixel analysis is deliberately conservative: it can generate useful event-specific drafts, but arbitrary publisher graphics are not guaranteed to map to exact CAD/per-seat coordinates without calibration.
+
+## v0.40.1 Auto Seat Map Vision / OCR / Section Mapping QA
+
+- Existing v0.40 UI shell regression: PASS (`index.html`, `styles.css`, `webgl-venue.js`, assets and icons unchanged).
+- Existing 59 Taiwan seed events / 11 venue models / BTS / T-ARA calibrated layout checks: PASS.
+- Ticket source discovery layer: 13 official platform adapters + official artist/venue feeds.
+- Event-page → seat-map resolver: PASS for standard `src`, lazy `data-src`, `srcset`, CSS `url(...)`, and absolute image URLs.
+- Seat-map proxy SHA-256 fingerprint + resolved image header: PASS (static validation).
+- OCR/Vision code path: Tesseract.js v5 zero-key browser worker + vision-only fallback present.
+- Section reconciliation: OCR token + section alias + calibrated spatial position + tier hint + section-price rule.
+- OCR hash cache: unchanged official map reuses compact prior analysis; new/changed hash triggers regeneration.
+- Mobile/Safari guard: OCR concurrency reduced to one image at a time; all eligible events remain in the queue.
+- Static shell smoke: `index.html` and `seat-map-intelligence.js` served successfully from a local HTTP server.
+
+### Known external-source limitations
+
+Automated crawling is best-effort. An official ticket site can block server-side fetches, move seat images to a new CDN/domain, render all content behind anti-bot JavaScript, or publish only PDF/interactive seat pickers. In those cases NEUL keeps the calibrated venue model and does not claim false section precision. The source adapter/allow-list is intentionally explicit for SSRF safety.

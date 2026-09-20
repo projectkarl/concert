@@ -37,3 +37,18 @@ Automatic image analysis is a conservative fallback, not an OCR/CAD engine. Publ
 Automatic public-source layers include Live Nation Taiwan, official Taipei/Kaohsiung venue calendars, artist/agency tour pages, and nine Taiwan ticket-platform families: tixCraft, KKTIX, Ticket Plus/遠大, KHAM/寬宏, FamiTicket, udn tickets, ibon, MNA/牛耳 and 年代售票.
 
 `/api/events` is cached for six hours. On active use, stale data revalidates after that interval; the UI shows the actual last-sync timestamp and calculated next expected refresh time. A daily Vercel warm-up cron remains for Hobby-friendly background warming.
+
+## v0.40.1 automatic seat-map pipeline
+
+This build keeps the v0.40 interface and extends only the automation path:
+
+1. Scan supported official ticket sources and event pages.
+2. Resolve the real seat-map image from normal/lazy/srcset/CSS image references.
+3. Fetch the official image through an allow-listed proxy and fingerprint it with SHA-256.
+4. Run client-side Vision segmentation plus zero-key Tesseract.js OCR in the background.
+5. Read numeric / Latin zone labels such as `106`, `2A`, `VIP A`, then reconcile them against the fixed venue geometry by label + spatial position.
+6. Reuse calibrated venue geometry for matched sections; create image-derived blocks only for event-only floor/VIP zones that have no structural match.
+7. Build/update `auto-<event-id>` so every event owns a separate 3D layout. A changed official seat-map hash triggers regeneration.
+8. Cache the compact analysis on the device; unchanged official maps skip repeated OCR.
+
+Current discovery adapters cover tixCraft, KKTIX, Ticket Plus, KHAM, FamiTicket, udn, ibon, MNA, ERA/ticket.com.tw, TixFun, OPENTIX, FANSI GO and Books Tickets, plus artist/venue official feeds. Sites can block automated fetching or change markup; those cases fall back to the verified venue model instead of inventing a seat map.

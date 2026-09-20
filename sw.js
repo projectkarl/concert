@@ -1,4 +1,4 @@
-const VERSION = "neul-v0.40.0";
+const VERSION = "neul-v0.40.1-auto-seatmap-vision";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const APP_SHELL = [
