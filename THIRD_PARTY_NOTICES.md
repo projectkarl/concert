@@ -22,3 +22,7 @@ Actual event staging and equipment can materially change any sightline. Users sh
 
 ## Typography
 NEUL v0.19 optionally loads **Noto Sans KR** and **Noto Sans TC** from Google Fonts for a consistent Korean-editorial UI across platforms. These typefaces are distributed under the SIL Open Font License. If the web fonts are unavailable or the PWA is offline, NEUL falls back to platform fonts such as Apple SD Gothic Neo, PingFang TC, Malgun Gothic and system sans-serif fonts; no font binaries are bundled with this project package.
+
+
+## Public news index / RSS
+NEUL 的演藝新聞區會在伺服器端查詢公開的 Google News RSS 搜尋結果，只顯示標題、來源、時間與原始連結，不儲存或重製新聞全文。新聞著作權屬原始發布媒體；可用性與排序可能隨外部服務調整而變動。

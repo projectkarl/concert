@@ -126,6 +126,34 @@
       </article>
     </section>
 
+    <section class="entertainment-news" id="entertainmentNews" aria-labelledby="entertainmentNewsTitle">
+      <div class="entertainment-news-head">
+        <div>
+          <span class="eyebrow">ENTERTAINMENT NEWS</span>
+          <h2 id="entertainmentNewsTitle">演藝新聞</h2>
+          <p>即時整理近期演藝動態，可依區域切換或搜尋關鍵字。</p>
+        </div>
+        <button class="news-refresh" id="newsRefreshBtn" type="button" aria-label="重新整理新聞">↻</button>
+      </div>
+      <div class="news-toolbar">
+        <div class="news-tabs" role="tablist" aria-label="演藝新聞分類">
+          <button type="button" class="active" data-news-category="kr" role="tab" aria-selected="true">韓星</button>
+          <button type="button" data-news-category="tw" role="tab" aria-selected="false">台灣</button>
+          <button type="button" data-news-category="west" role="tab" aria-selected="false">歐美</button>
+          <button type="button" data-news-category="other" role="tab" aria-selected="false">其他</button>
+        </div>
+        <form class="news-search" id="newsSearchForm" role="search">
+          <input id="newsSearchInput" type="search" maxlength="80" autocomplete="off" placeholder="搜尋演藝新聞關鍵字" aria-label="搜尋演藝新聞" />
+          <button type="submit">搜尋</button>
+        </form>
+      </div>
+      <div class="news-status" id="newsStatus" aria-live="polite">正在更新韓星新聞…</div>
+      <div class="news-grid" id="newsGrid" aria-live="polite">
+        <div class="news-skeleton"></div><div class="news-skeleton"></div><div class="news-skeleton"></div><div class="news-skeleton"></div>
+      </div>
+      <p class="news-note">新聞標題、時間與來源由公開新聞索引整理；內容與後續更正仍以原始媒體頁面為準。</p>
+    </section>
+
     <section class="brand-story" id="aboutNeul" aria-labelledby="aboutNeulTitle">
       <div class="brand-story-mark" aria-hidden="true">늘</div>
       <div class="brand-story-copy">
@@ -248,7 +276,11 @@
         <button type="button" data-events-window="90">未來 90 天</button>
       </div>
       <div class="events-modal-summary" id="eventsModalSummary"></div>
-      <section class="events-calendar-shell" aria-label="每日演唱會行事曆">
+      <div class="events-view-toggle" role="tablist" aria-label="活動瀏覽方式">
+        <button type="button" class="active" data-events-view="list" role="tab" aria-selected="true">清單</button>
+        <button type="button" data-events-view="calendar" role="tab" aria-selected="false">行事曆</button>
+      </div>
+      <section class="events-calendar-shell" data-events-view-panel="calendar" aria-label="每日演唱會行事曆">
         <div class="events-calendar-head">
           <button type="button" id="eventsCalendarPrev" aria-label="上個月">‹</button>
           <div><span>DAILY CONCERT CALENDAR</span><strong id="eventsCalendarMonthLabel">—</strong></div>
@@ -257,10 +289,10 @@
         <div class="events-calendar-weekdays" aria-hidden="true"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
         <div class="events-calendar-grid" id="eventsCalendarGrid"></div>
       </section>
-      <div class="events-agenda-head"><strong id="eventsAgendaDateLabel">選擇日期</strong><span>點活動可查看明細與 3D</span></div>
-      <div class="events-modal-list events-agenda-list" id="eventsAgendaList"></div>
-      <div class="events-original-list-head"><strong>全部活動</strong></div>
-      <div class="events-modal-list" id="eventsModalList"></div>
+      <div class="events-agenda-head" data-events-view-panel="calendar"><strong id="eventsAgendaDateLabel">選擇日期</strong><span>點活動可查看明細與 3D</span></div>
+      <div class="events-modal-list events-agenda-list" id="eventsAgendaList" data-events-view-panel="calendar"></div>
+      <div class="events-original-list-head" data-events-view-panel="list"><strong>全部活動</strong></div>
+      <div class="events-modal-list" id="eventsModalList" data-events-view-panel="list"></div>
     </section>
   </div>
 
@@ -305,5 +337,6 @@
   <script type="module" src="/app.js"></script>
   <script type="module" src="/pwa.js"></script>
   <script type="module" src="/enhancements.js"></script>
+  <script type="module" src="/news.js"></script>
 </body>
 </html>

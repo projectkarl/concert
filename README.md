@@ -61,4 +61,25 @@ This build keeps the v0.40 interface and extends only the automation path:
 Current discovery adapters cover tixCraft, KKTIX, Ticket Plus, KHAM, FamiTicket, udn, ibon, MNA, ERA/ticket.com.tw, TixFun, OPENTIX, FANSI GO and Books Tickets, plus artist/venue official feeds. Sites can block automated fetching or change markup; those cases fall back to the verified venue model instead of inventing a seat map.
 
 ## v0.40.2 Coverage build
-This package keeps the v0.40.2 interface and 3D base while adding Full Coverage Auditor + Auto Backfill. The 66 bundled events are fallback data; live event completeness is improved by ticket/promoter/artist discovery plus independent official venue calendars. See `V0.40.2_COVERAGE_CHANGELOG.md` and `TEST_REPORT_v0.40.2-Coverage.md`.
+This package keeps the v0.40.2 interface and 3D base while adding Full Coverage Auditor + Auto Backfill. The 101 bundled events are fallback data; live event completeness is improved by ticket/promoter/artist discovery plus independent official venue calendars. See `V0.40.2_COVERAGE_CHANGELOG.md` and `TEST_REPORT_v0.40.2-Coverage.md`.
+
+
+## v0.40.2 UX + continuity safeguards
+
+- Upcoming can switch between the full list and a standard 6-week calendar view.
+- Modal close control stays at the top while scrolling.
+- Countdown refresh is aligned to real second boundaries to reduce browser timer drift.
+- The selected 3D zone label follows the chosen section/row position.
+- Selected zones render visible aisle surfaces and chair-like seats; Canvas fallback also shows simplified seats/aisles.
+- IVE 2026 remains available only as a Taipei Arena activity-layout example.
+- `NEUL_BASELINE_MANIFEST.json` records required capabilities and hashes of the core source-of-truth files. Run `npm run verify:baseline` before any future repack/update.
+
+Deleting the only Git repository or working folder can lose manual edits and any browser-local seat-map analysis cache. Keep the latest ZIP/release or a Git tag as the canonical source. Runtime-discovered public events and official maps can be rediscovered, but unpublished/manual calibration work should be committed or included in the release package.
+
+
+## v0.40.2 UX.2：行動版修正＋演藝新聞
+- 行動版底部導覽移除「作戰」按鈕，改為 4 欄：首頁／活動／視野／我的。
+- 「查看更多活動」在手機改用 safe-area 固定右上關閉鈕；背景點擊與 Esc 關閉仍保留。
+- 新增「演藝新聞」共通區塊，預設韓星，可切換韓／台／歐美／其他並依關鍵字搜尋。
+- 新聞由伺服器端讀取公開新聞 RSS 索引，不需要使用者 API key；15 分鐘 CDN 快取、失敗時顯示可重試狀態。
+- 四語介面已補上新聞區基本文字。

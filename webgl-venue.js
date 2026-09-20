@@ -182,18 +182,35 @@ function seatSamples(section,selected,quality,layout){
   for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){let v=(r+.5)/rows;v=Math.pow(v,curve);const u=(c+.5)/cols,a=section.angle-span*.78+u*span*1.56,rx=section.radiusX+v*dx,rz=section.radiusZ+v*dz;{const seat={x:Math.cos(a)*rx,y:section.y+2.2+v*rise,z:Math.sin(a)*rz,rot:Math.atan2(-Math.cos(a),-Math.sin(a))};if(!pointInProduction(seat.x,seat.z,layout))out.push(seat);}}return out;
 }
 function sectionArchitecture(section,selected,quality,theme){
-  const lines=[],solids=[]; if(section.shape==='block'||section.tier==='FLOOR'||Number.isFinite(section.x))return{lines,solids};
+  const lines=[],solids=[],light=theme==='light',walkway=light?'#c9ced2':'#545d65',walkwayEdge=light?[.46,.51,.55,.86]:[.78,.82,.86,.58];
+  const blockLike=section.shape==='block'||section.tier==='FLOOR'||Number.isFinite(section.x);
+  if(blockLike){
+    // In ticketed floor blocks, selected-zone aisles become real shallow surfaces rather than
+    // just lines. This keeps the layout readable while not pretending to know an unpublished
+    // chair map for generic/standing-only floors.
+    if(selected && !section.structuralOnly){
+      const w=section.width||38,d=section.depth||32,y=(section.y??-20)+.35;
+      for(const side of [-1,1]) solids.push(boxItem({x:section.x+side*w*.27,y,z:section.z,width:Math.max(1.0,w*.035),depth:d*.94,height:.28},walkway,'#101216',.28));
+      if(d>=26) solids.push(boxItem({x:section.x,y,z:section.z+d*.12,width:w*.92,depth:Math.max(1.0,d*.035),height:.30},walkway,'#101216',.30));
+    }
+    return{lines,solids};
+  }
   const half=section.span||.11,dx=Number(section.depthX??24),dz=Number(section.depthZ??18),rise=Number(section.rise??12),rows=Math.max(1,Number(section.rowMax??30)-Number(section.rowMin??1)+1);
-  const railColor=theme==='light'?[.47,.53,.58,.92]:[.58,.64,.70,.82];
-  // Side stair / aisle edges follow the real section depth rather than a flat overlay.
-  for(const side of [-1,1]){const pts=[];const n=selected?(quality==='high'?Math.min(rows,32):12):6;for(let i=0;i<=n;i++){const v=i/n,a=section.angle+side*half*.91;pts.push(Math.cos(a)*(section.radiusX+v*dx),section.y+1.1+v*rise,Math.sin(a)*(section.radiusZ+v*dz));}lines.push({vertices:new Float32Array(pts),color:railColor});}
-  // Individual riser edges are shown for the selected zone; nearby zones keep sparse cross-aisles.
+  const railColor=light?[.47,.53,.58,.92]:[.58,.64,.70,.82];
+  const strip=(angle,v0,v1,angleHalf)=>{
+    const point=(a,v)=>[Math.cos(a)*(section.radiusX+v*dx),section.y+1.18+v*rise,Math.sin(a)*(section.radiusZ+v*dz)];
+    const top=[point(angle-angleHalf,v0),point(angle+angleHalf,v0),point(angle+angleHalf,v1),point(angle-angleHalf,v1)];
+    solids.push({mesh:prism(top,.34),model:mat4Identity(),color:walkway,emissive:'#101216'});
+  };
+  // Side stair / aisle edges follow the actual rake of each bowl section.
+  for(const side of [-1,1]){const pts=[];const n=selected?(quality==='high'?Math.min(rows,32):12):6;for(let i=0;i<=n;i++){const v=i/n,a=section.angle+side*half*.91;pts.push(Math.cos(a)*(section.radiusX+v*dx),section.y+1.1+v*rise,Math.sin(a)*(section.radiusZ+v*dz));}lines.push({vertices:new Float32Array(pts),color:railColor});if(selected)strip(section.angle+side*half*.86,.02,.98,Math.max(.006,half*.055));}
+  // Individual riser edges are shown for the selected zone; nearby zones keep sparse steps.
   const nSteps=selected?(quality==='high'?Math.min(rows,32):Math.min(rows,18)):Math.min(3,rows);
-  for(let i=0;i<=nSteps;i++){const v=nSteps?i/nSteps:0,a0=section.angle-half*.88,a1=section.angle+half*.88,rx=section.radiusX+v*dx,rz=section.radiusZ+v*dz,y=section.y+.55+v*rise;lines.push({vertices:new Float32Array([Math.cos(a0)*rx,y,Math.sin(a0)*rz,Math.cos(a1)*rx,y,Math.sin(a1)*rz]),color:theme==='light'?[.36,.41,.46,.40]:[.72,.76,.80,.30]});}
-  // Cross aisle at roughly two-thirds depth for deeper bowls.
-  if(rows>=18){const v=.63,a0=section.angle-half*.95,a1=section.angle+half*.95,rx=section.radiusX+v*dx,rz=section.radiusZ+v*dz,y=section.y+1.0+v*rise;lines.push({vertices:new Float32Array([Math.cos(a0)*rx,y,Math.sin(a0)*rz,Math.cos(a1)*rx,y,Math.sin(a1)*rz]),color:theme==='light'?[.70,.74,.78,.85]:[.86,.88,.90,.62]});}
-  // Handrail posts at aisle edges, only dense around selected block to preserve mobile performance.
-  if(selected){for(const side of [-1,1])for(const v of [.08,.32,.56,.80]){const a=section.angle+side*half*.93,rx=section.radiusX+v*dx,rz=section.radiusZ+v*dz;solids.push(boxItem({x:Math.cos(a)*rx,y:section.y+v*rise,z:Math.sin(a)*rz,width:.48,depth:.48,height:3.3},theme==='light'?'#8c979f':'#65717b','#111820',3.3));}}
+  for(let i=0;i<=nSteps;i++){const v=nSteps?i/nSteps:0,a0=section.angle-half*.88,a1=section.angle+half*.88,rx=section.radiusX+v*dx,rz=section.radiusZ+v*dz,y=section.y+.55+v*rise;lines.push({vertices:new Float32Array([Math.cos(a0)*rx,y,Math.sin(a0)*rz,Math.cos(a1)*rx,y,Math.sin(a1)*rz]),color:light?[.36,.41,.46,.40]:[.72,.76,.80,.30]});}
+  // Cross aisle surface makes the circulation path legible in deep bowls.
+  if(rows>=18){const v=.63,a0=section.angle-half*.95,a1=section.angle+half*.95,rx=section.radiusX+v*dx,rz=section.radiusZ+v*dz,y=section.y+1.0+v*rise;lines.push({vertices:new Float32Array([Math.cos(a0)*rx,y,Math.sin(a0)*rz,Math.cos(a1)*rx,y,Math.sin(a1)*rz]),color:walkwayEdge});if(selected){const dv=.026,point=(a,vv)=>[Math.cos(a)*(section.radiusX+vv*dx),section.y+1.16+vv*rise,Math.sin(a)*(section.radiusZ+vv*dz)],top=[point(a0,v-dv),point(a1,v-dv),point(a1,v+dv),point(a0,v+dv)];solids.push({mesh:prism(top,.30),model:mat4Identity(),color:walkway,emissive:'#101216'});}}
+  // Handrail posts make the aisle/stair edges easier to recognize at seat-view scale.
+  if(selected){for(const side of [-1,1])for(const v of [.08,.32,.56,.80]){const a=section.angle+side*half*.93,rx=section.radiusX+v*dx,rz=section.radiusZ+v*dz;solids.push(boxItem({x:Math.cos(a)*rx,y:section.y+v*rise,z:Math.sin(a)*rz,width:.48,depth:.48,height:3.3},light?'#8c979f':'#65717b','#111820',3.3));}}
   return{lines,solids};
 }
 function boxItem(cfg,color,emissive='#090a0d',height=5){const h=cfg.height||height;return{mesh:CUBE,model:mat4TRS(cfg.x||0,(cfg.y??-16)+h/2,cfg.z||0,cfg.ry||0,cfg.width||40,h,cfg.depth||20),color,emissive};}
@@ -204,7 +221,7 @@ function buildCPUScene(config,quality){
   const {model,layout,sections,selectedId}=config,solids=[],lines=[],seatMats=[],seatColors=[],theme=config.theme||'dark';
   const lightTheme=theme==='light';
   solids.push(boxItem({x:0,y:-27,z:0,width:model.field.x*2.15,depth:model.field.z*2.2},lightTheme?'#d8dde1':'#b8c0c7','#111418',3));
-  for(const sec of sections){const selected=String(sec.id)===selectedId,top=sectionTop(sec);solids.push({mesh:prism(top,selected?9:6.5),model:mat4Identity(),color:sectionColor(layout,sec,selected,theme),emissive:selected?(lightTheme?'#7c237f':'#5e1f75'):'#06080b'});if(selected)lines.push({vertices:rectLine(top),color:lightTheme?[1,.88,1,1]:[.96,.83,1,1]});const arch=sectionArchitecture(sec,selected,quality,theme);solids.push(...arch.solids);lines.push(...arch.lines);for(const seat of seatSamples(sec,selected,quality,layout)){seatMats.push(mat4TRS(seat.x,seat.y,seat.z,seat.rot,2.15,1.8,1.8));seatColors.push(...color3(selected?(lightTheme?'#ffd0ff':'#f2b7ff'):sectionColor(layout,sec,false,theme)));}
+  for(const sec of sections){const selected=String(sec.id)===selectedId,top=sectionTop(sec);solids.push({mesh:prism(top,selected?9:6.5),model:mat4Identity(),color:sectionColor(layout,sec,selected,theme),emissive:selected?(lightTheme?'#7c237f':'#5e1f75'):'#06080b'});if(selected)lines.push({vertices:rectLine(top),color:lightTheme?[1,.88,1,1]:[.96,.83,1,1]});const arch=sectionArchitecture(sec,selected,quality,theme);solids.push(...arch.solids);lines.push(...arch.lines);for(const seat of seatSamples(sec,selected,quality,layout)){const seatColor=color3(selected?(lightTheme?'#ffd0ff':'#f2b7ff'):sectionColor(layout,sec,false,theme));if(selected){/* Selected zone uses a simple chair silhouette: cushion + upright back. */seatMats.push(mat4TRS(seat.x,seat.y-.45,seat.z,seat.rot,1.75,.45,1.65));seatColors.push(...seatColor);const bx=seat.x-Math.sin(seat.rot)*.68,bz=seat.z-Math.cos(seat.rot)*.68;seatMats.push(mat4TRS(bx,seat.y+.55,bz,seat.rot,1.75,2.15,.34));seatColors.push(...seatColor);}else{seatMats.push(mat4TRS(seat.x,seat.y-.25,seat.z,seat.rot,1.7,.9,1.55));seatColors.push(...seatColor);}}
     if(sec.standingOnly && Number.isFinite(sec.x)){const count=quality==='high'?12:7;for(let i=0;i<count;i++){const u=((i*37)%97)/97,v=((i*61)%89)/89,x=sec.x-(sec.width||30)*.42+u*(sec.width||30)*.84,z=sec.z-(sec.depth||30)*.42+v*(sec.depth||30)*.84;if(pointInProduction(x,z,layout))continue;solids.push(boxItem({x,y:(sec.y??-19)+.4,z,width:.72,depth:.72,height:4.8},selected?'#e9d8ff':'#242a32',selected?'#8b63ff':'#101319',4.8));}}}
   // Light arena floor grid improves depth perception in every venue without turning the scene dark.
   const gridStep=Math.max(16,Math.round(Math.min(model.field.x,model.field.z)/7));

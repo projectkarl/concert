@@ -1,4 +1,4 @@
-const VERSION = "neul-v0.40.2-complete2-auto3d-calendar";
+const VERSION = "neul-v0.40.2-ux2-entertainment-news";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const APP_SHELL = [
@@ -11,6 +11,7 @@ const APP_SHELL = [
   "/webgl-venue.js",
   "/seat-map-intelligence.js",
   "/enhancements.js",
+  "/news.js",
   "/storage.js",
   "/manifest.webmanifest",
   "/data/events.js",

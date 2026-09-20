@@ -1,0 +1,42 @@
+{
+  "baseline": "NEUL v0.40.2 Full Coverage + Calendar + Auto Custom 3D + UX + Entertainment News",
+  "createdAt": "2026-09-20",
+  "fallbackEventCount": 101,
+  "requiredFeatures": [
+    "Full Coverage Auditor + Auto Backfill",
+    "hourly event/source refresh",
+    "silent Featured 10s rotation",
+    "full event list + switchable standard calendar",
+    "automatic official seat-map resolver",
+    "official map below sightline preview",
+    "unique event-specific 3D for current/future events",
+    "runtime unknown-venue 3D",
+    "OCR/Vision special-stage upgrade gate",
+    "IVE Taipei Arena dropdown sample",
+    "moving selected-zone label",
+    "visible 3D aisles and chair-like seats",
+    "Archive lifecycle",
+    "mobile bottom nav without Planner button",
+    "mobile view-more modal safe-area close button",
+    "Entertainment News: KR/TW/US-EU/Other with Korean default and keyword search",
+    "free public entertainment-news feed proxy with no user API key"
+  ],
+  "runtimeStateWarning": "Browser localStorage/IndexedDB seat-map analysis caches are not a substitute for the source repository. Preserve a release ZIP/Git tag before deleting a working repo.",
+  "coreFileSha256": {
+    "index.html": "74509e8814ffc6313e1ab5dac3a0d86947e2c71373be7afe945e3ba35b3d700e",
+    "styles.css": "91709ea986d62e0e5100abf186a0e01ad86cdbc8b51981461c2c412b748e4cad",
+    "app.js": "8a3ca91b7db44c06b088dafab7f5f53b019b1e364cc971bb085b10d389df336b",
+    "webgl-venue.js": "38e66db679a5bf9ba49749122fc1e254dac65d27fc3fcb3db6813d6f261b6f14",
+    "seat-map-intelligence.js": "90d0ebe9d30ec53526dd86907e4739cd3d1729c8d39db0673fbd5bbcd4e82204",
+    "data/events.js": "24d35b6dcaef755e24e4ba5a2a09da0c2af319a5d3d75d9e937fb82eab0f6f24",
+    "data/multi-venue-geometry.js": "d3a8e83da37460ef8d770ecf9afa784094c344d91525764a0c0e66272e885f64",
+    "lib/coverage-auditor.js": "42d0eb9e3cea4cd58a8ade2ccad1c6b3bfef5744c4ef7cba40e7dfbc7b9bc602",
+    "lib/taiwan-ticket-platform-discovery.js": "5768b5c20474819316c89730663e5cfdf44b9bde00547f09f4978a1983825bed",
+    "api/events.js": "859d957662a31de843a510f0d5d698ef0a68f4c2ee2c146707b38cc9807a4bbd",
+    "api/seat-map-image.js": "3ba376159cdcf54319d56f36b9b4079493824e5f163990706160152f4dd3b1a4",
+    "sw.js": "faade02601e8a115a974d593e29369ceb58bb7628f46fe4acd7c02830fcd14aa",
+    "package.json": "21b4bf34c467e411a9d5bbd736785f5a0a332b43e45d7a95ad2964a43874b932",
+    "news.js": "a28025b11f2de2ef0f66f0338ea4824ee3b1f5a159248a96c4a7b9239de3bdc2",
+    "api/entertainment-news.js": "989265c0ae494cf0fe90019f61bc3df1a580ef999f283a52c01c601f2d96dab4"
+  }
+}
