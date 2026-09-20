@@ -118,3 +118,12 @@ v0.40.11 no longer treats the fallback event count as the Taiwan concert total. 
 - Featured Concert keeps up to 10 active events and now has a visible AUTO 10s countdown/progress indicator. Autoplay uses a restartable 10-second timer, resumes when the tab becomes visible, and resets after manual previous/next navigation.
 - Archive, future-event automatic custom 3D, Coverage Auditor, source backfill and ticket lifecycle logic remain unchanged.
 
+
+## v0.40.13 — Official Map Display / Silent Featured
+- IVE 2026 `SHOW WHAT I AM` 保留為台北小巨蛋「活動配置」選單中的歷史 3D 校正範例，不另顯示示範卡。
+- Featured 保留 10 秒自動輪播但移除 `AUTO 10s` 文字。
+- 3D 活動預覽固定提供「官方位置／座位配置參考」；已取得顯示官方圖，未取得顯示待自動回補。
+- Resolver 擴充至活動全部可信官方來源與 sourceRefs，並能由藝人／主辦／場館頁追售票 detail page。
+- 新官方圖解析成功會立即刷新 UI；hash 改變自動重新跑 OCR/Vision、Section/Price、3D QA。
+- 第三方轉載圖不作官方位置圖。
+- 活動資料每小時重新驗證，生命週期每分鐘更新，每日 refresh 作保底。

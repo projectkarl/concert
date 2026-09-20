@@ -921,7 +921,6 @@ body.light-mode .source-info-trigger{background:#fff;color:#514b4d;border-color:
 @media(max-width:620px){.source-info-trigger{width:19px;height:19px;font-size:11px}.source-info-popover{max-height:58vh;border-radius:16px;padding:13px}.source-info-list a{padding:10px}.source-info-list strong{font-size:11px}.source-info-list small,.source-info-quality{font-size:10px}}
 
 /* v0.40.12 — calendar/list coexistence, visible official reference, robust Featured 10s autoplay. */
-.featured-auto-label{font-size:8px!important;letter-spacing:.08em;min-width:48px!important;color:#b9c0c7!important}
 .featured-progress{width:42px;height:3px;border-radius:999px;background:rgba(255,255,255,.18);overflow:hidden;min-width:42px!important}
 .featured-progress i{display:block;width:0;height:100%;background:#fff;border-radius:inherit;transition:width .24s linear}
 .seat-preview-reference-grid{display:grid;grid-template-columns:minmax(0,1.18fr) minmax(280px,.82fr);gap:12px;align-items:stretch}
@@ -936,4 +935,4 @@ body.light-mode .source-info-trigger{background:#fff;color:#514b4d;border-color:
 body.light-mode .events-calendar-spacer{background:#f7f3f0;border-color:#e6dfda}
 body.light-mode .events-original-list-head{border-color:#ddd6d0}body.light-mode .events-original-list-head span{color:#7d756f}
 @media(max-width:900px){.seat-preview-reference-grid{grid-template-columns:1fr}.seat-preview-reference-grid .official-seatmap-frame{min-height:240px;height:300px}}
-@media(max-width:720px){.featured-auto-label{display:none}.featured-progress{width:30px;min-width:30px!important}.events-original-list-head{align-items:start;flex-direction:column;gap:2px}.events-original-list-head span{text-align:left}.events-calendar-spacer{min-height:54px}.seat-preview-reference-grid .official-seatmap-frame{height:240px;min-height:220px}}
+@media(max-width:720px){.featured-progress{width:30px;min-width:30px!important}.events-original-list-head{align-items:start;flex-direction:column;gap:2px}.events-original-list-head span{text-align:left}.events-calendar-spacer{min-height:54px}.seat-preview-reference-grid .official-seatmap-frame{height:240px;min-height:220px}}

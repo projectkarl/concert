@@ -197,7 +197,7 @@ function ticketSeatMapEligible(event={}) {
   for(const raw of candidates){
     try {
       const host=new URL(raw).hostname.toLowerCase();
-      if(/((?:^|\.)tixcraft\.com$|(?:^|\.)kktix\.(?:com|cc)$|(?:^|\.)ticketplus\.com\.tw$|(?:^|\.)kham\.com\.tw$|^ticket\.ibon\.com\.tw$|(?:^|\.)famiticket\.com\.tw$|^tickets\.udnfunlife\.com$|^ticket\.mna\.com\.tw$|(?:^|\.)ticket\.com\.tw$|(?:^|\.)opentix\.life$|(?:^|\.)tixfun\.com$|^go\.fansi\.me$|(?:^|\.)indievox\.com$|^tickets\.books\.com\.tw$)/.test(host)) return true;
+      if(/((?:^|\.)tixcraft\.com$|(?:^|\.)kktix\.(?:com|cc)$|(?:^|\.)ticketplus\.com\.tw$|(?:^|\.)kham\.com\.tw$|^ticket\.ibon\.com\.tw$|(?:^|\.)ibon\.com\.tw$|(?:^|\.)famiticket\.com\.tw$|^tickets\.udnfunlife\.com$|^ticket\.mna\.com\.tw$|(?:^|\.)ticket\.com\.tw$|(?:^|\.)opentix\.life$|(?:^|\.)tixfun\.com$|^go\.fansi\.me$|(?:^|\.)indievox\.com$|^tickets\.books\.com\.tw$|(?:^|\.)kkday\.com$|(?:^|\.)livenation\.com\.tw$|(?:^|\.)weverse\.io$|(?:^|\.)ygfamily\.com$|(?:^|\.)xgalx\.com$|(?:^|\.)arena\.taipei$|(?:^|\.)kaoarena\.com\.tw$|(?:^|\.)ticc\.com\.tw$|(?:^|\.)kpmc\.com\.tw$|(?:^|\.)penghumusicfestival\.com$|(?:^|\.)novelbright\.jp$|(?:^|\.)vaundy\.jp$|(?:^|\.)moba\.garena\.tw$)/.test(host)) return true;
     } catch {}
   }
   return false;
