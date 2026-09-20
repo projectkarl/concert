@@ -68,105 +68,6 @@ const friendlySourceName = value => {
   return v.replace(/\s*API\s*/gi, " ").trim();
 };
 
-
-function normalizeSourceUrl(value="") {
-  try {
-    const u=new URL(value);
-    u.hash="";
-    for(const key of [...u.searchParams.keys()]) if(/^(?:utm_.+|fbclid|gclid|ref)$/i.test(key)) u.searchParams.delete(key);
-    return u.href.replace(/\/$/,"");
-  } catch { return ""; }
-}
-function sourceRoleFor(event={}, url="", fallback="") {
-  const normalized=normalizeSourceUrl(url);
-  const seat=normalizeSourceUrl(event.seatLayoutSourceUrl||"");
-  const primary=normalizeSourceUrl(event.sourceUrl||"");
-  const secondary=normalizeSourceUrl(event.secondarySourceUrl||"");
-  if(seat && normalized===seat) return "官方座位圖 · Section / 3D 校正";
-  if(primary && normalized===primary) return event.price && !/依.*公告|tba/i.test(String(event.price)) ? "活動資訊 · 售票 · 價位" : "活動資訊 · 售票";
-  if(secondary && normalized===secondary) return "補充公告 · 主辦 / 藝人 / 場館核對";
-  const host=(()=>{try{return new URL(url).hostname.toLowerCase()}catch{return ""}})();
-  if(/tixcraft|kktix|ticketplus|kham|ibon|famiticket|udnfunlife|ticket\.mna|ticket\.com\.tw|opentix|tixfun|fansi|indievox|books\.com\.tw/.test(host)) return "官方售票 / 活動資料";
-  if(/livenation/.test(host)) return "主辦 / 活動公告";
-  if(/weverse|ygfamily|jype|smtown|hybe/.test(host)) return "藝人官方公告";
-  if(/arena|stadium|tmc|ticc|kph|gov\.tw|edu\.tw/.test(host)) return "場館 / 3D 校正";
-  return fallback || "活動資料核對";
-}
-function eventSourceEntries(event={}) {
-  const out=[]; const seen=new Set();
-  const add=(name,url,role)=>{
-    const safe=normalizeSourceUrl(url); if(!safe||safe==="#"||seen.has(safe)) return;
-    seen.add(safe); out.push({name:friendlySourceName(name||"官方來源"),url:safe,role:role||sourceRoleFor(event,safe)});
-  };
-  add(event.sourceName||event.ticketing,event.sourceUrl,sourceRoleFor(event,event.sourceUrl));
-  for(const ref of (event.sourceRefs||[])) add(ref?.name||"官方來源",ref?.url,sourceRoleFor(event,ref?.url));
-  add("補充官方公告",event.secondarySourceUrl,"補充公告 · 主辦 / 藝人 / 場館核對");
-  add("官方座位配置",event.seatLayoutSourceUrl,"官方座位圖 · Section / 3D 校正");
-  add(event.autoSourceName||"自動發現來源",event.autoSourceUrl,"自動發現 / 交叉比對");
-  try {
-    const model=getVenueModel(eventVenueModelId(event));
-    if(model?.sourceUrl) add(model.sourceName||"場館官方資料",model.sourceUrl,"場館幾何 · 3D 基準校正");
-    const layout=getVenueLayout(eventVenueLayoutId(event));
-    if(layout?.sourceUrl) add(layout.sourceName||"本場 3D 配置來源",layout.sourceUrl,layout.seatMapDetected?"本場座位圖 · 3D 客製校正":"本場 3D 配置參考");
-  } catch {}
-  return out.slice(0,8);
-}
-function sourceInfoTriggerMarkup(event={}, extraClass="") {
-  const count=eventSourceEntries(event).length;
-  return `<span class="source-info-trigger ${escapeHtml(extraClass)}" data-source-info-event="${escapeHtml(event.id||"")}" aria-label="查看目前活動資料來源" title="資料來源 ${count ? `${count} 項` : "資訊"}">i</span>`;
-}
-let sourceInfoPopover=null, sourceInfoCloseTimer=null, sourceInfoEventId="";
-function ensureSourceInfoPopover(){
-  if(sourceInfoPopover) return sourceInfoPopover;
-  sourceInfoPopover=document.createElement("div");
-  sourceInfoPopover.className="source-info-popover";
-  sourceInfoPopover.hidden=true;
-  sourceInfoPopover.setAttribute("role","dialog");
-  sourceInfoPopover.setAttribute("aria-label","目前活動資料來源");
-  document.body.appendChild(sourceInfoPopover);
-  sourceInfoPopover.addEventListener("mouseenter",()=>clearTimeout(sourceInfoCloseTimer));
-  sourceInfoPopover.addEventListener("mouseleave",scheduleSourceInfoClose);
-  sourceInfoPopover.addEventListener("click",e=>e.stopPropagation());
-  return sourceInfoPopover;
-}
-function sourceInfoQualityLabel(event={}){
-  try{
-    const q=eventCustom3DMeta(event);
-    if(q.officialMapVerified) return q.priceMapped3D ? "3D：官方座位圖與價位已對照" : "3D：官方座位圖已對照";
-    if(q.officialSeatMap) return "3D：已取得官方座位圖，待完整校正";
-    return "3D：場館衍生草稿，待官方圖校正";
-  }catch{return "";}
-}
-function openSourceInfoPopover(trigger,event){
-  if(!trigger||!event) return;
-  clearTimeout(sourceInfoCloseTimer);
-  const pop=ensureSourceInfoPopover(); const entries=eventSourceEntries(event);
-  sourceInfoEventId=event.id||"";
-  pop.innerHTML=`<div class="source-info-head"><b>目前活動資料來源</b><span>${entries.length} 項</span></div><div class="source-info-event">${escapeHtml(event.artist)} · ${escapeHtml(event.title||"")}</div><div class="source-info-list">${entries.length?entries.map(x=>`<a href="${safeUrl(x.url)}" target="_blank" rel="noopener noreferrer"><strong>${escapeHtml(x.name)}</strong><small>${escapeHtml(x.role)}</small><em>↗</em></a>`).join(""):`<div class="source-info-empty">目前僅有已核對的活動資料，尚未保留可開啟來源網址。</div>`}</div><div class="source-info-quality">${escapeHtml(sourceInfoQualityLabel(event))}</div>`;
-  pop.hidden=false; pop.classList.add("open");
-  const mobile=window.innerWidth<=620;
-  if(mobile){pop.style.left="12px";pop.style.right="12px";pop.style.top="auto";pop.style.bottom="calc(14px + env(safe-area-inset-bottom))";pop.style.width="auto";}
-  else{
-    const r=trigger.getBoundingClientRect(), width=Math.min(340,window.innerWidth-24);
-    const left=Math.max(12,Math.min(r.left-width/2+r.width/2,window.innerWidth-width-12));
-    let top=r.bottom+8; if(top+300>window.innerHeight) top=Math.max(12,r.top-288);
-    Object.assign(pop.style,{left:`${left}px`,right:"auto",top:`${top}px`,bottom:"auto",width:`${width}px`});
-  }
-}
-function closeSourceInfoPopover(){ if(!sourceInfoPopover)return; sourceInfoPopover.classList.remove("open"); sourceInfoPopover.hidden=true; sourceInfoEventId=""; }
-function scheduleSourceInfoClose(){ clearTimeout(sourceInfoCloseTimer); sourceInfoCloseTimer=setTimeout(closeSourceInfoPopover,160); }
-function wireSourceInfoTriggers(root=document){
-  $$('[data-source-info-event]',root).forEach(trigger=>{
-    if(trigger.dataset.sourceInfoWired==="1") return; trigger.dataset.sourceInfoWired="1";
-    const getEvent=()=>state.events.find(x=>x.id===trigger.dataset.sourceInfoEvent);
-    trigger.addEventListener("mouseenter",()=>openSourceInfoPopover(trigger,getEvent()));
-    trigger.addEventListener("mouseleave",scheduleSourceInfoClose);
-    trigger.addEventListener("click",ev=>{ev.preventDefault();ev.stopPropagation(); const event=getEvent(); if(sourceInfoPopover&&!sourceInfoPopover.hidden&&sourceInfoEventId===event?.id) closeSourceInfoPopover(); else openSourceInfoPopover(trigger,event);});
-  });
-}
-document.addEventListener("click",e=>{if(sourceInfoPopover&&!sourceInfoPopover.hidden&&!e.target.closest('.source-info-popover')&&!e.target.closest('[data-source-info-event]')) closeSourceInfoPopover();});
-window.addEventListener("resize",()=>{if(sourceInfoPopover&&!sourceInfoPopover.hidden) closeSourceInfoPopover();});
-
 const TAIWAN_VENUE_CITIES = new Set(["Taipei","New Taipei","Taoyuan","Taichung","Tainan","Kaohsiung","Hsinchu","Keelung","Chiayi","Pingtung","Yilan","Hualien","Taitung","Penghu"]);
 const taiwanEventsOnly = events => (Array.isArray(events) ? events : []).filter(e => e?.region === "TW");
 const taiwanVenueModels = () => Object.values(venueModels).filter(v => TAIWAN_VENUE_CITIES.has(String(v.city || "")));
@@ -370,15 +271,14 @@ function renderEvents() {
     <button class="event-row" data-event-id="${escapeHtml(e.id)}">
       <span class="event-poster">${escapeHtml(posterCode(e))}</span>
       <span class="event-info">
-        <span class="event-artist-line"><strong>${escapeHtml(e.artist)}</strong>${sourceInfoTriggerMarkup(e,"event-row-info")}</span>
+        <strong>${escapeHtml(e.artist)}</strong>
         <span class="title">${escapeHtml(e.title)}</span>
         <span class="date">${fmtDate(e.start, e.end)}${e.end ? "" : ` · ${escapeHtml(fmtEventTime(e))}`}</span>
         <span class="venue">${escapeHtml(e.venue)}</span>
       </span>
       <span class="event-arrow"><span class="event-tag">${escapeHtml(eventBadge(e))}</span><b>›</b></span>
     </button>`).join("");
-  $$(".event-row", root).forEach(btn => btn.addEventListener("click", ev => { if(ev.target.closest('[data-source-info-event]')) return; openDetail(btn.dataset.eventId); }));
-  wireSourceInfoTriggers(root);
+  $$(".event-row", root).forEach(btn => btn.addEventListener("click", () => openDetail(btn.dataset.eventId)));
   if (more) {
     more.hidden = list.length <= 5;
     more.textContent = "查看更多活動 →";
@@ -814,7 +714,7 @@ function openDetail(id) {
     : (activityLayout?.eventId ? "CALIBRATED 3D · 本場專屬配置" : "");
   $("#detailContent").innerHTML = `
     <div class="detail-kicker">${escapeHtml(e.statusLabel || e.type)} · ${e.historical ? "HISTORICAL VERIFIED" : (e.officialCheck?.status === "live" ? "OFFICIAL LIVE" : "OFFICIAL CHECKED")}</div>
-    <div class="detail-heading-line"><h2>${escapeHtml(e.artist)}</h2>${sourceInfoTriggerMarkup(e,"detail-info")}</div>
+    <h2>${escapeHtml(e.artist)}</h2>
     <div class="detail-title">${escapeHtml(e.title)}</div>
     <p class="detail-title">${escapeHtml(e.summary || "")}</p>
     ${countdownMarkup(e)}
@@ -844,7 +744,6 @@ function openDetail(id) {
   $("#detailDrawer").setAttribute("aria-hidden", "false");
   document.body.style.overflow = "hidden";
   startCountdown();
-  wireSourceInfoTriggers($("#detailContent"));
   const df = $(".drawer-follow");
   if (df) df.addEventListener("click", () => { toggleFollow(e.artist); df.textContent = state.followed.has(e.artist) ? "✓ 已追蹤" : "+ 加入追蹤"; });
   const wireVenueJump = selector => {
@@ -1141,16 +1040,14 @@ function renderAllEventsModal() {
     const layout=eventCustom3DMeta(e); const quality=layout.officialMapVerified?'官方圖已對照':(layout.officialSeatMap?'官方圖待解析':'場館草稿待校正');
     return `<button class="events-modal-row" data-event-id="${escapeHtml(e.id)}">
       <span class="events-modal-date">${escapeHtml(fmtEventTime(e)||'時間待公告')}</span>
-      <span class="events-modal-copy"><span class="events-modal-artist-line"><strong>${escapeHtml(e.artist)}</strong>${sourceInfoTriggerMarkup(e,"calendar-info")}</span><span>${escapeHtml(e.title)}</span><small>${escapeHtml(cityLabel(e.city))} · ${escapeHtml(e.venue)} · ${escapeHtml(quality)}</small></span>
+      <span class="events-modal-copy"><strong>${escapeHtml(e.artist)}</strong><span>${escapeHtml(e.title)}</span><small>${escapeHtml(cityLabel(e.city))} · ${escapeHtml(e.venue)} · ${escapeHtml(quality)}</small></span>
       <span class="events-modal-arrow">›</span>
     </button>`;
   }).join("") : `<div class="events-modal-empty">這一天目前沒有符合篩選條件的演唱會。</div>`;
-  $$(".events-modal-row", allEventsList).forEach(btn => btn.addEventListener("click", ev => {
-    if(ev.target.closest('[data-source-info-event]')) return;
+  $$(".events-modal-row", allEventsList).forEach(btn => btn.addEventListener("click", () => {
     closeAllEventsModal();
     openDetail(btn.dataset.eventId);
   }));
-  wireSourceInfoTriggers(allEventsList);
   window.NEUL_I18N?.apply?.();
 }
 function openAllEventsModal() {

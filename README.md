@@ -85,7 +85,3 @@ This build keeps the v0.40 interface and extends only the automation path:
 8. Cache the compact analysis on the device; unchanged official maps skip repeated OCR.
 
 Current discovery adapters cover tixCraft, KKTIX, Ticket Plus, KHAM, FamiTicket, udn, ibon, MNA, ERA/ticket.com.tw, TixFun, OPENTIX, FANSI GO and Books Tickets, plus artist/venue official feeds. Sites can block automated fetching or change markup; those cases fall back to the verified venue model instead of inventing a seat map.
-
-
-## v0.40.7 活動資料來源 i
-活動卡、每日演唱會行事曆與活動明細提供小型 `i` 圖示；桌機 hover、手機點擊可查看該場目前實際使用的官方售票、藝人/主辦、場館、官方座位圖與 3D 校正來源。

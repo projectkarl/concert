@@ -473,4 +473,4 @@ const subdomainParsed=parseTicketPlatformPage(subdomainFixture,"https://teamear.
 if(!subdomainParsed || subdomainParsed.city!=="Taipei" || !subdomainParsed.start.startsWith("2026-12-30T19:00")){console.error("v0.40.6 tixCraft promoter-subdomain parser failed",subdomainParsed);ok=false;}
 
 if (!ok) process.exit(1);
-console.log(`NEUL v0.40.7 checks passed · Taiwan-only · ${seedEvents.length} seed events · ${Object.keys(venueModels).length} venue models · 14 ticket sources + official artist/venue feeds · complete base-tier 3D merge · exact-section pricing · expired-layout cleanup · UI overflow audit · WebGL + Canvas fallback · PWA + IndexedDB`);
+console.log(`NEUL v0.40.6 checks passed · Taiwan-only · ${seedEvents.length} seed events · ${Object.keys(venueModels).length} venue models · 14 ticket sources + official artist/venue feeds · complete base-tier 3D merge · exact-section pricing · expired-layout cleanup · UI overflow audit · WebGL + Canvas fallback · PWA + IndexedDB`);
