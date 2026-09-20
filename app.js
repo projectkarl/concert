@@ -4,7 +4,6 @@ import { venueModels, venueLayouts, layoutsForVenue, getVenueModel, getVenueLayo
 import { createVenueWebGL } from "./webgl-venue.js";
 import { analyzeSeatMap, canAnalyzeSeatMap } from "./seat-map-intelligence.js";
 import { saveFollowed, saveMode, recordEventChanges, saveOfflineSnapshot, loadFollowed } from "./storage.js";
-import { ticketSaleLifecycle } from "./lib/ticket-lifecycle.js";
 
 const $ = (q, root = document) => root.querySelector(q);
 const $$ = (q, root = document) => [...root.querySelectorAll(q)];
@@ -209,7 +208,6 @@ function eventLifecycle(event={}, now=Date.now()) {
   return {state:'ended',ended:true,active:false,upcoming:false,startTs,endTs};
 }
 
-
 function relativeTime(iso) {
   if (!iso) return "";
   const ts = new Date(iso).getTime();
@@ -230,29 +228,28 @@ function relativeTime(iso) {
 }
 
 function eventBadge(event) {
-  const now=Date.now(), life=eventLifecycle(event,now);
+  const life=eventLifecycle(event);
   if (event?.historical || life.ended) return "已結束";
   if (life.active) return "演出進行中";
-  const sale=ticketSaleLifecycle(event,now);
+  const now = Date.now();
   const startTs = new Date(event.start || 0).getTime();
-  if (sale.state==='pre-sale') return `搶票 ${relativeTime(new Date(sale.saleTs).toISOString())}`;
-  if (sale.state==='sale-day') return "今日開賣";
+  const saleTs = event.generalSale ? new Date(event.generalSale).getTime() : NaN;
   if (Number.isFinite(startTs) && startTs >= now && startTs - now <= 7 * dayMs) return "本週登場";
-  if (sale.state==='post-sale-day' && Number.isFinite(startTs) && startTs > now) return "已開賣";
+  if (Number.isFinite(saleTs) && saleTs > now) return `售票 ${relativeTime(event.generalSale)}`;
+  if (Number.isFinite(saleTs) && saleTs <= now && Number.isFinite(startTs) && startTs > now) return "已開賣";
   return event.statusLabel || event.type || "活動";
 }
 
 function nextAction(event) {
-  if (event?.historical || eventLifecycle(event).ended) return { label: "歷史案例", value: "活動已結束 · 已自動移入 Archive" };
+  if (event?.historical) return { label: "歷史案例", value: "活動已結束 · 保留作為座位配置與視角重建案例" };
   const now = Date.now();
   const startTs = new Date(event.start || 0).getTime();
-  const sale=ticketSaleLifecycle(event,now);
-  if (sale.state==='pre-sale') {
-    return { label: "下一步：搶票倒數", value: `${fmtDate(new Date(sale.saleTs).toISOString())} ${fmtTime(new Date(sale.saleTs).toISOString())} · ${relativeTime(new Date(sale.saleTs).toISOString())}` };
+  const saleTs = event.generalSale ? new Date(event.generalSale).getTime() : NaN;
+  if (Number.isFinite(saleTs) && saleTs > now) {
+    return { label: "下一步：準備正式售票", value: `${fmtDate(event.generalSale)} ${fmtTime(event.generalSale)} · ${relativeTime(event.generalSale)}` };
   }
-  if (sale.state==='sale-day') return {label:"今日開賣",value:"今天為官方售票日；售票狀態與餘票請以官方售票頁為準"};
   if (Number.isFinite(startTs) && startTs > now) {
-    return { label: "下一步：演出倒數", value: `${fmtDate(event.start, event.end)}${event.end ? "" : ` ${fmtEventTime(event)}`} · ${relativeTime(event.start)}` };
+    return { label: "下一步：確認演出資訊", value: `${fmtDate(event.start, event.end)}${event.end ? "" : ` ${fmtEventTime(event)}`} · ${relativeTime(event.start)}` };
   }
   return { label: "活動狀態", value: "請回官方來源確認最新公告" };
 }
@@ -314,7 +311,7 @@ function applyOfficialResults(data) {
 async function loadOfficialUpdates({ force = false } = {}) {
   const cacheKey = "neul-official-check-at";
   const last = Number(localStorage.getItem(cacheKey) || 0);
-  if (!force && last && Date.now() - last < 3600000) return;
+  if (!force && last && Date.now() - last < 6 * 3600000) return;
   try {
     const res = await fetch("/api/official", { headers: { Accept: "application/json" } });
     if (!res.ok) return;
@@ -421,7 +418,7 @@ function featuredEvents() {
   return [...state.events]
     .filter(e => e.region === "TW" && !eventLifecycle(e).ended && e.start && eventEffectiveEndTs(e) >= threshold)
     .sort((a, b) => new Date(a.start) - new Date(b.start))
-    .slice(0, 10);
+    .slice(0, 5);
 }
 
 function pickFeaturedEvent() {
@@ -603,16 +600,6 @@ function countdownTarget(event) {
   const now = Date.now();
   const life=eventLifecycle(event,now);
   if(life.active) return {active:true,label:"演出進行中",note:"活動尚未結束；結束時間以最後場次與官方公告為準",kind:"active"};
-  if(life.ended) return null;
-
-  const sale=ticketSaleLifecycle(event,now);
-  if(sale.state==='pre-sale') {
-    return {ts:sale.saleTs,label:"搶票倒數",note:`${sale.candidate?.label||"正式售票"} · ${fmtDate(new Date(sale.saleTs).toISOString())} ${fmtTime(new Date(sale.saleTs).toISOString())}`,kind:"sale"};
-  }
-  if(sale.state==='sale-day') {
-    return {saleLive:true,label:"今日開賣",note:`${sale.candidate?.label||"官方售票"}今日開賣；餘票狀態以官方售票頁即時公告為準`,kind:"sale-live"};
-  }
-
   const futureSessions = (event?.sessions || [])
     .map(session => ({ session, date: parseSessionDateTime(session, event) }))
     .filter(x => x.date && x.date.getTime() > now)
@@ -632,6 +619,20 @@ function countdownTarget(event) {
     return { ts: startTs, label: "距離演出", note: `${fmtDate(event.start)} ${fmtEventTime(event)}`, kind: "show" };
   }
 
+  const saleTs = event?.generalSale ? new Date(event.generalSale).getTime() : NaN;
+  if (Number.isFinite(saleTs) && saleTs > now) {
+    return { ts: saleTs, label: "距離正式售票", note: `${fmtDate(event.generalSale)} ${fmtTime(event.generalSale)}`, kind: "sale" };
+  }
+
+  const futureTimeline = (event?.ticketTimeline || [])
+    .map(item => ({ item, date: parseTimelineDateTime(item, event) }))
+    .filter(x => x.date && x.date.getTime() > now)
+    .sort((a,b) => a.date - b.date);
+  if (futureTimeline.length) {
+    const next = futureTimeline[0];
+    return { ts: next.date.getTime(), label: `距離${next.item.label}`, note: next.item.time, kind: "sale" };
+  }
+
   if (Number.isFinite(startTs) && startTs > now && event?.timeConfirmed === false) {
     return { ts: startTs, label: "距離活動日期", note: "演出時間待官方公告，倒數以活動日期 00:00 為基準", kind: "date", approximate: true };
   }
@@ -643,9 +644,6 @@ function countdownMarkup(event) {
   const target = countdownTarget(event);
   if (target?.active) {
     return `<section class="concert-countdown countdown-live" data-countdown-live="true"><div class="countdown-eyebrow">LIVE NOW</div><div class="countdown-ended-title">演出進行中</div><p>${escapeHtml(target.note)}</p></section>`;
-  }
-  if (target?.saleLive) {
-    return `<section class="concert-countdown countdown-sale-live" data-countdown-sale-live="true"><div class="countdown-eyebrow">TICKET DAY</div><div class="countdown-ended-title">今日開賣</div><p>${escapeHtml(target.note)}</p></section>`;
   }
   if (!target) {
     return `<section class="concert-countdown countdown-ended" data-countdown-ended="true">
@@ -875,10 +873,10 @@ function updateFreshness() {
   const sourceCount=Number(state.coverage?.sourceCount||0);
   const warningCount=Number(state.coverage?.sourceWarnings||0);
   const health=sourceCount?`<span class="freshness-next">官方來源 ${sourceCount} 類${warningCount?` · ${warningCount} 項需重試`:" · 正常"}</span>`:"";
-  const cadence = `<span class="freshness-cadence">約每 1 小時自動檢查官方來源 · 每日排程同步</span>`;
+  const cadence = `<span class="freshness-cadence">約每 6 小時檢查可用官方來源 · 每日排程同步</span>`;
   if (!state.dataUpdatedAt) {
     el.innerHTML = `目前顯示已核對活動${health}${cadence}`;
-    el.title = "活動資料採 1 小時快取；頁面開啟時會自動重新驗證，並另有每日排程同步。";
+    el.title = "活動資料採 6 小時快取；快取到期後由下一次造訪觸發背景重新驗證，並另有每日排程同步。";
     return;
   }
   const t = new Intl.DateTimeFormat(uiLocale(), { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Taipei" }).format(new Date(state.dataUpdatedAt));
@@ -887,7 +885,7 @@ function updateFreshness() {
   const next = state.nextUpdateAt ? new Intl.DateTimeFormat(uiLocale(), { month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", hour12:false, timeZone:"Asia/Taipei" }).format(new Date(state.nextUpdateAt)) : null;
   const schedule = next ? `<span class="freshness-next">下次預計更新 ${next}</span>` : "";
   el.innerHTML = `${headline}${schedule}${health}${cadence}`;
-  el.title = "活動資料採 1 小時快取；頁面開啟時會自動重新驗證，並另有每日排程同步。詳細內容仍以官方最新公告為準。";
+  el.title = "活動資料採 6 小時快取；快取到期後由下一次造訪觸發背景重新驗證，並另有每日排程同步。詳細內容仍以官方最新公告為準。";
 }
 
 function updateSearchScope() {
@@ -900,7 +898,7 @@ function updateSearchScope() {
   el.textContent = `目前已收錄資料自 ${label} 起；更早場次持續補齊。搜尋會同時查近期與已收錄 Archive。`;
 }
 
-async function loadEvents({ preserveOnFailure = false } = {}) {
+async function loadEvents() {
   try {
     const res = await fetch("/api/events", { headers: { Accept: "application/json" } });
     if (!res.ok) throw new Error("events unavailable");
@@ -908,22 +906,20 @@ async function loadEvents({ preserveOnFailure = false } = {}) {
     if (Array.isArray(data.events) && data.events.length) state.events = prepareEvents3D(taiwanEventsOnly(data.events));
     if (Array.isArray(data.artists) && data.artists.length) state.artists = data.artists;
     state.dataUpdatedAt = data.updatedAt || null;
-    state.nextUpdateAt = data.nextUpdateAt || (data.updatedAt ? new Date(new Date(data.updatedAt).getTime()+3600000).toISOString() : null);
+    state.nextUpdateAt = data.nextUpdateAt || (data.updatedAt ? new Date(new Date(data.updatedAt).getTime()+21600000).toISOString() : null);
     state.autoUpdateEnabled = data.autoUpdateEnabled !== false;
     state.upstream = data.upstream || "curated-fallback";
     state.coverage = data.coverage || null;
     state.discoveryHealth = data.discovery?.sourceHealth || null;
   } catch {
-    if (!preserveOnFailure || !state.events.length) {
-      state.events = prepareEvents3D(taiwanEventsOnly(seedEvents));
-      state.artists = seedArtists.map(a => ({ ...a, upcomingEventCount: seedEvents.filter(e => e.artist.toLowerCase() === a.name.toLowerCase()).length, nextEvent: null, eventIds: [] }));
-      state.dataUpdatedAt = null;
-      state.nextUpdateAt = null;
-      state.autoUpdateEnabled = false;
-      state.upstream = "curated-fallback";
-      state.coverage = {completenessGuaranteed:false,sourceCount:0,sourceWarnings:1,note:"即時官方來源暫不可用，使用已核對 fallback。"};
-      state.discoveryHealth = null;
-    }
+    state.events = prepareEvents3D(taiwanEventsOnly(seedEvents));
+    state.artists = seedArtists.map(a => ({ ...a, upcomingEventCount: seedEvents.filter(e => e.artist.toLowerCase() === a.name.toLowerCase()).length, nextEvent: null, eventIds: [] }));
+    state.dataUpdatedAt = null;
+    state.nextUpdateAt = null;
+    state.autoUpdateEnabled = false;
+    state.upstream = "curated-fallback";
+    state.coverage = {completenessGuaranteed:false,sourceCount:0,sourceWarnings:1,note:"即時官方來源暫不可用，使用已核對 fallback。"};
+    state.discoveryHealth = null;
   }
   await recordEventChanges(state.events);
   await saveOfflineSnapshot({ at: state.dataUpdatedAt || new Date().toISOString(), upstream: state.upstream, count: state.events.length });
@@ -932,7 +928,6 @@ async function loadEvents({ preserveOnFailure = false } = {}) {
   renderFollowing();
   renderFeatured();
   startFeaturedAutoplay();
-  renderLayoutOptions();
   updateFreshness();
   updateSearchScope();
   window.dispatchEvent(new CustomEvent("neul:dataupdated", { detail: { events: state.events, updatedAt: state.dataUpdatedAt } }));
@@ -940,33 +935,6 @@ async function loadEvents({ preserveOnFailure = false } = {}) {
   idle(async () => { await loadOfficialUpdates(); await hydrateSeatMapGeometry(state.events); });
 }
 
-
-let eventsAutoRefreshTimer=null;
-let lifecycleSyncTimer=null;
-function startAutomaticEventVerification(){
-  clearInterval(eventsAutoRefreshTimer);
-  clearInterval(lifecycleSyncTimer);
-  // CDN caching makes this global rather than per-user crawling: while a page is open,
-  // re-check the merged official event feed hourly without requiring a reload.
-  eventsAutoRefreshTimer=setInterval(()=>{ if(!document.hidden) loadEvents({preserveOnFailure:true}); },3600000);
-  // Lifecycle transitions are local-time calculations, so Archive / 3D / Featured can switch
-  // within a minute even when no network request is needed.
-  lifecycleSyncTimer=setInterval(()=>{
-    renderEvents();
-    renderFeatured();
-    const previousLayoutId=state.layoutId;
-    renderLayoutOptions();
-    if(state.layoutId!==previousLayoutId) setVenue(state.venueId,state.layoutId);
-    updateFreshness();
-    if(state.detailId) openDetail(state.detailId);
-  },60000);
-  document.addEventListener('visibilitychange',()=>{
-    if(document.hidden) return;
-    const last=new Date(state.dataUpdatedAt||0).getTime();
-    if(!Number.isFinite(last)||Date.now()-last>=3600000) loadEvents({preserveOnFailure:true});
-    renderLayoutOptions();
-  });
-}
 
 async function hydrateSeatMapGeometry(events=[]) {
   const now=Date.now();
@@ -1173,7 +1141,7 @@ function renderAllEventsModal() {
     const layout=eventCustom3DMeta(e); const quality=layout.officialMapVerified?'官方圖已對照':(layout.officialSeatMap?'官方圖待解析':'場館草稿待校正');
     return `<button class="events-modal-row" data-event-id="${escapeHtml(e.id)}">
       <span class="events-modal-date">${escapeHtml(fmtEventTime(e)||'時間待公告')}</span>
-      <span class="events-modal-copy"><span class="events-modal-artist-line"><strong>${escapeHtml(e.artist)}</strong>${sourceInfoTriggerMarkup(e,"calendar-info")}</span><span>${escapeHtml(e.title)}</span><small>${escapeHtml(cityLabel(e.city))} · ${escapeHtml(e.venue)} · ${escapeHtml(eventBadge(e))} · ${escapeHtml(quality)}</small></span>
+      <span class="events-modal-copy"><span class="events-modal-artist-line"><strong>${escapeHtml(e.artist)}</strong>${sourceInfoTriggerMarkup(e,"calendar-info")}</span><span>${escapeHtml(e.title)}</span><small>${escapeHtml(cityLabel(e.city))} · ${escapeHtml(e.venue)} · ${escapeHtml(quality)}</small></span>
       <span class="events-modal-arrow">›</span>
     </button>`;
   }).join("") : `<div class="events-modal-empty">這一天目前沒有符合篩選條件的演唱會。</div>`;
@@ -1419,33 +1387,17 @@ function renderVenueOptions() {
 function renderLayoutOptions() {
   const now=Date.now();
   const model=activeVenueModel();
-  const all=layoutsForVenue(state.venueId);
-  const options=all.filter(layout=>{
+  const options=layoutsForVenue(state.venueId).filter(layout=>{
     if(layout.id===model.baseLayoutId || !layout.eventId) return !layout.historical;
+    if(layout.id===state.layoutId) return true; // archive/deep-link may temporarily show its selected layout
     const event=state.events.find(e=>e.id===layout.eventId);
     if(!event || event.historical) return false;
     return !eventLifecycle(event,now).ended;
-  }).sort((a,b)=>{
-    if(a.id===model.baseLayoutId) return -1;
-    if(b.id===model.baseLayoutId) return 1;
-    const ea=state.events.find(e=>e.id===a.eventId), eb=state.events.find(e=>e.id===b.eventId);
-    return new Date(ea?.start||0)-new Date(eb?.start||0);
   });
-  if (!options.some(x => x.id === state.layoutId)) {
-    // If the selected concert has just ended, immediately move the 3D selector to the next
-    // upcoming event at this venue instead of leaving an archived layout visible.
-    const nextEventLayout=options
-      .filter(x=>x.eventId)
-      .sort((a,b)=>{
-        const ea=state.events.find(e=>e.id===a.eventId), eb=state.events.find(e=>e.id===b.eventId);
-        return new Date(ea?.start||0)-new Date(eb?.start||0);
-      })[0];
-    state.layoutId=nextEventLayout?.id||model.baseLayoutId;
-  }
+  if (!options.some(x => x.id === state.layoutId)) state.layoutId = model.baseLayoutId;
   layoutSelect.innerHTML = options.map(x => `<option value="${escapeHtml(x.id)}" ${x.id===state.layoutId?"selected":""}>${escapeHtml(x.label)}</option>`).join("");
   layoutSelect.title = getVenueLayout(state.layoutId)?.label || "";
 }
-
 function setVenue(venueId, layoutId = null) {
   const model = getVenueModel(venueId);
   state.venueId = model.id;
@@ -1853,7 +1805,6 @@ setVenue(state.venueId, state.layoutId);
 
 loadFollowed().then(names => { if (Array.isArray(names) && names.length) { state.followed = new Set(names); renderFollowing(); } });
 loadEvents();
-startAutomaticEventVerification();
 renderFollowing();
 renderFeatured();
 updateSeatLabel();
@@ -1863,12 +1814,6 @@ window.addEventListener("neul:languagechange", () => {
   renderFollowing();
   renderFeatured();
   startFeaturedAutoplay();
-  try {
-    renderVenueOptions();
-    const previousLayoutId=state.layoutId;
-    renderLayoutOptions();
-    if(state.layoutId!==previousLayoutId) setVenue(state.venueId,state.layoutId);
-  } catch {}
   updateFreshness();
   updateSearchScope();
   updateSeatLabel();

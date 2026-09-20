@@ -41,7 +41,7 @@ Taiwan-only concert discovery and true WebGL venue/seat-view prototype for Verce
 - The browser-side `seat-map-intelligence.js` analyzes the actual official image pixels to derive a conservative stage profile and ticket-zone blocks for auto-generated event drafts.
 - Auto-generated events consume an official map immediately. Hand-calibrated high-profile layouts establish a verified baseline; if the official seat-map image bytes later change, the new hash triggers a fresh event-specific analysis instead of silently keeping the stale layout.
 - Official ticket pages are still the authority for prices. Image analysis does not invent ticket prices; only recognizable official section-price data is mapped into 3D.
-- The official monitor checks primary and secondary/ticket URLs so sale dates, prices and seat maps can refresh from the actual ticket page. This fixes cases such as BTS where Live Nation is the main source but the detailed official map/prices live on tixCraft.
+- The six-hour official monitor now checks both `sourceUrl` and `secondarySourceUrl`. This fixes cases such as BTS where Live Nation is the main source but the detailed official map/prices live on tixCraft.
 - KKTIX discovery now covers the global event index through multiple pages plus promoter subdomains including WANIN Visual (`wve.kktix.cc`), which fixes the missing T-ARA event.
 - BTS WORLD TOUR 'ARIRANG' IN KAOHSIUNG now uses a calibrated event layout based on the official tixCraft map: central stage, four diagonal stage arms, floor-zone families and section prices.
 - T-ARA Fancon 2026 in Taiwan is included with the official KKTIX seat map, event-specific Kaohsiung Music Center layout and section-price bands.
@@ -69,7 +69,7 @@ Automatic image analysis is a conservative fallback, not an OCR/CAD engine. Publ
 
 Automatic public-source layers include Live Nation Taiwan, official Taipei/Kaohsiung venue calendars, artist/agency tour pages, and nine Taiwan ticket-platform families: tixCraft, KKTIX, Ticket Plus/遠大, KHAM/寬宏, FamiTicket, udn tickets, ibon, MNA/牛耳 and 年代售票.
 
-`/api/events` is cached for one hour. While the page is open, NEUL automatically revalidates the merged official feed every hour; returning to a stale tab also triggers a refresh. A daily Vercel warm-up cron remains as a no-traffic safety net. Event/ticket lifecycle transitions are recalculated locally every minute, so Archive and 3D selections do not wait for the next network refresh.
+`/api/events` is cached for six hours. On active use, stale data revalidates after that interval; the UI shows the actual last-sync timestamp and calculated next expected refresh time. A daily Vercel warm-up cron remains for Hobby-friendly background warming.
 
 ## v0.40.1 automatic seat-map pipeline
 
@@ -89,7 +89,3 @@ Current discovery adapters cover tixCraft, KKTIX, Ticket Plus, KHAM, FamiTicket,
 
 ## v0.40.7 活動資料來源 i
 活動卡、每日演唱會行事曆與活動明細提供小型 `i` 圖示；桌機 hover、手機點擊可查看該場目前實際使用的官方售票、藝人/主辦、場館、官方座位圖與 3D 校正來源。
-
-## v0.40.8 — Automatic ticket / concert lifecycle
-
-v0.40.8 adds automatic official-source refresh and the lifecycle `ticket countdown → sale day → show countdown → live → Archive`. Finished event layouts are automatically removed from the 3D concert selector, while Featured rotates up to 10 upcoming events every 10 seconds. The existing website layout is unchanged.

@@ -2,8 +2,9 @@ import { seedEvents } from "../data/events.js";
 import { monitorOfficialSource } from "../lib/official-monitor.js";
 
 export default async function handler(req, res) {
-  // Official sale/event verification is cached for one hour; CDN coalescing keeps upstream traffic bounded.
-  res.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate=21600");
+  // Public source verification is intentionally cached for six hours to keep Hobby usage low
+  // and avoid repeatedly requesting promoter/artist pages.
+  res.setHeader("Cache-Control", "s-maxage=21600, stale-while-revalidate=86400");
   const now = Date.now();
   const future = seedEvents
     .filter(event => (event.sourceUrl || event.secondarySourceUrl) && (!event.end || new Date(event.end).getTime() >= now - 86400000) && new Date(event.start || 0).getTime() >= now - 86400000);

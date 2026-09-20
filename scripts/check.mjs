@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import { extractLiveNationEventUrls, extractLiveNationArtistUrls, parseLiveNationDiscoveredEvent } from "../lib/live-nation-discovery.js";
-import { extractOfficialSeatLayoutUrl, extractSectionPriceRules, extractGeneralSaleDateTime } from "../lib/official-monitor.js";
+import { extractOfficialSeatLayoutUrl, extractSectionPriceRules } from "../lib/official-monitor.js";
 import { parseKaohsiungArenaCalendar } from "../lib/kaohsiung-arena-discovery.js";
 import { extractTaipeiArenaLinks, parseTaipeiArenaDates } from "../lib/taipei-arena-discovery.js";
 import { parseBabymonsterChoomTaipei, parseBigBangCosmosTaiwan } from "../lib/artist-official-discovery.js";
@@ -8,13 +8,12 @@ import { parsePage as parseTicketPlatformPage, parseIndievoxIndex } from "../lib
 import { mergeAndDedupe } from "../api/events.js";
 import { inferStageProfileForQA, selectStageComponentForQA, priceForLabelForQA } from "../seat-map-intelligence.js";
 import { seedEvents } from "../data/events.js";
-import { ticketSaleLifecycle } from "../lib/ticket-lifecycle.js";
 import { venueModels, venueLayouts, getVenueSection, venueSectionWarning, venueSectionPosition, venueIdFromName, ensureAutoEventLayout, ensureVenueModelForEvent, getVenueLayout, sectionTicketLabel, effectiveTiers } from "../data/multi-venue-geometry.js";
 
 const required = [
   "index.html","styles.css","app.js","i18n.js","enhancements.js","storage.js","pwa.js","sw.js","manifest.webmanifest","webgl-venue.js","seat-map-intelligence.js","THIRD_PARTY_NOTICES.md","vercel.json","api/events.js","api/official.js","api/seat-map-image.js","api/refresh.js","api/push-config.js","api/push-subscribe.js","api/push-digest.js",
   "data/events.js","data/artists.js","data/venues.js","data/discovery.js","data/taipei-dome-geometry.js","data/multi-venue-geometry.js",
-  "lib/official-monitor.js","lib/ticket-lifecycle.js","lib/live-nation-discovery.js","lib/kaohsiung-arena-discovery.js","lib/taipei-arena-discovery.js","lib/artist-official-discovery.js","lib/taiwan-ticket-platform-discovery.js",
+  "lib/official-monitor.js","lib/live-nation-discovery.js","lib/kaohsiung-arena-discovery.js","lib/taipei-arena-discovery.js","lib/artist-official-discovery.js","lib/taiwan-ticket-platform-discovery.js",
   "assets/hero-crowd.webp","assets/hero-crowd-hd.webp","assets/hero-crowd-hd2.webp","assets/hero-crowd-crisp.webp","assets/hero-live-crisp.webp","assets/feature-stage.webp","assets/venue-3d.webp","assets/seat-view.webp","assets/featured-1.webp","assets/featured-2.webp","assets/featured-3.webp","assets/featured-4.webp","assets/featured-1-hd.webp","assets/featured-2-hd.webp","assets/featured-3-hd.webp","assets/featured-4-hd.webp","assets/featured-1-crisp.webp","assets/featured-2-crisp.webp","assets/featured-3-crisp.webp","assets/featured-4-crisp.webp","assets/featured-live-1.webp","assets/featured-live-2.webp","assets/featured-live-3.webp","assets/featured-live-4.webp",
   "icons/icon-192.png","icons/icon-512.png","icons/icon-maskable-512.png","icons/apple-touch-icon.png"
 ];
@@ -163,7 +162,7 @@ if (!/\.wordmark\{font-size:29px\}/.test(fs.readFileSync(new URL("../styles.css"
 const indexHtml = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 if (indexHtml.includes('id="searchScopeNote"')) { console.error("deprecated search scope hint still visible"); ok=false; }
-if (!/約每 1 小時/.test(app) || !/每日排程同步/.test(app)) { console.error("update cadence label missing"); ok=false; }
+if (!/約每 6 小時/.test(app) || !/每日排程同步/.test(app)) { console.error("update cadence label missing"); ok=false; }
 if (!/diamondEgg/.test(indexHtml) || !/fanProjectNote/.test(indexHtml) || !/wireDiamondEgg/.test(enhancements)) { console.error("About diamond easter egg missing"); ok=false; }
 if (!/喜歡追星的人/.test(indexHtml)) { console.error("fan-made project disclosure missing"); ok=false; }
 if (/\.search-scope-note/.test(css)) { console.error("deprecated search scope UI style still present"); ok=false; }
@@ -188,7 +187,7 @@ if (!/zh-Hant/.test(i18n) || !/locale: 'en-US'/.test(i18n) || !/locale: 'ja-JP'/
 if (!/data-lang="zh-Hant"/.test(indexHtml) || !/data-lang="en"/.test(indexHtml) || !/data-lang="ja"/.test(indexHtml) || !/data-lang="ko"/.test(indexHtml)) { console.error("language selector buttons missing"); ok=false; }
 if (!/neul-language/.test(i18n) || !/neul:languagechange/.test(i18n) || !/MutationObserver/.test(i18n)) { console.error("dynamic language switching incomplete"); ok=false; }
 if (!/Noto\+Sans\+JP/.test(indexHtml)) { console.error("Japanese font support missing"); ok=false; }
-if (!/\/i18n\.js/.test(sw) || !/neul-v0\.40\.8-auto-ticket-lifecycle/.test(sw)) { console.error("PWA multilingual cache update missing"); ok=false; }
+if (!/\/i18n\.js/.test(sw) || !/neul-v0\.40\.6-daily-calendar-coverage-audit/.test(sw)) { console.error("PWA multilingual cache update missing"); ok=false; }
 if (!/uiLocale/.test(app) || !/neul:languagechange/.test(app)) { console.error("locale-aware dynamic render hook missing"); ok=false; }
 
 
@@ -377,7 +376,7 @@ if(!tara40 || !/wve\.kktix\.cc/.test(tara40.sourceUrl||"") || !/assets\.kktix\.i
 if(sectionTicketLabel("tara-fancon-kaohsiung-2026","1F-C")!=="NT$5,980" || sectionTicketLabel("tara-fancon-kaohsiung-2026","2F-A")!=="NT$5,680" || sectionTicketLabel("tara-fancon-kaohsiung-2026","2F-C")!=="NT$4,680" || sectionTicketLabel("tara-fancon-kaohsiung-2026","2F-B-REAR")!=="NT$3,680"){ console.error("T-ARA section pricing regression"); ok=false; }
 if (!/hydrateSeatMapGeometry/.test(app) || !/neul-seatmap-hash/.test(app) || !/hashChanged/.test(app) || /slice\(0,14\)/.test(app) || !/i\+=1/.test(app)) { console.error("client seat-map change regeneration pipeline missing/bounded to partial list"); ok=false; }
 if (!/seatMapFound/.test(apiEventsCode) || !/sectionPricesFound/.test(apiEventsCode) || !/threeDReady/.test(apiEventsCode)) { console.error("four-stage automation status missing"); ok=false; }
-if (!/neul-v0\.40\.8-auto-ticket-lifecycle/.test(sw) || !/seat-map-intelligence\.js/.test(sw)) { console.error("v0.40.4 service-worker cache regression"); ok=false; }
+if (!/neul-v0\.40\.6-daily-calendar-coverage-audit/.test(sw) || !/seat-map-intelligence\.js/.test(sw)) { console.error("v0.40.4 service-worker cache regression"); ok=false; }
 
 // v0.40.1 OCR/Vision + precise section mapping + source expansion
 if (!/tesseract\.js@5/.test(seatVisionCode) || !/ocr-section-mapped/.test(seatVisionCode) || !/mapSectionTokenForQA/.test(seatVisionCode) || !/mappingScore/.test(seatVisionCode)) { console.error("OCR/Vision precise section mapping pipeline missing"); ok=false; }
@@ -473,28 +472,5 @@ const subdomainFixture=`<html><head><title>TEST WORLD TOUR IN TAIPEI</title></he
 const subdomainParsed=parseTicketPlatformPage(subdomainFixture,"https://teamear.tixcraft.com/activity/detail/test",{name:"tixCraft 拓元"});
 if(!subdomainParsed || subdomainParsed.city!=="Taipei" || !subdomainParsed.start.startsWith("2026-12-30T19:00")){console.error("v0.40.6 tixCraft promoter-subdomain parser failed",subdomainParsed);ok=false;}
 
-// v0.40.8 automatic ticket lifecycle / archive / Featured cadence
-const saleEvent={generalSale:"2026-09-20T18:00:00+08:00",start:"2026-11-01T19:00:00+08:00"};
-if(ticketSaleLifecycle(saleEvent,new Date("2026-09-20T10:00:00+08:00").getTime()).state!=="pre-sale" || ticketSaleLifecycle(saleEvent,new Date("2026-09-20T20:00:00+08:00").getTime()).state!=="sale-day" || ticketSaleLifecycle(saleEvent,new Date("2026-09-21T00:01:00+08:00").getTime()).state!=="post-sale-day"){console.error("v0.40.8 ticket lifecycle transition failed");ok=false;}
-const saleFixture=`<html><head><title>TEST LIVE</title></head><body>演出日期：2026/12/30 19:00 演出地點：TICC 正式售票時間：10/14 12:00 票價：NT$5,800 / NT$3,800</body></html>`;
-const saleParsed=parseTicketPlatformPage(saleFixture,"https://tixcraft.com/activity/detail/test-sale",{name:"tixCraft 拓元"});
-if(!saleParsed?.generalSale?.startsWith("2026-10-14T12:00")){console.error("v0.40.8 ticket platform short sale-date parser failed",saleParsed);ok=false;}
-const monitoredSale=extractGeneralSaleDateTime("正式售票時間：10/14 12:00",2026);
-if(!monitoredSale?.iso?.startsWith("2026-10-14T12:00")){console.error("v0.40.8 official monitor sale-date parser failed",monitoredSale);ok=false;}
-const sale12pm=parseTicketPlatformPage(`<html><title>PLAVE Taipei</title><body>演出日期：2026/10/23 19:30 演出地點：國立體育大學綜合體育館 加場全面開賣：2026.08.09 (日) 12PM</body></html>`,"https://tixcraft.com/activity/detail/plave-test",{name:"tixCraft 拓元"});
-if(!sale12pm?.generalSale?.startsWith("2026-08-09T12:00")){console.error("v0.40.8 12PM sale parser failed",sale12pm);ok=false;}
-const saleZh=extractGeneralSaleDateTime("啟售時間：2026 年 7 月 19 日 13:00開賣",2026);
-if(!saleZh?.iso?.startsWith("2026-07-19T13:00")){console.error("v0.40.8 Chinese sale datetime parser failed",saleZh);ok=false;}
-const multiSale={generalSale:"2026-09-22T12:00:00+08:00",start:"2026-11-01T19:00:00+08:00",ticketTimeline:[{label:"會員優先售票",time:"2026/09/21 12:00"}]};
-if(ticketSaleLifecycle(multiSale,new Date("2026-09-20T10:00:00+08:00").getTime()).candidate?.label!=="會員優先售票" || ticketSaleLifecycle(multiSale,new Date("2026-09-21T18:00:00+08:00").getTime()).state!=="sale-day" || ticketSaleLifecycle(multiSale,new Date("2026-09-22T10:00:00+08:00").getTime()).candidate?.source!=="generalSale"){console.error("v0.40.8 multi-stage sale sequencing failed");ok=false;}
-if(!/label:"搶票倒數"/.test(app) || !/sale\.state==='sale-day'/.test(app) || !/startAutomaticEventVerification/.test(app) || !/3600000/.test(app)){console.error("v0.40.8 automatic ticket countdown / hourly verification missing");ok=false;}
-if(!/Date\.now\(\) - last < 3600000/.test(app) || !/renderVenueOptions\(\);/.test(app)){console.error("v0.40.8 official monitor hourly gate / immediate 3D refresh missing");ok=false;}
-if(!/slice\(0, 10\)/.test(app) || !/setInterval\(\(\)=>\{ if\(!document\.hidden && featuredEvents\(\)\.length>1\) stepFeatured\(1\); \},10000\)/.test(app)){console.error("v0.40.8 Featured 10-second carousel regression");ok=false;}
-if(/layout\.id===state\.layoutId\) return true; \/\/ archive\/deep-link/.test(app) || !/nextEventLayout/.test(app) || !/eventLifecycle\(event,now\)\.ended/.test(app)){console.error("v0.40.8 archived 3D layout cleanup missing");ok=false;}
-if(!/s-maxage=3600/.test(apiEventsCode) || !/nextUpdateAt = new Date\(updatedAt\.getTime\(\) \+ 3600000\)/.test(apiEventsCode)){console.error("v0.40.8 hourly event source cache/update metadata missing");ok=false;}
-if(!/ticketUrl,seed\.ticketSourceUrl/.test(officialMonitorCode) || !/saleDateOk/.test(officialMonitorCode)){console.error("v0.40.8 multi-source sale verification missing");ok=false;}
-if(!/neul-v0\.40\.8-auto-ticket-lifecycle/.test(sw) || !/lib\/ticket-lifecycle\.js/.test(sw)){console.error("v0.40.8 service worker cache version/module missing");ok=false;}
-if(!/Date\.now\(\) - last < 3600000/.test(app) || !/renderLayoutOptions\(\);\n  updateFreshness/.test(app)){console.error("v0.40.8 one-hour official recheck / immediate 3D selector refresh missing");ok=false;}
-
 if (!ok) process.exit(1);
-console.log(`NEUL v0.40.8 checks passed · Taiwan-only · ${seedEvents.length} seed events · ${Object.keys(venueModels).length} venue models · 14 ticket sources + official artist/venue feeds · complete base-tier 3D merge · exact-section pricing · expired-layout cleanup · UI overflow audit · WebGL + Canvas fallback · PWA + IndexedDB`);
+console.log(`NEUL v0.40.7 checks passed · Taiwan-only · ${seedEvents.length} seed events · ${Object.keys(venueModels).length} venue models · 14 ticket sources + official artist/venue feeds · complete base-tier 3D merge · exact-section pricing · expired-layout cleanup · UI overflow audit · WebGL + Canvas fallback · PWA + IndexedDB`);

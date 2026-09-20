@@ -264,8 +264,8 @@ function coverageSnapshot(discovery = {}, events = []) {
 }
 
 export default async function handler(req, res) {
-  // One-hour CDN cache lets ticket-sale dates/new events update automatically without per-user crawling.
-  res.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate=21600");
+  // Six-hour CDN cache keeps Hobby usage low. Stale content remains usable while Vercel revalidates.
+  res.setHeader("Cache-Control", "s-maxage=21600, stale-while-revalidate=86400");
 
   let discovery = { events: [], checkedUrls: 0, indexErrors: [], pageErrors: [], source: "Taiwan official public pages" };
   let autoUpdateError = null;
@@ -353,7 +353,7 @@ export default async function handler(req, res) {
   });
   const artists = buildArtists(events);
   const updatedAt = new Date();
-  const nextUpdateAt = new Date(updatedAt.getTime() + 3600000);
+  const nextUpdateAt = new Date(updatedAt.getTime() + 21600000);
   return res.status(200).json({
     updatedAt: updatedAt.toISOString(),
     nextUpdateAt: nextUpdateAt.toISOString(),
