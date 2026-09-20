@@ -1,1 +1,1 @@
-{"functions":{"api/seat-ocr.mjs":{"maxDuration":20},"api/event-detail.mjs":{"maxDuration":10},"api/events.mjs":{"maxDuration":10}},"headers":[{"source":"/(.*)","headers":[{"key":"X-Content-Type-Options","value":"nosniff"},{"key":"Referrer-Policy","value":"strict-origin-when-cross-origin"}]}]}
+{"version":2,"functions":{"api/*.mjs":{"maxDuration":10}},"headers":[{"source":"/(.*)","headers":[{"key":"X-Content-Type-Options","value":"nosniff"},{"key":"Referrer-Policy","value":"strict-origin-when-cross-origin"}]}]}
