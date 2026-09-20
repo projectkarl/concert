@@ -1,17 +1,5 @@
 # NEUL
 
-## v0.40.6 Taiwan Coverage / Daily Concert Calendar / 3D QA (2026-09-20)
-
-- The website/homepage design remains locked to the v0.40 line. The only visible layout addition is inside the existing **「查看更多活動」** modal: a month calendar plus per-day concert agenda.
-- Curated offline fallback increased from 66 to **75 officially cross-checked Taiwan events**. Live discovery remains the primary source and now has deeper tixCraft/KKTIX/Ticket Plus/ERA/ibon coverage plus complete iNDIEVOX index ingestion.
-- `/api/events` exposes source-health and explicitly sets `completenessGuaranteed: false`; NEUL no longer equates a fixed seed count with “all concerts in Taiwan”.
-- Each event still receives its own event-specific 3D layout, but 3D quality is graded separately: `official-map-calibrated`, `official-map-auto-verified`, `official-map-partial`, `official-map-linked-pending`, or `venue-derived-draft`.
-- A venue-derived draft is renderable 3D, **not proof that it matches the official event map**. Official-map status requires the event map plus OCR/Vision QA; section pricing is never guessed from color order alone.
-- Current static audit: **75/75 unique event-specific layouts**, 9 with direct official-map/manual calibration in the packaged fallback, and 66 requiring live official-map discovery / QA before being presented as officially calibrated.
-- Newly cross-checked fallback events include Engelbert Humperdinck, STAYC, Novelbright, Hitsujibungaku, Fujii Kaze, Jason Mraz, yung kai, BINI and Gareth Gates.
-
-See `DATA_COVERAGE_3D_AUDIT_v0.40.6.md`, `CUSTOM_3D_AUDIT_v0.40.6.md`, `TEST_REPORT_v0.40.6.md`, and `V0.40.6_CHANGELOG.md`.
-
 ## v0.40.4 BTS / BABYMONSTER / Auto-generation audit (2026-09-20)
 
 - Website design remains locked to the v0.40 line; `index.html` and `styles.css` are unchanged from v0.40.3.

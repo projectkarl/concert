@@ -194,7 +194,7 @@ function ticketSeatMapEligible(event={}) {
   for(const raw of candidates){
     try {
       const host=new URL(raw).hostname.toLowerCase();
-      if(/((?:^|\.)tixcraft\.com$|(?:^|\.)kktix\.(?:com|cc)$|(?:^|\.)ticketplus\.com\.tw$|(?:^|\.)kham\.com\.tw$|^ticket\.ibon\.com\.tw$|(?:^|\.)famiticket\.com\.tw$|^tickets\.udnfunlife\.com$|^ticket\.mna\.com\.tw$|(?:^|\.)ticket\.com\.tw$|(?:^|\.)opentix\.life$|(?:^|\.)tixfun\.com$|^go\.fansi\.me$|(?:^|\.)indievox\.com$|^tickets\.books\.com\.tw$)/.test(host)) return true;
+      if(/(tixcraft\.com|kktix\.(?:com|cc)|ticketplus\.com\.tw|kham\.com\.tw|ticket\.ibon\.com\.tw|famiticket\.com\.tw|tickets\.udnfunlife\.com|ticket\.mna\.com\.tw|ticket\.com\.tw|opentix\.life|tixfun\.com|go\.fansi\.me|(?:www\.)?indievox\.com|tickets\.books\.com\.tw)$/.test(host)) return true;
     } catch {}
   }
   return false;
@@ -243,24 +243,6 @@ function buildArtists(events) {
     if (b.nextEvent) return 1;
     return a.name.localeCompare(b.name);
   });
-}
-
-function coverageSnapshot(discovery = {}, events = []) {
-  const health = Array.isArray(discovery.sourceHealth) ? discovery.sourceHealth : [];
-  const emptySources = health.filter(x => Number(x.discovered || 0) === 0).map(x => x.name);
-  const sourceWarnings = (discovery.indexErrors?.length || 0) + (discovery.pageErrors?.length || 0);
-  const officialMapCount = events.filter(e => e.seatLayoutSourceUrl).length;
-  const priceMappedCount = events.filter(e => Array.isArray(e.sectionPriceRules) && e.sectionPriceRules.length).length;
-  return {
-    completenessGuaranteed: false,
-    scope: 'Taiwan public music/concert events discoverable from configured official ticket, promoter, artist and venue sources',
-    sourceCount: health.length + 4,
-    sourceWarnings,
-    emptySources,
-    officialMapCount,
-    priceMappedCount,
-    note: 'No public source can guarantee every Taiwan performance. NEUL reconciles multiple official sources and exposes source health instead of claiming absolute completeness.'
-  };
 }
 
 export default async function handler(req, res) {
@@ -320,37 +302,23 @@ export default async function handler(req, res) {
   if (errors.length) autoUpdateError = errors.join(" · ");
   discovery.source = sources.join(" + ") || "curated fallback";
 
-  const events = mergeAndDedupe(seedEvents, discovery.events || []).map(event => {
-    const seatMapFound = Boolean(event.seatLayoutSourceUrl);
-    const sectionPricesFound = Boolean(event.sectionPriceRules?.length);
-    const explicitEventLayout = Boolean(event.venueLayoutId);
-    const renderable3D = Boolean(event.venueModelId || event.venueLayoutId || event.venue);
-    let threeDVerificationLevel = "venue-derived-client-qa-required";
-    if (seatMapFound && explicitEventLayout && sectionPricesFound) threeDVerificationLevel = "official-map-price-calibrated-seed";
-    else if (seatMapFound && explicitEventLayout) threeDVerificationLevel = "official-map-calibrated-seed";
-    else if (seatMapFound) threeDVerificationLevel = "official-map-linked-client-qa-required";
-    return {
-      ...event,
-      automation: {
-        eventFound: true,
-        ticketSourceFound: ticketSeatMapEligible(event),
-        seatMapFound,
-        seatMapAutoResolveReady: ticketSeatMapEligible(event),
-        ocrVisionReady: renderable3D,
-        sectionPricesFound,
-        sectionMappingReady: renderable3D,
-        threeDReady: renderable3D,
-        threeDOfficialVerified: Boolean(seatMapFound && explicitEventLayout),
-        priceMappingVerified: Boolean(sectionPricesFound && explicitEventLayout),
-        threeDVerificationLevel,
-        geometrySource: seatMapFound ? "official-seat-map-ocr-vision" : (ticketSeatMapEligible(event) ? "ticket-page-auto-seat-map-resolver" : "venue-base"),
-        pipeline: ["ticket-source", "seat-map-resolver", "ocr-vision", "section-mapping", "event-3d", "qa-gate"],
-        needsSeatMapFollowup: !seatMapFound,
-        needsSectionPriceFollowup: !sectionPricesFound,
-        note: threeDVerificationLevel.includes("client-qa-required") ? "3D 可生成，但未通過官方圖 client OCR/Vision QA 前不得標示為官方校正。" : "已具官方座位圖與活動專屬 layout；仍以官方最新公告為準。"
-      }
-    };
-  });
+  const events = mergeAndDedupe(seedEvents, discovery.events || []).map(event => ({
+    ...event,
+    automation: {
+      eventFound: true,
+      ticketSourceFound: ticketSeatMapEligible(event),
+      seatMapFound: Boolean(event.seatLayoutSourceUrl),
+      seatMapAutoResolveReady: ticketSeatMapEligible(event),
+      ocrVisionReady: Boolean(event.venueModelId || event.venueLayoutId || event.venue),
+      sectionPricesFound: Boolean(event.sectionPriceRules?.length),
+      sectionMappingReady: Boolean(event.venueModelId || event.venueLayoutId || event.venue),
+      threeDReady: Boolean(event.venueModelId || event.venueLayoutId || event.venue),
+      geometrySource: event.seatLayoutSourceUrl ? "official-seat-map-ocr-vision" : (ticketSeatMapEligible(event) ? "ticket-page-auto-seat-map-resolver" : "venue-base"),
+      pipeline: ["ticket-source", "seat-map-resolver", "ocr-vision", "section-mapping", "event-3d"],
+      needsSeatMapFollowup: !event.seatLayoutSourceUrl && !ticketSeatMapEligible(event),
+      needsSectionPriceFollowup: !event.sectionPriceRules?.length
+    }
+  }));
   const artists = buildArtists(events);
   const updatedAt = new Date();
   const nextUpdateAt = new Date(updatedAt.getTime() + 21600000);
@@ -368,7 +336,6 @@ export default async function handler(req, res) {
       sourceWarnings: (discovery.indexErrors?.length || 0) + (discovery.pageErrors?.length || 0) + (autoUpdateError ? 1 : 0),
       sourceHealth: discovery.sourceHealth || []
     },
-    coverage: coverageSnapshot(discovery, events),
     count: events.length,
     artistCount: artists.length,
     events,

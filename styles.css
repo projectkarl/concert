@@ -885,19 +885,3 @@ body.light-mode .official-seatmap-frame{border-color:#d2cbc5;background:#f5f3f0}
 body.light-mode .official-seatmap-loading{background:#f5f3f0;color:#6a6662}
 body.light-mode .official-seatmap-meta{color:#77716d}
 @media(max-width:760px){.official-seatmap-frame{height:230px}.official-seatmap-head{font-size:12px}.official-seatmap-head a{font-size:11px}.official-seatmap-meta{font-size:10px}}
-
-/* v0.40.6 — calendar lives only inside the existing "查看更多活動" modal. */
-.events-calendar-shell{margin:10px 0 14px;border:1px solid #2d343b;border-radius:16px;background:#10151a;padding:14px}
-.events-calendar-head{display:grid;grid-template-columns:40px minmax(0,1fr) 40px;align-items:center;gap:10px;margin-bottom:10px}
-.events-calendar-head>button{width:40px;height:40px;border-radius:50%;border:1px solid #394149;background:#171d23;color:#f7f5f6;font-size:24px;display:grid;place-items:center}
-.events-calendar-head>div{text-align:center;display:grid;gap:2px}.events-calendar-head span{font-size:9px;letter-spacing:.16em;color:#8e97a0}.events-calendar-head strong{font:760 18px/1.2 var(--font-display)}
-.events-calendar-weekdays,.events-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
-.events-calendar-weekdays{margin-bottom:6px}.events-calendar-weekdays span{text-align:center;font-size:10px;color:#7d8790;padding:4px 0}
-.events-calendar-spacer{min-height:72px}
-.events-calendar-day{min-height:72px;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto 1fr;gap:2px 5px;align-content:start;text-align:left;border:1px solid #262d33;border-radius:10px;background:#0d1216;color:#f4f2f3;padding:7px;overflow:hidden}
-.events-calendar-day:hover{border-color:#56616b;background:#141a20}.events-calendar-day.has-events{border-color:#3b4650}.events-calendar-day.active{outline:2px solid rgba(255,255,255,.78);outline-offset:-2px;background:#171e24}.events-calendar-day.today .events-calendar-number{text-decoration:underline;text-underline-offset:3px}
-.events-calendar-number{font-size:11px;font-weight:760}.events-calendar-day>b{justify-self:end;font-size:9px;min-width:18px;height:18px;border-radius:9px;display:grid;place-items:center;background:#f1eff0;color:#15171a}.events-calendar-day>small{grid-column:1/-1;font-size:9px;line-height:1.25;color:#aab1b8;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
-.events-agenda-head{display:flex;justify-content:space-between;gap:12px;align-items:end;margin:12px 0 8px}.events-agenda-head strong{font-size:15px}.events-agenda-head span{font-size:10px;color:#8f98a1;text-align:right}
-.events-agenda-list .events-modal-row{grid-template-columns:82px minmax(0,1fr) 26px}
-body.light-mode .events-calendar-shell{background:#fbf9f7;border-color:#ded8d3}body.light-mode .events-calendar-head>button{background:#f5f1ee;color:#1a1b1e;border-color:#d8d1cb}body.light-mode .events-calendar-head span,body.light-mode .events-calendar-weekdays span,body.light-mode .events-agenda-head span{color:#7d756f}body.light-mode .events-calendar-day{background:#fff;border-color:#e5dfda;color:#202124}body.light-mode .events-calendar-day:hover{background:#f7f3f0;border-color:#c7beb7}body.light-mode .events-calendar-day.active{background:#f0ebe7;outline-color:#6e6661}body.light-mode .events-calendar-day>small{color:#776f69}body.light-mode .events-calendar-day>b{background:#292526;color:#fff}
-@media (max-width:720px){.events-calendar-shell{padding:10px;margin-top:8px}.events-calendar-weekdays,.events-calendar-grid{gap:3px}.events-calendar-spacer{min-height:54px}.events-calendar-day{min-height:54px;padding:5px;border-radius:8px}.events-calendar-day>small{display:none}.events-calendar-day>b{font-size:8px;min-width:16px;height:16px}.events-agenda-head{align-items:start;flex-direction:column;gap:2px}.events-agenda-head span{text-align:left}.events-agenda-list .events-modal-row{grid-template-columns:68px minmax(0,1fr) 18px}}

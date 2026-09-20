@@ -1,4 +1,4 @@
-const VERSION = "neul-v0.40.6-daily-calendar-coverage-audit";
+const VERSION = "neul-v0.40.4-bts-stage-bm-price-autogen-guard";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const APP_SHELL = [

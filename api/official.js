@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   // Seat-map linked and multi-source events are monitored first because their official map/price
   // can change after the concert has already been discovered. Fill remaining slots by date.
   const priority = future.filter(event => event.seatLayoutSourceUrl || event.secondarySourceUrl);
-  const candidates = [...new Map([...priority, ...future].map(event => [event.id, event])).values()].slice(0, 60);
+  const candidates = [...new Map([...priority, ...future].map(event => [event.id, event])).values()].slice(0, 40);
   const results = await Promise.all(candidates.map(event => monitorOfficialSource(event)));
   const live = results.filter(x => x.check?.status === "live").length;
   const review = results.filter(x => x.check?.status === "review").length;
