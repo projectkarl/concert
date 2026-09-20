@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {money,dateRange,sectionTokens,stripHtml} from './lib/html.mjs';
+import {build3DSchema} from './lib/venue.mjs';
+import {quality} from './lib/pipeline.mjs';
+const text=`IVE WORLD TOUR 2026/09/11 ~ 2026/09/13 VENUE: Taipei Arena GENERAL PRICE: NT$ 5,800 / 4,800 / 3,800 / 2,800 / 2,300 / 800 VIP NT$ 7,800. Y2A-2區 O4A-2區 2樓座位區`;
+assert.deepEqual(dateRange(text),{date:'2026-09-11',endDate:'2026-09-13'});
+assert.ok(money(text).includes(5800));
+assert.ok(sectionTokens(text).some(x=>x.includes('Y2A-2')));
+assert.equal(stripHtml('<h1>Hello</h1><p>World</p>').includes('Hello'),true);
+const event={venue:'臺北小巨蛋',sections:['Y2A-2','O4A-2','ZONE A'],prices:[2800,3800,5800],stage:'end',seatMapMode:'arena-seated',date:'2026-10-20',seatMapCandidates:[{src:'https://example.com/map.jpg'}]};
+const schema=build3DSchema(event);assert.equal(schema.venue.kind,'arena');assert.equal(schema.sections.length,3);assert.equal(schema.floor.light,true);
+const qa=quality(event,schema);assert.ok(qa.score>=60);
+console.log('PIPELINE TEST PASS',qa.score);
