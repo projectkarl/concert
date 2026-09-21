@@ -55,3 +55,80 @@ export const venues = [
     confidence: "官方容量／場館級幾何＋實景校正", disclaimer: "官方可確認固定席容量；細分區域採區域級重建，平面區人頭與欄杆遮擋以公開實景回報校正。"
   }
 ];
+
+// v0.40.4 — community sightline cross-check metadata.
+// These links are NOT geometry authorities. Official venue/ticket maps remain the topology source;
+// twconcertview is used only to compare section naming and real-world sightline anecdotes.
+export const VENUE_CROSSCHECK_REFERENCES = {
+  'taipei-dome': 'https://twconcertview.com/en/venue/taipei-dome/',
+  'taipei-arena': 'https://twconcertview.com/en/venue/taipei-arena/',
+  'ntsu-arena': 'https://twconcertview.com/en/venue/ntsu-arena-linkou/',
+  'kaohsiung-arena': 'https://twconcertview.com/en/venue/kaohsiung-arena/',
+  'taipei-music-center': 'https://twconcertview.com/en/venue/taipei-music-center/',
+  'ticc': 'https://twconcertview.com/en/venue/ticc-taipei/',
+  'kaohsiung-music-center': 'https://twconcertview.com/en/venue/kaohsiung-music-center/',
+  'kaohsiung-stadium': 'https://twconcertview.com/en/venue/kaohsiung-national-stadium/',
+  'taoyuan-arena': 'https://twconcertview.com/en/venue/taoyuan-arena/',
+  'ntu-sports-center': 'https://twconcertview.com/en/venue/ntu-sports-center/',
+  'tianmu-gymnasium': 'https://twconcertview.com/en/venue/tianmu-gymnasium/',
+  'zepp-new-taipei': 'https://twconcertview.com/en/venue/zepp-new-taipei/'
+};
+
+// Two calibrated models were historically missing from the venue metadata list even though the
+// renderer supports them. Keep metadata and renderer eligibility in sync so unknown halls can
+// never be silently treated as a calibrated venue.
+if (!venues.some(v=>v.id==='nangang-exhibition-hall1-4f')) venues.push({
+  id:'nangang-exhibition-hall1-4f', name:'南港展覽館一館 4F', en:'NANGANG EXHIBITION HALL 1 · 4F', city:'Taipei', address:'台北市南港區經貿二路1號',
+  sourceName:'南港展覽館官方場地資料', sourceUrl:'https://www.tainex.com.tw/',
+  confidence:'官方空間尺寸／活動平面配置級', disclaimer:'展覽館 4F 為大面積可變平面空間；3D 只在取得該場官方座位圖後生成票區，不宣稱固定座席。'
+});
+if (!venues.some(v=>v.id==='zepp-new-taipei')) venues.push({
+  id:'zepp-new-taipei', name:'Zepp New Taipei', en:'ZEPP NEW TAIPEI', city:'New Taipei', address:'新北市新莊區新北大道四段3號8樓',
+  sourceName:'Zepp New Taipei 官方場館資訊', sourceUrl:'https://www.zepp.co.jp/hall/newtaipei/',
+  confidence:'官方樓層結構／固定席與可變站席分離', disclaimer:'1F 可依活動採站席或座席配置；2F 固定席依場館結構保留，實際開放區以主辦售票圖為準。'
+});
+
+const PRECISION = {
+  'taipei-dome':['section-calibrated','固定看台分區級；活動平面與舞台需逐場校正'],
+  'taipei-arena':['section-calibrated','固定 2F/3F 看台分區級；B1 為活動可變配置'],
+  'ntsu-arena':['section-calibrated','固定看台色區／排深級；1F 活動區逐場校正'],
+  'kaohsiung-arena':['section-calibrated','固定看台樓層／區域級；舞台與平面區逐場校正'],
+  'taipei-music-center':['section-calibrated','2F/3F 固定席分區級；1F 為可變平面'],
+  'ticc':['section-calibrated','大會堂 2MF、3F–6F 與側包廂拓樸級；非單席攝影測量'],
+  'kaohsiung-music-center':['section-calibrated','固定看台與伸縮席分區級；1F 活動配置可變'],
+  'kaohsiung-stadium':['zone-calibrated','戶外看台區域級；不同舞台方向差異大'],
+  'taoyuan-arena':['zone-calibrated','固定環形看台區域級；平面活動席可變'],
+  'ntu-sports-center':['zone-calibrated','固定樓層／容量級；平面與伸縮席逐場變動'],
+  'tianmu-gymnasium':['zone-calibrated','場館／側看台區域級；非單席幾何'],
+  'nangang-exhibition-hall1-4f':['event-layout-dependent','大型平面空間；沒有官方活動座位圖就不產生精準票區'],
+  'zepp-new-taipei':['zone-calibrated','1F 可變站/座席＋2F 固定席結構級']
+};
+for (const venue of venues) {
+  const [precisionLevel, precisionNote] = PRECISION[venue.id] || ['uncalibrated','尚未建立可靠場館幾何'];
+  venue.precisionLevel = precisionLevel;
+  venue.precisionNote = precisionNote;
+  venue.twConcertViewUrl = VENUE_CROSSCHECK_REFERENCES[venue.id] || null;
+  venue.crossCheckRole = venue.twConcertViewUrl ? 'community-sightline-crosscheck-only' : 'official-only';
+  venue.singleSeatPhotogrammetry = false;
+}
+
+
+// v0.40.5 — one Korean-star reference production per calibrated venue.
+// The reference event calibrates stage direction / floor usage / relative viewing distance.
+// Official venue geometry remains authoritative; community photos are sightline cross-checks only.
+export const VENUE_KSTAR_REFERENCE = {
+  'taipei-dome': {artist:'aespa', event:'2026 aespa LIVE TOUR – SYNK : COMPLæXITY', date:'2026-08-11', layoutId:'ref-aespa-taipei-dome-2026', sourceName:'官方售票／臺北大巨蛋場館資料', sourceUrl:'https://www.farglorydome.com.tw/park-detail/map/', note:'大型端景舞台＋地面特區；以大巨蛋固定看台層級與活動票區相對距離校正。'},
+  'taipei-arena': {artist:'IVE', event:'IVE 2ND WORLD TOUR SHOW WHAT I AM', date:'2026-09-11~13', layoutId:'ive-show-what-i-am-2026', sourceName:'tixCraft / Live Nation Taiwan', sourceUrl:'https://tixcraft.com/activity/detail/26_ive', note:'官方票區圖客製；延伸台、FOH、特區與固定看台均為本場 reference。'},
+  'ntsu-arena': {artist:'NCT WISH', event:'NCT WISH LIVE TOUR in TAIPEI', date:'2026-09-05', layoutId:'ref-nct-wish-ntsu-2026', sourceName:'官方售票／林口體育館資料', sourceUrl:'https://phk.ntsu.edu.tw/var/file/8/1008/img/1439/147422320.pdf', note:'端景主舞台＋林口固定色區看台；平面區以演唱會典型中央延伸動線保守重建。'},
+  'kaohsiung-arena': {artist:'NMIXX', event:'NMIXX 1ST WORLD TOUR EPISODE 1: ZERO FRONTIER', date:'2026-07-12~13', layoutId:'ref-nmixx-kaohsiung-arena-2026', sourceName:'Live Nation Taiwan / 高雄巨蛋', sourceUrl:'https://www.livenation.com.tw/nmixx-khh', note:'官方場域圖確認高雄巨蛋活動方向；固定 2F/4F/5F 與 VIP/平面區相對位置校正。'},
+  'taipei-music-center': {artist:'LEE YOUNGJI', event:'2026 LEE YOUNGJI WORLD TOUR 2.0', date:'2026-09-19~20', layoutId:'ref-youngji-tmc-2026', sourceName:'Live Nation Taiwan / 臺北流行音樂中心', sourceUrl:'https://www.livenation.com.tw/event/2026-lee-youngji-world-tour-2-0--taipei-tickets-edp1669737', note:'1F 站區＋2F/3F 固定席；依北流實際樓層與舞台寬深比例做 reference。'},
+  'ticc': {artist:'HYERI', event:'2026 HYERI FANMEETING TOUR HYER1DE in TAIPEI', date:'2026-09-05', layoutId:'ref-hyeri-ticc-2026', sourceName:'TICC 官方大會堂／公開活動資料', sourceUrl:'https://www.ticc.com.tw/', note:'TICC 不建立一般 1F 觀眾席；2MF→6F 連續斜坡與包廂維持固定幾何。'},
+  'kaohsiung-music-center': {artist:'TWS', event:"2025 TWS TOUR 24/7:WITH:US IN KAOHSIUNG", date:'2026-01-31', layoutId:'ref-tws-kmc-2026', sourceName:'高雄流行音樂中心／活動售票資料', sourceUrl:'https://kpmc.com.tw/', note:'海音館 1F 活動配置＋2F 固定分段；舞台／FOH 依演唱會端景型 reference 重建。'},
+  'kaohsiung-stadium': {artist:'BLACKPINK', event:'BLACKPINK WORLD TOUR BORN PINK KAOHSIUNG', date:'2023-03-18~19', layoutId:'ref-blackpink-kaohsiung-stadium-2023', sourceName:'YG Entertainment / 高雄市官方活動資料', sourceUrl:'https://ygfamily.com/cn/news/notice/5483', note:'已實際舉辦的大型韓星 stadium reference；端景主舞台、長距離平面區與戶外看台尺度校正。'},
+  'taoyuan-arena': {artist:'FNC BAND KINGDOM', event:'1st FNC BAND KINGDOM in Taoyuan', date:'2025-01-04~05', layoutId:'ref-fnc-taoyuan-arena-2025', sourceName:'Ticket Plus / 主辦公開資料', sourceUrl:'https://ticketplus.com.tw/', note:'桃園巨蛋環形固定看台＋平面區；樂團型端景舞台 reference。'},
+  'ntu-sports-center': {artist:'LOVELYZ', event:'2024 LOVELYZ CONCERT LOVELYZ 4 OF WINTER WORLD', date:'2024-12-01', layoutId:'ref-lovelyz-ntu-2024', sourceName:'ibon / 臺大場館資料', sourceUrl:'https://rent.pe.ntu.edu.tw/map/', note:'臺大一樓活動區＋3–5F 固定席相對高度；全座席端景配置 reference。'},
+  'tianmu-gymnasium': {artist:'KYUHYUN', event:'KYUHYUN 20th Anniversary Fanmeeting in TAIPEI', date:'2026-06-27~28', layoutId:'ref-kyuhyun-tianmu-2026', sourceName:'tixCraft / D-SHOW TAIWAN', sourceUrl:'https://tixcraft.com/', note:'全場座位席；固定安全欄杆與第一排不開放資訊納入視角警示。'},
+  'nangang-exhibition-hall1-4f': {artist:'HWASA', event:'HWASA the 1st FANCON TOUR Twits in Taipei', date:'2024-06-16', layoutId:'ref-hwasa-nangang-2024', sourceName:'南港展覽館官方年報／活動公開資料', sourceUrl:'https://www.tainex.com.tw/', note:'純平面展演空間；不生成 arena 看台，依大型 fancon 分區建立臨時座／站席與 FOH。'},
+  'zepp-new-taipei': {artist:'WOODZ', event:"WOODZ WORLD TOUR Archive. 1 IN TAIPEI", date:'2026-05-23~24', layoutId:'ref-woodz-zepp-2026', sourceName:'Zepp New Taipei 官方場館結構／活動紀錄交叉核對', sourceUrl:'https://www.zepp.co.jp/hall/newtaipei/', note:'1F 可變站席、2F 291 固定座席＋站席；小型場館距離尺度採近距離 reference。'}
+};
+for (const venue of venues) venue.kstarReference = VENUE_KSTAR_REFERENCE[venue.id] || null;

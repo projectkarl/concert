@@ -1,3 +1,19 @@
+# NEUL v0.40.5
+
+**本版重點：13 個已校正場館各自提供一個韓星實際場次 3D reference、票區／排別級距離範圍、活動來源 ⓘ、日本娛樂新聞獨立分類，以及手機行事曆／清單 containment。**
+
+> 3D 原則：官方場館結構與官方活動票區圖優先；twconcertview 僅作補漏與觀眾實拍視野交叉核對。距離為區域／排別級估算，沒有官方測量資料時不宣稱單一座位公尺級精度。
+
+# NEUL v0.40.3 — Venue Topology Guard (2026-09-21)
+
+This release keeps the v0.40.2 UX3 interface and changes the 3D correctness pipeline only.
+
+- TICC Plenary Hall is rebuilt as one continuous raked auditorium. Its audience zones begin at 2MF; NEUL no longer invents a general 1F audience tier.
+- Shared ticket pages are venue-aware. The Julia Peng Taipei / Kaohsiung shows share one KHAM product page, so seat-map selection now carries city / venue / event hints and refuses ambiguous maps.
+- Fixed venue topology is authoritative. OCR/Vision can customize only physically reconfigurable tiers such as arena floors; it cannot replace fixed balconies or create new building floors.
+- Unknown indoor venues no longer silently fall back to a generic theatre or Taipei Dome. Uncalibrated venues keep the event listing but withhold 3D until an official geometry source exists.
+- `VENUE_3D_TOPOLOGY_AUDIT_2026-09-21.md` contains the 101-event audit; `TEST_REPORT_v0.40.3-VenueTopology.md` records regression checks.
+
 
 ## v0.40.2 Full Audit (2026-09-20)
 - Fixed premature “ended” state with session-aware lifecycle rules.

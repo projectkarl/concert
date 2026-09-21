@@ -261,33 +261,45 @@ const tmcTiers=[
   {id:'3F',label:'3F 固定席',short:'3F',sections:tmc3.map(x=>x.id)}
 ];
 
-// TICC: the official seat finder separates every level into five principal blocks.
-// Keep the community-facing A–E naming while preserving the official five-block geometry.
-function ticcTier(prefix,tier,rx,rz,y,start,end,rowMin,rowMax,officialPrefix=prefix){
+// TICC Plenary Hall is one continuous raked auditorium, not an arena with five
+// independent stacked balcony rings. The official finder uses 2MF / 3F / 4F / 5F / 6F
+// as entrance / seating-zone bands inside that continuous rake. There is NO general
+// "1F audience tier" in the official Plenary Hall seat finder.
+//
+// Preserve the existing community-facing ids (2F-A ... 6F-E) so saved links keep
+// working, but place the bands on one rising audience plane instead of concentric arcs.
+function ticcRakeBand(prefix,tier,z,y,rowMin,rowMax,officialPrefix=prefix,depth=24,rise=8){
   const letters=['A','B','C','D','E'];
-  return arcGroup(letters.map(x=>`${prefix}-${x}`),tier,rx,rz,y,start,end)
-    .map((s,i)=>({...s,rowMin,rowMax,depthX:12,depthZ:9,rise:6,
-      officialId:`${officialPrefix}-${i+1}`,
-      label:`${officialPrefix}-${i+1} · ${letters[i]}`,
-      aliases:[`${officialPrefix}-${i+1}`,`${prefix}-${letters[i]}`]
-    }));
+  const xs=[-56,-28,0,28,56];
+  const widths=[24,25,26,25,24];
+  return letters.map((letter,i)=>({
+    ...block(`${prefix}-${letter}`,tier,xs[i],z,widths[i],depth,'ticc-rake'),
+    y, rowMin,rowMax,depthZ:Math.max(10,depth*.78),rise,rowCurve:1.02,
+    officialId:`${officialPrefix}-${i+1}`,
+    label:`${officialPrefix}-${i+1} · ${letter}`,
+    aliases:[`${officialPrefix}-${i+1}`,`${prefix}-${letter}`],
+    continuousRake:true,
+    audienceZoneBand:true
+  }));
 }
-const ticc2=ticcTier('2F','2F',104,78,8,2.62,.52,1,16,'2MF');
-const ticc3=ticcTier('3F','3F',126,92,30,2.64,.50,17,25,'3F');
-const ticc4=ticcTier('4F','4F',148,108,51,2.66,.48,29,41,'4F');
-const ticc5=ticcTier('5F','5F',170,124,72,2.68,.46,42,52,'5F');
-const ticc6=ticcTier('6F','6F',191,139,91,2.70,.44,1,35,'6F');
+const ticc2=ticcRakeBand('2F','2MF',-53,-16,1,12,'2MF',22,7);
+const ticc3=ticcRakeBand('3F','3F',-27,-9,13,27,'3F',28,9);
+const ticc4=ticcRakeBand('4F','4F',5,0,28,41,'4F',29,10);
+const ticc5=ticcRakeBand('5F','5F',38,11,42,55,'5F',28,11);
+// 6F labels use a local rear-zone row system on the official finder, so do not pretend
+// they are a continuation of the 1–55 main-floor row numbering.
+const ticc6=ticcRakeBand('6F','6F',69,24,1,35,'6F',20,12).map(s=>({...s,rowSystem:'local-zone'}));
 const ticcBoxes=[
-  block('BOX-L1','BOX',-118,24,16,26,'box'),block('BOX-L2','BOX',-130,48,16,26,'box'),block('BOX-L3','BOX',-139,73,16,26,'box'),
-  block('BOX-R1','BOX',118,24,16,26,'box'),block('BOX-R2','BOX',130,48,16,26,'box'),block('BOX-R3','BOX',139,73,16,26,'box')
-].map((s,i)=>{const side=i<3?'L':'R',n=(i%3)+1;return {...s,y:58,rowMin:1,rowMax:12,officialId:`${side}-${n}`,label:`${side}-${n} · 包廂`,aliases:[`${side}-${n}`,s.id]};});
+  block('BOX-L1','BOX',-76,-7,14,22,'box'),block('BOX-L2','BOX',-80,28,14,22,'box'),block('BOX-L3','BOX',-82,59,14,22,'box'),
+  block('BOX-R1','BOX',76,-7,14,22,'box'),block('BOX-R2','BOX',80,28,14,22,'box'),block('BOX-R3','BOX',82,59,14,22,'box')
+].map((s,i)=>{const side=i<3?'L':'R',n=(i%3)+1;return {...s,y:10+n*10,rowMin:1,rowMax:12,officialId:`${side}-${n}`,label:`${side}-${n} · 包廂`,aliases:[`${side}-${n}`,s.id]};});
 const ticcSections=[...ticc2,...ticc3,...ticc4,...ticc5,...ticc6,...ticcBoxes];
 const ticcTiers=[
-  {id:'2F',label:'2F 大會堂',short:'2F',sections:ticc2.map(x=>x.id)},
-  {id:'3F',label:'3F 大會堂',short:'3F',sections:ticc3.map(x=>x.id)},
-  {id:'4F',label:'4F 大會堂',short:'4F',sections:ticc4.map(x=>x.id)},
-  {id:'5F',label:'5F 大會堂',short:'5F',sections:ticc5.map(x=>x.id)},
-  {id:'6F',label:'6F 大會堂',short:'6F',sections:ticc6.map(x=>x.id)},
+  {id:'2MF',label:'2MF 大會堂前段',short:'2MF',sections:ticc2.map(x=>x.id)},
+  {id:'3F',label:'3F 大會堂前中段',short:'3F',sections:ticc3.map(x=>x.id)},
+  {id:'4F',label:'4F 大會堂中段',short:'4F',sections:ticc4.map(x=>x.id)},
+  {id:'5F',label:'5F 大會堂後段',short:'5F',sections:ticc5.map(x=>x.id)},
+  {id:'6F',label:'6F 大會堂後上段',short:'6F',sections:ticc6.map(x=>x.id)},
   {id:'BOX',label:'側邊包廂',short:'BOX',sections:ticcBoxes.map(x=>x.id)}
 ];
 
@@ -425,8 +437,8 @@ export const venueModels = {
   },
   'ticc': {
     id:'ticc', name:'TICC 台北國際會議中心', en:'TAIPEI INTERNATIONAL CONVENTION CENTER', city:'Taipei', sections:ticcSections, tiers:ticcTiers,
-    baseLayoutId:'ticc-base', defaultTier:'2F', defaultSection:'2F-B', defaultRow:10, field:{x:92,z:70}, stage:genericStage(-82,72,20),
-    sourceName:'TICC 官方大會堂座位查詢／VR', sourceUrl:'https://www.ticc.com.tw/wSite/sp?BaseDSD=&CtUnit=100&ctNode=323&mp=1&xdUrl=%2FwSite%2Fap%2Flp_PlenaryHall.jsp', confidence:'官方 2MF/3F–6F 五分區＋包廂校正／公開實拍交叉驗證'
+    baseLayoutId:'ticc-base', defaultTier:'2MF', defaultSection:'2F-B', defaultRow:10, field:{x:92,z:82}, stage:genericStage(-82,72,20),
+    sourceName:'TICC 官方大會堂座位查詢／VR', sourceUrl:'https://www.ticc.com.tw/wSite/sp?BaseDSD=&CtUnit=100&ctNode=323&mp=1&xdUrl=%2FwSite%2Fap%2Flp_PlenaryHall.jsp', confidence:'官方 2MF/3F–6F 分區＋連續斜坡觀眾席拓樸／包廂校正'
   },
   'kaohsiung-music-center': {
     id:'kaohsiung-music-center', name:'高雄流行音樂中心 海音館', en:'KAOHSIUNG MUSIC CENTER · HI-ING MUSIC HALL', city:'Kaohsiung', sections:kmcSections, tiers:kmcTiers,
@@ -465,7 +477,163 @@ export const venueModels = {
   }
 };
 
+// Venue topology is an invariant. Vision/OCR can customize only the parts that are
+// physically reconfigurable for that venue; it must never invent a new fixed balcony,
+// delete fixed tiers, or turn building floor labels into audience tiers.
+export const VENUE_GEOMETRY_POLICIES = {
+  'taipei-dome': {topology:'stadium-bowl',fixedSectionsAuthoritative:true,flexibleTierIds:['FLOOR'],allowSyntheticSections:true,allowFullSectionReplacement:false,allowSeatMapStageOverride:true,minStageOverrideConfidence:.82},
+  'taipei-arena': {topology:'arena-bowl',fixedSectionsAuthoritative:true,flexibleTierIds:['B1'],allowSyntheticSections:true,allowFullSectionReplacement:false,allowSeatMapStageOverride:true,minStageOverrideConfidence:.82},
+  'ntsu-arena': {topology:'arena-bowl',fixedSectionsAuthoritative:true,flexibleTierIds:['FLOOR','LOWER'],allowSyntheticSections:true,allowFullSectionReplacement:false,allowSeatMapStageOverride:true,minStageOverrideConfidence:.82},
+  'kaohsiung-arena': {topology:'arena-bowl',fixedSectionsAuthoritative:true,flexibleTierIds:['FLOOR'],allowSyntheticSections:true,allowFullSectionReplacement:false,allowSeatMapStageOverride:true,minStageOverrideConfidence:.82},
+  'taipei-music-center': {topology:'concert-hall',fixedSectionsAuthoritative:true,flexibleTierIds:['1F'],allowSyntheticSections:true,allowFullSectionReplacement:false,allowSeatMapStageOverride:true,minStageOverrideConfidence:.82},
+  'ticc': {topology:'continuous-raked-auditorium',fixedSectionsAuthoritative:true,flexibleTierIds:[],allowedTierIds:['2MF','3F','4F','5F','6F','BOX'],allowSyntheticSections:false,allowFullSectionReplacement:false,allowSeatMapStageOverride:false,audienceFloor1:false},
+  'kaohsiung-music-center': {topology:'concert-hall',fixedSectionsAuthoritative:true,flexibleTierIds:['1F'],allowSyntheticSections:true,allowFullSectionReplacement:false,allowSeatMapStageOverride:true,minStageOverrideConfidence:.82},
+  'kaohsiung-stadium': {topology:'stadium-bowl',fixedSectionsAuthoritative:true,flexibleTierIds:['FLOOR'],allowSyntheticSections:true,allowFullSectionReplacement:false,allowSeatMapStageOverride:true,minStageOverrideConfidence:.86},
+  'taoyuan-arena': {topology:'arena-bowl',fixedSectionsAuthoritative:true,flexibleTierIds:['FLOOR'],allowSyntheticSections:true,allowFullSectionReplacement:false,allowSeatMapStageOverride:true,minStageOverrideConfidence:.82},
+  'ntu-sports-center': {topology:'arena-bowl',fixedSectionsAuthoritative:true,flexibleTierIds:['FLOOR'],allowSyntheticSections:true,allowFullSectionReplacement:false,allowSeatMapStageOverride:true,minStageOverrideConfidence:.82},
+  'tianmu-gymnasium': {topology:'arena-bowl',fixedSectionsAuthoritative:true,flexibleTierIds:['FLOOR'],allowSyntheticSections:true,allowFullSectionReplacement:false,allowSeatMapStageOverride:true,minStageOverrideConfidence:.82},
+  'nangang-exhibition-hall1-4f': {topology:'flat-exhibition-hall',fixedSectionsAuthoritative:false,flexibleTierIds:['FLOOR'],allowSyntheticSections:true,allowFullSectionReplacement:true,allowSeatMapStageOverride:true,minStageOverrideConfidence:.76},
+  'zepp-new-taipei': {topology:'live-house',fixedSectionsAuthoritative:true,flexibleTierIds:['FLOOR'],allowSyntheticSections:true,allowFullSectionReplacement:false,allowSeatMapStageOverride:true,minStageOverrideConfidence:.82}
+};
+for (const [venueId,policy] of Object.entries(VENUE_GEOMETRY_POLICIES)) {
+  if (venueModels[venueId]) venueModels[venueId].geometryPolicy={...policy};
+}
+
+
+// v0.40.5 — one hand-calibrated Korean-star reference show per calibrated venue.
+// These demos intentionally keep the physical venue topology authoritative while replacing only
+// activity-flexible floors / stage elements. twconcertview is used as a real-world sightline cross-check,
+// never as the sole geometry source.
+const kstarDemoLayouts = {
+  'aespa-complexity-taipei-dome-2026': {
+    id:'aespa-complexity-taipei-dome-2026', venueId:'taipei-dome', label:'aespa · SYNK : COMPLæXITY', historical:true, kstarExample:true,
+    demoArtist:'aespa', demoDate:'2026-08-11', customizationLevel:'hand-calibrated-kstar-demo',
+    stage:{main:{x:0,y:-16,z:-160,width:112,depth:34},runway:{x:0,y:-15,z1:-143,z2:-64,width:19},bStage:{x:0,y:-14,z:-56,radius:22,shape:'octagon'}},
+    foh:{x:0,y:-19,z:70,width:72,depth:20},
+    sections:[
+      {...block('B2-VIP-A','FLOOR',-53,-89,44,62,'vip'),rowMin:1,rowMax:28}, {...block('B2-VIP-B','FLOOR',0,-89,44,62,'vip'),rowMin:1,rowMax:28}, {...block('B2-VIP-C','FLOOR',53,-89,44,62,'vip'),rowMin:1,rowMax:28},
+      {...block('B2-A','FLOOR',-61,-17,52,50,'floor'),rowMin:1,rowMax:24}, {...block('B2-B','FLOOR',0,-17,52,50,'floor'),rowMin:1,rowMax:24}, {...block('B2-C','FLOOR',61,-17,52,50,'floor'),rowMin:1,rowMax:24}
+    ],
+    tiers:[{id:'FLOOR',label:'B2 活動平面席',short:'B2',sections:['B2-VIP-A','B2-VIP-B','B2-VIP-C','B2-A','B2-B','B2-C']}],
+    replaceStructuralTiers:['FLOOR'], defaultTier:'FLOOR', defaultSection:'B2-B', defaultRow:12,
+    sourceName:'Live Nation Taiwan · aespa 2026 臺北大巨蛋入場／場域圖', sourceUrl:'https://www.livenation.com.tw/aespa-tpe',
+    sightlineSourceUrl:'https://twconcertview.com/en/venue/taipei-dome/', sightlineSourceName:'twconcertview 臺北大巨蛋實拍視角',
+    distanceCalibration:{metersPerUnit:.47,uncertaintyM:6,basis:'大巨蛋固定看台比例＋本場 B2 場域圖＋實拍視角交叉校正'},
+    verifiedAt:'2026-09-21T16:10:00+08:00',
+    notices:['本範例依 aespa 2026 臺北大巨蛋實際場次重建 B2 平面席、主舞台、中央延伸台與 FOH 相對位置。','固定 B1／L2–L5 看台不因活動票區圖任意變形；實際燈架、攝影台與當日封區仍以主辦為準。','距離顯示為票區／排別級估算，不宣稱單一椅面的測量級精度。']
+  },
+  'nct-wish-anniversary-ntsu-2026': {
+    id:'nct-wish-anniversary-ntsu-2026', venueId:'ntsu-arena', eventId:'nct-wish-2nd-anniversary-taipei-2026', label:'NCT WISH · 2ND ANNIVERSARY', historical:true, kstarExample:true,
+    demoArtist:'NCT WISH', demoDate:'2026-09-05', customizationLevel:'hand-calibrated-kstar-demo',
+    stage:{main:{x:0,y:-16,z:-112,width:86,depth:25},runway:{x:0,y:-15,z1:-100,z2:-61,width:15},bStage:{x:0,y:-14,z:-52,radius:18,shape:'hexagon'}},
+    extraStageRects:[{x:-24,y:-14,z:-45,width:12,depth:42,ry:-.72},{x:24,y:-14,z:-45,width:12,depth:42,ry:.72}],
+    foh:{x:0,y:-19,z:48,width:58,depth:18},
+    sections:[
+      {...block('W','FLOOR',-46,-40,39,62,'6200'),rowMin:1,rowMax:30},{...block('I','FLOOR',46,-40,39,62,'6200'),rowMin:1,rowMax:30},
+      {...block('S','FLOOR',-46,28,42,54,'6200'),rowMin:1,rowMax:28},{...block('H','FLOOR',46,28,42,54,'6200'),rowMin:1,rowMax:28}
+    ],
+    tiers:[{id:'FLOOR',label:'W / I / S / H 本場平面區',short:'1F',sections:['W','I','S','H']}], replaceStructuralTiers:['FLOOR','LOWER'],
+    defaultTier:'FLOOR',defaultSection:'W',defaultRow:8,
+    sourceName:'Weverse / Ticket Plus · NCT WISH 2026 台北場',sourceUrl:'https://weverse.io/nctwish/notice/37945',
+    sightlineSourceUrl:'https://twconcertview.com/en/venue/ntsu-arena-linkou/',sightlineSourceName:'twconcertview 林口體育館實拍視角',
+    distanceCalibration:{metersPerUnit:.34,uncertaintyM:4,basis:'官方 W/I/S/H 票區圖＋林口固定看台排數規則＋同場實拍視角'},
+    verifiedAt:'2026-09-21T16:10:00+08:00', restrictedViewSections:['黃1B-1','黃2A-2','橙1B-2','橙2A-1'],
+    notices:['本場官方圖確認 W／I／S／H 四個平面區，以及主舞台至中央節點的延伸結構；平面票區以本場重建，不沿用通用四方格。','固定看台排數方向依售票說明校正：部分 B 層以 15 排最靠近舞台、A 層由 0 排起算。','twconcertview 同場回報用來核對欄杆、側舞台與實際體感距離，不作為固定幾何唯一來源。']
+  },
+  'exo-exhorizon-kaohsiung-arena-2026': {
+    id:'exo-exhorizon-kaohsiung-arena-2026',venueId:'kaohsiung-arena',label:'EXO · EXhOrizon KAOHSIUNG',historical:true,kstarExample:true,demoArtist:'EXO',demoDate:'2026-07-18',customizationLevel:'hand-calibrated-kstar-demo',
+    stage:{main:{x:0,y:-16,z:-104,width:84,depth:26},runway:{x:0,y:-15,z1:-91,z2:-42,width:16},bStage:{x:0,y:-14,z:-32,radius:22,shape:'hexagon'}},foh:{x:0,y:-19,z:58,width:54,depth:16},
+    sections:[...[-54,-18,18,54].map((x,i)=>({...block(`VIP-${String.fromCharCode(65+i)}`,'FLOOR',x,-61,30,46,'vip'),rowMin:1,rowMax:20})),...[-54,-18,18,54].map((x,i)=>({...block(`F-${String.fromCharCode(65+i)}`,'FLOOR',x,-7,30,43,'floor'),rowMin:1,rowMax:20}))],
+    tiers:[{id:'FLOOR',label:'本場 1F 平面區',short:'1F',sections:['VIP-A','VIP-B','VIP-C','VIP-D','F-A','F-B','F-C','F-D']}],replaceStructuralTiers:['FLOOR'],defaultTier:'FLOOR',defaultSection:'VIP-B',defaultRow:10,
+    sourceName:'EXO PLANET #6 EXhOrizon 高雄場公開售票座位配置',sourceUrl:'https://www.kaoarena.com.tw/Home/Seat',sightlineSourceUrl:'https://twconcertview.com/en/venue/kaohsiung-arena/',sightlineSourceName:'twconcertview 高雄巨蛋實拍視角',
+    distanceCalibration:{metersPerUnit:.34,uncertaintyM:5,basis:'高雄巨蛋固定樓層＋EXO 本場舞台／平面票區圖比例'},verifiedAt:'2026-09-21T16:10:00+08:00',
+    notices:['依 EXO 2026 高雄場座位圖建立中央多邊形副舞台、延伸台、平面 VIP／一般區與後方 FOH。','2F／4F／5F 固定看台沿用場館結構，不以演唱會平面圖改寫樓層。']
+  },
+  'jaehyun-mono-tmc-2026': {
+    id:'jaehyun-mono-tmc-2026',venueId:'taipei-music-center',label:'JAEHYUN · Mono',historical:true,kstarExample:true,demoArtist:'JAEHYUN',demoDate:'2026-07-04',customizationLevel:'hand-calibrated-kstar-demo',
+    stage:{main:{x:0,y:-16,z:-78,width:69,depth:22},runway:{x:0,y:-15,z1:-67,z2:-39,width:14},bStage:{x:0,y:-14,z:-35,radius:13,shape:'rounded'}},foh:{x:0,y:-18,z:39,width:34,depth:13},
+    sections:[{...block('VIP A','1F',-26,-11,45,60,'vip'),standingOnly:true,rowMin:1,rowMax:1},{...block('VIP B','1F',26,-11,45,60,'vip'),standingOnly:true,rowMin:1,rowMax:1}],tiers:[{id:'1F',label:'1F VIP 活動區',short:'1F',sections:['VIP A','VIP B']}],replaceStructuralTiers:['1F'],defaultTier:'1F',defaultSection:'VIP A',defaultRow:1,
+    sourceName:'臺北流行音樂中心 · JAEHYUN 2026 活動回顧 / tixCraft',sourceUrl:'https://www.tmc.taipei/tw/blog/show/Jaehyun2026',sightlineSourceUrl:'https://twconcertview.com/en/venue/taipei-music-center/',sightlineSourceName:'twconcertview 北流實拍視角',
+    distanceCalibration:{metersPerUnit:.27,uncertaintyM:3,basis:'北流官方舞台尺寸＋本場 VIP A/B 圖＋固定席結構'},verifiedAt:'2026-09-21T16:10:00+08:00',
+    notices:['北流 1F 無固定座椅，本範例依 JAEHYUN 2026 本場配置建立 VIP A／B、中央延伸台與 FOH；2F／3F 固定席保留。','官方場館舞台尺寸用於比例校正；距離仍以區域級範圍呈現。']
+  },
+  'hyeri-hyeride-ticc-2026': {
+    id:'hyeri-hyeride-ticc-2026',venueId:'ticc',eventId:'hyeri-hyeride-taipei-2026',label:'HYERI · HYERIDE',historical:true,kstarExample:true,demoArtist:'HYERI',demoDate:'2026-09-05',customizationLevel:'hand-calibrated-kstar-demo',
+    stage:{main:{x:0,y:-12,z:-74,width:58,depth:17},runway:null,bStage:null},foh:{x:0,y:20,z:42,width:32,depth:12},defaultTier:'2MF',defaultSection:'2MF-3',defaultRow:10,
+    sourceName:'TICC 活動行事曆 / Weverse · HYERI 2026',sourceUrl:'https://www.ticc.com.tw/wSite/sp?bId=6992&ctNode=318&mp=1&xdUrl=%2FwSite%2Fap%2Fcp_Activity.jsp',sightlineSourceUrl:'https://twconcertview.com/en/venue/ticc-taipei/',sightlineSourceName:'twconcertview TICC 實拍視角',
+    distanceCalibration:{metersPerUnit:.22,uncertaintyM:3,basis:'TICC 官方大會堂固定座席拓樸＋近期 HYERI 場次方位'},verifiedAt:'2026-09-21T16:10:00+08:00',
+    notices:['TICC 本場館沒有一般「1F 觀眾席」；HYERI 範例只套用舞台方位，不創造不存在的平面票區。','2MF→3F→4F→5F→6F 維持連續向後、向上升高的大會堂斜坡座席；左右包廂獨立處理。']
+  },
+  'ftisland-fate-kmc-2026': {
+    id:'ftisland-fate-kmc-2026',venueId:'kaohsiung-music-center',eventId:'ftisland-fate-kaohsiung-2026',label:'FTISLAND · FaTe',historical:true,kstarExample:true,demoArtist:'FTISLAND',demoDate:'2026-09-12',customizationLevel:'hand-calibrated-kstar-demo',
+    stage:{main:{x:0,y:-16,z:-88,width:66,depth:22},runway:{x:0,y:-15,z1:-76,z2:-25,width:13},bStage:{x:0,y:-14,z:-20,radius:13,shape:'square'}},foh:{x:0,y:-18,z:32,width:38,depth:12},
+    sections:[{...block('VIP A','1F',-27,-34,45,65,'vip'),rowMin:1,rowMax:28},{...block('VIP B','1F',27,-34,45,65,'vip'),rowMin:1,rowMax:28}],tiers:[{id:'1F',label:'1F VIP A/B',short:'1F',sections:['VIP A','VIP B']}],replaceStructuralTiers:['1F'],defaultTier:'1F',defaultSection:'VIP A',defaultRow:10,
+    sourceName:'高雄流行音樂中心 · FTISLAND 2026 官方節目資料',sourceUrl:'https://kpmc.com.tw/program/2026%E5%B9%B4%E4%B9%9D%E6%9C%88%E4%BB%BD%E7%AF%80%E7%9B%AE%E7%B8%BD%E8%A1%A8/',sightlineSourceUrl:'https://twconcertview.com/en/venue/kaohsiung-music-center/',sightlineSourceName:'twconcertview 海音館實拍視角',
+    distanceCalibration:{metersPerUnit:.26,uncertaintyM:3,basis:'海音館固定席＋FTISLAND 本場長延伸台／方形副舞台票區圖'},verifiedAt:'2026-09-21T16:10:00+08:00',
+    notices:['本場依 FTISLAND 高雄場圖重建 VIP A／B、長中央花道、方形副舞台與 FOH。','2F／3F 固定席沿用海音館結構與公開實拍校正。']
+  },
+  'kspark-kaohsiung-stadium-2026': {
+    id:'kspark-kaohsiung-stadium-2026',venueId:'kaohsiung-stadium',label:'K-SPARK · K-POP FESTIVAL',historical:true,kstarExample:true,demoArtist:'K-SPARK',demoDate:'2026-05-30',customizationLevel:'hand-calibrated-kstar-demo',
+    stage:{main:{x:0,y:-16,z:-152,width:104,depth:31},runway:{x:0,y:-15,z1:-136,z2:-30,width:17},bStage:{x:0,y:-14,z:-21,radius:24,shape:'rect'}},extraStageRects:[{x:0,y:-14,z:-7,width:76,depth:15}],foh:{x:0,y:-18,z:78,width:76,depth:20},
+    sections:[...[-78,-39,0,39,78].flatMap((x,ix)=>[-82,-23,36].map((z,iz)=>({...block(`G${ix+1}-${iz+1}`,'FLOOR',x,z,34,48,iz===0?'vip':'floor'),rowMin:1,rowMax:24})))],
+    tiers:[{id:'FLOOR',label:'K-SPARK 平面活動區',short:'平面',sections:Array.from({length:15},(_,i)=>`G${Math.floor(i/3)+1}-${(i%3)+1}`)}],replaceStructuralTiers:['FLOOR'],defaultTier:'FLOOR',defaultSection:'G3-1',defaultRow:10,
+    sourceName:'高雄市政府 / K-SPARK 2026 活動資訊',sourceUrl:'https://www.kcg.gov.tw/',sightlineSourceUrl:'https://twconcertview.com/en/venue/kaohsiung-national-stadium/',sightlineSourceName:'twconcertview 世運主場館 K-SPARK 實拍',
+    distanceCalibration:{metersPerUnit:.52,uncertaintyM:8,basis:'世運主場館尺度＋K-SPARK 本場大型 T 型延伸台＋實拍座位交叉校正'},verifiedAt:'2026-09-21T16:10:00+08:00',
+    notices:['依 K-SPARK 2026 實際活動建立大型端景主舞台、超長中央花道、橫向副舞台與平面分區；大型戶外場館距離誤差帶較室內館寬。','twconcertview K-SPARK 實拍回報顯示平面區可能受前排人頭遮擋，本範例在視線警示保留此風險。']
+  },
+  'kwonder-taoyuan-2024': {
+    id:'kwonder-taoyuan-2024',venueId:'taoyuan-arena',label:'K-WONDER CONCERT',historical:true,kstarExample:true,demoArtist:'aespa / NMIXX / AKMU',demoDate:'2024-10-19',customizationLevel:'hand-calibrated-kstar-demo',
+    stage:{main:{x:0,y:-16,z:-91,width:74,depth:23},runway:{x:0,y:-15,z1:-79,z2:-48,width:13},bStage:{x:0,y:-14,z:-43,radius:13,shape:'square'}},foh:{x:0,y:-18,z:52,width:46,depth:14},
+    sections:[...[-45,-15,15,45].map((x,i)=>({...block(`VIP ${String.fromCharCode(65+i)}`,'FLOOR',x,-46,26,50,'vip'),standingOnly:true,rowMin:1,rowMax:1})),...[-54,-18,18,54].map((x,i)=>({...block(`SPECIAL ${String.fromCharCode(65+i)}`,'FLOOR',x,10,30,42,'special'),rowMin:1,rowMax:20}))],
+    tiers:[{id:'FLOOR',label:'K-WONDER 本場平面區',short:'平面',sections:['VIP A','VIP B','VIP C','VIP D','SPECIAL A','SPECIAL B','SPECIAL C','SPECIAL D']}],replaceStructuralTiers:['FLOOR'],defaultTier:'FLOOR',defaultSection:'VIP B',defaultRow:1,
+    sourceName:'SHOW Office · K-WONDER 2024 官方售票公告',sourceUrl:'https://www.showoffice.com.tw/',sightlineSourceUrl:'https://twconcertview.com/en/venue/taoyuan-arena/',sightlineSourceName:'twconcertview 桃園巨蛋 K-WONDER 實拍',
+    distanceCalibration:{metersPerUnit:.64,uncertaintyM:5,basis:'桃園巨蛋官方主場地直徑約 82m＋K-WONDER 本場票區比例'},verifiedAt:'2026-09-21T16:10:00+08:00',
+    notices:['桃園巨蛋以 K-WONDER 2024 作為近期高品質韓星參考場，重建 VIP A–D、後方特區、FOH 與中央小舞台。','場館固定看台仍以桃園市政府場館資料為準。']
+  },
+  'hwang-in-youp-ntu-2026': {
+    id:'hwang-in-youp-ntu-2026',venueId:'ntu-sports-center',eventId:'hwang-in-youp-to-you-taipei-2026',label:'HWANG IN YOUP · To you',historical:true,kstarExample:true,demoArtist:'HWANG IN YOUP',demoDate:'2026-09-12',customizationLevel:'hand-calibrated-kstar-demo',
+    stage:{main:{x:0,y:-16,z:-79,width:66,depth:21},runway:null,bStage:null},foh:{x:0,y:-18,z:45,width:34,depth:11},
+    sections:[...[-42,0,42].map((x,i)=>({...block(`VIP${i+1}`,'FLOOR',x,-36,36,49,'vip'),rowMin:1,rowMax:18})),...[-42,0,42].map((x,i)=>({...block(`A${i+1}`,'FLOOR',x,18,36,45,'a'),rowMin:1,rowMax:20}))],
+    tiers:[{id:'FLOOR',label:'1F 本場座席',short:'1F',sections:['VIP1','VIP2','VIP3','A1','A2','A3']}],replaceStructuralTiers:['FLOOR'],defaultTier:'FLOOR',defaultSection:'VIP2',defaultRow:8,
+    sourceName:'tixCraft · HWANG IN YOUP 2026 台北場官方票區圖',sourceUrl:'https://tixcraft.com/activity/detail/26_hiy',sightlineSourceUrl:'https://twconcertview.com/en/venue/ntu-sports-center/',sightlineSourceName:'twconcertview 臺大體育館實拍視角',
+    distanceCalibration:{metersPerUnit:.28,uncertaintyM:3,basis:'臺大主球場場地資料＋本場 1F VIP/A 六區官方圖'},verifiedAt:'2026-09-21T16:10:00+08:00',
+    notices:['本範例只把本場實際售出的 1F VIP1–3／A1–3 套到可變平面層；3–5F 固定看台仍保留場館結構，但不誤標為本場售票區。']
+  },
+  'kyuhyun-hotel203-tianmu-2026': {
+    id:'kyuhyun-hotel203-tianmu-2026',venueId:'tianmu-gymnasium',label:'KYUHYUN · HOTEL 203',historical:true,kstarExample:true,demoArtist:'KYUHYUN',demoDate:'2026-06-27',customizationLevel:'hand-calibrated-kstar-demo',
+    stage:{main:{x:0,y:-16,z:-79,width:66,depth:22},runway:null,bStage:null},foh:{x:0,y:-18,z:32,width:32,depth:12},
+    sections:[...[-40,0,40].map((x,i)=>({...block(`A${i+1}`,'FLOOR',x,-31,36,60,'floor'),rowMin:1,rowMax:26}))],tiers:[{id:'FLOOR',label:'A1 / A2 / A3 平面席',short:'1F',sections:['A1','A2','A3']}],replaceStructuralTiers:['FLOOR'],defaultTier:'FLOOR',defaultSection:'A2',defaultRow:12,
+    sourceName:'tixCraft · KYUHYUN HOTEL 203 官方座位圖',sourceUrl:'https://static.tixcraft.com/images/activity/field/26_kyuhyun_7096c49d9e0016932460769494b2e1ff.jpg',sightlineSourceUrl:'https://twconcertview.com/en/venue/tianmu-gymnasium/',sightlineSourceName:'twconcertview 天母體育館實拍視角',
+    distanceCalibration:{metersPerUnit:.30,uncertaintyM:4,basis:'天母體育館固定席尺度＋KYUHYUN A1/A2/A3 官方圖'},verifiedAt:'2026-09-21T16:10:00+08:00',restrictedViewSections:['D1','D2'],
+    notices:['依 KYUHYUN 2026 官方圖建立 A1／A2／A3 平面席與後方 FOH；側邊 D 區視線限制另以警示標示。','固定看台不以票區圖片任意旋轉或重建。']
+  },
+  'hwasa-twits-nangang-2024': {
+    id:'hwasa-twits-nangang-2024',venueId:'nangang-exhibition-hall1-4f',label:'HWASA · Twits FANCON',historical:true,kstarExample:true,demoArtist:'HWASA',demoDate:'2024-06-16',customizationLevel:'hand-calibrated-kstar-demo',
+    stage:{main:{x:0,y:-16,z:-100,width:102,depth:27},runway:null,bStage:null},foh:{x:0,y:-18,z:57,width:38,depth:14},
+    sections:[
+      ...[-52,0,52].map((x,i)=>({...block(['VIP3','VIP1','VIP2'][i],'FLOOR',x,-52,42,38,'vip'),rowMin:1,rowMax:18})),
+      ...[-52,0,52].map((x,i)=>({...block(['A3','A1','A2'][i],'FLOOR',x,-9,42,38,'a'),rowMin:1,rowMax:18})),
+      ...[-52,0,52].map((x,i)=>({...block(['B3','B1','B2'][i],'FLOOR',x,34,42,38,'b'),rowMin:1,rowMax:18})),
+      {...block('C3','FLOOR',-52,77,42,34,'c'),rowMin:1,rowMax:16},{...block('C2','FLOOR',52,77,42,34,'c'),rowMin:1,rowMax:16}
+    ],
+    tiers:[{id:'FLOOR',label:'HWASA 本場全平面座席',short:'4F',sections:['VIP3','VIP1','VIP2','A3','A1','A2','B3','B1','B2','C3','C2']}],replaceStructuralTiers:['FLOOR'],defaultTier:'FLOOR',defaultSection:'VIP1',defaultRow:8,
+    sourceName:'HWASA Twits 台北場公開官方票區圖 / 南港展覽館場地資料',sourceUrl:'https://www.tainex.com.tw/',sightlineSourceName:'南港展覽館一館 4F 場地尺度',
+    distanceCalibration:{metersPerUnit:1.07,uncertaintyM:3,basis:'南港展覽館官方 Hall 1 4F 約 180m × 126m 尺度＋本場 3×4 票區圖'},verifiedAt:'2026-09-21T16:10:00+08:00',
+    notices:['南港一館 4F 是無環形固定看台的大型平面展演空間；HWASA 範例依本場 VIP／A／B／C 區矩陣與 FOH 重建，不套用體育館 bowl。','本場距離比例可用官方展館尺寸較可靠地換算，但座椅擺放仍可能因主辦微調。']
+  },
+  'woodz-archive1-zepp-2026': {
+    id:'woodz-archive1-zepp-2026',venueId:'zepp-new-taipei',label:'WOODZ · Archive. 1',historical:true,kstarExample:true,demoArtist:'WOODZ',demoDate:'2026-05-23',customizationLevel:'hand-calibrated-kstar-demo',
+    stage:{main:{x:0,y:-12,z:-60,width:58,depth:18},runway:null,bStage:null},foh:{x:0,y:-10,z:24,width:24,depth:10},
+    sections:[{...block('VIP','FLOOR',0,-22,66,52,'vip'),standingOnly:true,rowMin:1,rowMax:1},{...block('W','FLOOR',0,31,66,43,'standing'),standingOnly:true,rowMin:1,rowMax:1},{...block('2F O','EVENT2F',-24,45,24,18,'seat'),y:10,rowMin:1,rowMax:8},{...block('2F D','EVENT2F',24,45,24,18,'seat'),y:10,rowMin:1,rowMax:8},{...block('2F Z','EVENT2F',0,66,30,17,'standing'),y:11,standingOnly:true,rowMin:1,rowMax:1}],
+    tiers:[{id:'FLOOR',label:'1F VIP / W 站區',short:'1F',sections:['VIP','W']},{id:'EVENT2F',label:'2F O / D / Z',short:'2F',sections:['2F O','2F D','2F Z']}],replaceStructuralTiers:['FLOOR'],defaultTier:'FLOOR',defaultSection:'VIP',defaultRow:1,
+    sourceName:'WOODZ 2026 Zepp New Taipei 場次座位配置 / Zepp 場館資料',sourceUrl:'https://www.zepp.co.jp/hall/newtaipei/',sightlineSourceUrl:'https://twconcertview.com/en/venue/zepp-new-taipei/',sightlineSourceName:'twconcertview Zepp New Taipei 實拍視角',
+    distanceCalibration:{metersPerUnit:.20,uncertaintyM:2,basis:'Zepp 1F/2F 固定空間＋WOODZ VIP/W/O/D/Z 本場圖'},verifiedAt:'2026-09-21T16:10:00+08:00',
+    notices:['依 WOODZ 2026 場次區分 1F VIP、W 站區，以及 2F O／D 座席與 Z 站區；站席不生成虛假椅排。','Zepp 為 live-house，站席實際視線受身高與入場序號影響，距離與遮擋以範圍表示。']
+  }
+};
+
 export const venueLayouts = {
+  ...kstarDemoLayouts,
   'taipei-dome-base': {...taipeiDomeBase, id:'taipei-dome-base', venueId:'taipei-dome', label:'場館基準', stage:venueModels['taipei-dome'].stage, notices:['固定看台依官方場館圖校正；舞台為通用遠端舞台示意。']},
   [strayKidsRunItLayout.id]: {...strayKidsRunItLayout, venueId:'taipei-dome'},
   'taipei-arena-far': {id:'taipei-arena-far',venueId:'taipei-arena',label:'遠端舞台基準',stage:venueModels['taipei-arena'].stage,sourceName:'臺北小巨蛋官方遠端座位視線導覽',sourceUrl:'https://www.arena.taipei/cp.aspx?n=95731497B5FCEDDB&s=1BE4A9B16EE8F2E8',notices:['官方提供遠端與中央舞台視線導覽；本場舞台尚未公布時僅作場館方向參考。']},
@@ -502,12 +670,12 @@ export const venueLayouts = {
     ]
   },
   'ive-show-what-i-am-2026': {
-    id:'ive-show-what-i-am-2026', venueId:'taipei-arena', eventId:'ive-show-what-i-am-taipei-2026', label:'IVE 2026 · SHOW WHAT I AM', historical:true,
+    id:'ive-show-what-i-am-2026', venueId:'taipei-arena', eventId:'ive-show-what-i-am-taipei-2026', label:'IVE 2026 · SHOW WHAT I AM', historical:true, kstarExample:true, demoArtist:'IVE', demoDate:'2026-09-11', customizationLevel:'hand-calibrated-kstar-demo',
     stage:{main:{x:0,y:-16,z:-105,width:84,depth:24},runway:{x:0,y:-16,z1:-93,z2:-37,width:18},bStage:null},
     extraStageRects:[{x:0,y:-17,z:-35,width:42,depth:28}],
     foh:{x:0,y:-19,z:70,width:64,depth:18}, sections:ive2026Sections, tiers:ive2026Tiers,
     defaultTier:'VIP', defaultSection:'特5區', defaultRow:8,
-    sourceName:'tixCraft 2026 IVE 官方票區圖 / Live Nation Taiwan', sourceUrl:'https://tixcraft.com/activity/detail/26_ive', verifiedAt:'2026-09-16T19:20:00+08:00',
+    sourceName:'tixCraft 2026 IVE 官方票區圖 / Live Nation Taiwan', sourceUrl:'https://tixcraft.com/activity/detail/26_ive', sightlineSourceUrl:'https://twconcertview.com/en/venue/taipei-arena/', sightlineSourceName:'twconcertview 臺北小巨蛋 IVE／韓星實拍視角', distanceCalibration:{metersPerUnit:.31,uncertaintyM:3,basis:'臺北小巨蛋固定席＋IVE 官方票區圖＋實拍視角交叉校正'}, verifiedAt:'2026-09-21T16:10:00+08:00',
     priceLabels:ive2026PriceLabels, historicalApproximate:true,
     notices:[
       '官方拓元票區圖確認本場於臺北小巨蛋，包含特1–特6區、FOH、2F 固定席、3F 固定席與東／西側 3F 包廂。',
@@ -517,7 +685,7 @@ export const venueLayouts = {
   },
   'kaohsiung-base': {id:'kaohsiung-base',venueId:'kaohsiung-arena',label:'高雄巨蛋場館基準',stage:venueModels['kaohsiung-arena'].stage,sourceName:'高雄巨蛋官方座位資訊',sourceUrl:'https://www.kaoarena.com.tw/Home/Seat',notices:['官方場館頁提供座椅配置與樓層分區；演唱會舞台、站區與封閉區需依每場官方配置更新。']},
   'tmc-base': {id:'tmc-base',venueId:'taipei-music-center',label:'北流表演廳基準',stage:venueModels['taipei-music-center'].stage,sourceName:'北流官方觀眾席配置圖',sourceUrl:'https://www.tmc.taipei/tw/hire/Unit-f8KLs',notices:['官方確認表演廳固定席約 3,100 席，1F 無固定座位；2F 實拍可見至 15 排、3F 實拍可見至 17 排附近，本站以此校正排數深度。','舞台官方尺寸約寬 30m、深 20m；本站 3D 僅保留比例關係，不把模型單位直接標成真實公尺。']},
-  'ticc-base': {id:'ticc-base',venueId:'ticc',label:'TICC 大會堂基準',stage:venueModels['ticc'].stage,foh:{x:0,y:43,z:88,width:34,depth:15},sourceName:'TICC 官方大會堂座位查詢',sourceUrl:'https://www.ticc.com.tw/wSite/sp?BaseDSD=&CtUnit=100&ctNode=323&mp=1&xdUrl=%2FwSite%2Fap%2Flp_PlenaryHall.jsp',notices:['官方座位查詢以 2MF-1～5、3F-1～5、4F-1～5、5F-1～5、6F-1～5 與 L/R 包廂分區；介面同時保留 A–E 對照，方便和粉絲回報互查。','4F-B 公開實拍回報顯示控台位於區域後半，本版加入控台體積作為場館基準遮擋參考；實際設備仍依活動而異。']},
+  'ticc-base': {id:'ticc-base',venueId:'ticc',label:'TICC 大會堂基準',stage:venueModels['ticc'].stage,foh:{x:0,y:20,z:42,width:32,depth:12},sourceName:'TICC 官方大會堂座位查詢',sourceUrl:'https://www.ticc.com.tw/wSite/sp?BaseDSD=&CtUnit=100&ctNode=323&mp=1&xdUrl=%2FwSite%2Fap%2Flp_PlenaryHall.jsp',notices:['官方座位查詢以 2MF-1～5、3F-1～5、4F-1～5、5F-1～5、6F-1～5 與 L/R 包廂分區；大會堂觀眾席沒有一般「1F」席層。','2MF／3F／4F／5F／6F 在 3D 中按連續斜坡觀眾席的前後高度帶呈現，不再錯畫成五圈彼此分離的體育館式看台。','4F-B 公開實拍回報顯示控台位於區域後半，本版加入控台體積作為場館基準遮擋參考；實際設備仍依活動而異。']},
 
   'nangang-hall1-4f-base': {id:'nangang-hall1-4f-base',venueId:'nangang-exhibition-hall1-4f',label:'南港展覽館一館四樓基準',stage:venueModels['nangang-exhibition-hall1-4f'].stage,sourceName:'活動官方場地示意圖／南港展覽館平面展演廳基準',sourceUrl:'https://ticket.com.tw/Application/UTK02/UTK0201_.aspx?PRODUCT_ID=P1AT93WA',notices:['南港展覽館一館四樓為大型平面展演空間，不套用環形體育館看台。','每場舞台、FOH、座位與票區依主辦配置不同；取得官方場地示意圖後由 OCR/Vision 自動更新本場 event-specific 3D。']},
 
@@ -560,6 +728,30 @@ export const venueLayouts = {
   'zepp-new-taipei-base': {id:'zepp-new-taipei-base',venueId:'zepp-new-taipei',label:'Zepp New Taipei 場館基準',stage:venueModels['zepp-new-taipei'].stage,sourceName:'官方售票活動頁／公開場館配置交叉校正',sourceUrl:'https://tixcraft.com/activity/detail/26_izna',notices:['1F 為活動可變站區，2F 為看台／活動站席；精確票區邊界以每場官方座位圖 OCR/Vision 自動覆寫。','未取得該場官方座位圖前，不把基準分區宣稱為售票區號。']}
 };
 
+
+
+// Curated venue-reference productions. These are intentionally separate from auto-generated
+// event drafts: they are stable calibration scenes used to compare stage direction, floor depth,
+// fixed tiers and relative sightline distance at each venue.
+const venueReferenceSpecs = {
+  'ref-aespa-taipei-dome-2026': {venueId:'taipei-dome',label:'aespa 2026 · 場館範例',stage:{main:{x:0,y:-16,z:-176,width:126,depth:32},runway:{x:0,y:-15,z1:-157,z2:-42,width:22},bStage:{x:0,y:-14,z:-28,radius:27}},foh:{x:0,y:-18,z:66,width:76,depth:18},sourceName:'臺北大巨蛋固定看台＋aespa 2026 活動 reference',sourceUrl:'https://www.farglorydome.com.tw/park-detail/map/',referenceExample:true,precisionGrade:'reference-calibrated',notices:['大巨蛋固定看台沿用官方幾何；本範例專門校正大型 K-pop 端景舞台、延伸台與長距離視角。','距離為場館比例與票區相對距離示意，不宣稱單席測量公尺值。']},
+  'ref-nct-wish-ntsu-2026': {venueId:'ntsu-arena',label:'NCT WISH 2026 · 場館範例',stage:{main:{x:0,y:-16,z:-112,width:92,depth:27},runway:{x:0,y:-15,z1:-98,z2:-34,width:17},bStage:{x:0,y:-14,z:-27,radius:20}},foh:{x:0,y:-18,z:56,width:52,depth:16},sourceName:'林口官方場館圖＋NCT WISH 2026 reference',sourceUrl:'https://phk.ntsu.edu.tw/var/file/8/1008/img/1439/147422320.pdf',referenceExample:true,precisionGrade:'reference-calibrated',notices:['固定色區與排深沿用林口場館幾何；平面區以近期 K-pop 演唱會比例重建。']},
+  'ref-nmixx-kaohsiung-arena-2026': {venueId:'kaohsiung-arena',label:'NMIXX 2026 · 場館範例',stage:{main:{x:0,y:-16,z:-111,width:94,depth:28},runway:{x:0,y:-15,z1:-96,z2:-31,width:18},bStage:{x:0,y:-14,z:-24,radius:19}},foh:{x:0,y:-18,z:54,width:58,depth:17},sourceName:'Live Nation NMIXX 場域圖／高雄巨蛋官方席位',sourceUrl:'https://www.livenation.com.tw/nmixx-khh',referenceExample:true,precisionGrade:'reference-calibrated',notices:['高雄巨蛋固定 2F/4F/5F 看台不由活動圖改寫；平面 VIP 與舞台方向依 NMIXX 場域圖做 reference。']},
+  'ref-youngji-tmc-2026': {venueId:'taipei-music-center',label:'李泳知 2026 · 場館範例',stage:{main:{x:0,y:-15,z:-77,width:70,depth:22},runway:{x:0,y:-14,z1:-65,z2:-23,width:13},bStage:null},foh:{x:0,y:-17,z:24,width:30,depth:10},sourceName:'Live Nation / 北流固定觀眾席資料',sourceUrl:'https://www.livenation.com.tw/event/2026-lee-youngji-world-tour-2-0--taipei-tickets-edp1669737',referenceExample:true,precisionGrade:'reference-calibrated',notices:['1F 以站區配置呈現；2F/3F 固定席保持北流官方樓層幾何。','北流 2F 後排存在天花／結構視線風險，視角警示不因活動配置取消。']},
+  'ref-hyeri-ticc-2026': {venueId:'ticc',label:'HYERI 2026 · 場館範例',stage:{main:{x:0,y:-14,z:-62,width:62,depth:19},runway:{x:0,y:-13,z1:-53,z2:-30,width:12},bStage:null},foh:{x:0,y:20,z:42,width:32,depth:12},sourceName:'TICC 官方大會堂 topology＋HYERI reference',sourceUrl:'https://www.ticc.com.tw/',referenceExample:true,precisionGrade:'reference-calibrated',notices:['大會堂無一般 1F 觀眾席；2MF、3F、4F、5F、6F 是連續後退上升的觀眾席帶。','活動只調整舞台前緣與演出設備，不改寫固定斜坡與包廂。']},
+  'ref-tws-kmc-2026': {venueId:'kaohsiung-music-center',label:'TWS 2026 · 場館範例',stage:{main:{x:0,y:-15,z:-91,width:76,depth:23},runway:{x:0,y:-14,z1:-79,z2:-30,width:15},bStage:null},foh:{x:0,y:-17,z:21,width:31,depth:10},sourceName:'高流官方場館技術資料＋TWS reference',sourceUrl:'https://kpmc.com.tw/',referenceExample:true,precisionGrade:'reference-calibrated',notices:['1F 活動區依演唱會配置可變；2F 固定看台分段與高度不因活動變動。']},
+  'ref-blackpink-kaohsiung-stadium-2023': {venueId:'kaohsiung-stadium',label:'BLACKPINK 2023 · 場館範例',stage:{main:{x:0,y:-17,z:-151,width:132,depth:38},runway:{x:0,y:-16,z1:-130,z2:-38,width:24},bStage:{x:0,y:-15,z:-22,radius:26}},foh:{x:0,y:-19,z:55,width:82,depth:20},sourceName:'YG Entertainment / 高雄官方活動資料',sourceUrl:'https://ygfamily.com/cn/news/notice/5483',referenceExample:true,precisionGrade:'zone-reference-calibrated',notices:['世運屬大型戶外場館，本範例用 BLACKPINK 已實際舉辦場次校正端景方向與長距離尺度。','固定看台只提供區域級視距，不宣稱每一席精準。']},
+  'ref-fnc-taoyuan-arena-2025': {venueId:'taoyuan-arena',label:'FNC BAND KINGDOM 2025 · 場館範例',stage:{main:{x:0,y:-15,z:-84,width:72,depth:22},runway:null,bStage:null},foh:{x:0,y:-17,z:24,width:34,depth:11},sourceName:'桃園巨蛋官方場館圖＋FNC BAND KINGDOM reference',sourceUrl:'https://www.dst.tycg.gov.tw/cp.aspx?n=11715',referenceExample:true,precisionGrade:'zone-reference-calibrated',notices:['環形固定看台沿用官方場館輪廓；樂團型主舞台不額外虛構大型花道。']},
+  'ref-lovelyz-ntu-2024': {venueId:'ntu-sports-center',label:'LOVELYZ 2024 · 場館範例',stage:{main:{x:0,y:-15,z:-72,width:62,depth:20},runway:null,bStage:null},foh:{x:0,y:-17,z:18,width:28,depth:9},sourceName:'臺大官方場館資料＋LOVELYZ reference',sourceUrl:'https://rent.pe.ntu.edu.tw/map/',referenceExample:true,precisionGrade:'zone-reference-calibrated',notices:['臺大一樓活動區與 3–5F 固定席分離；全座席端景型演出以保守舞台深度重建。']},
+  'ref-kyuhyun-tianmu-2026': {venueId:'tianmu-gymnasium',label:'KYUHYUN 2026 · 場館範例',stage:{main:{x:0,y:-15,z:-72,width:62,depth:20},runway:{x:0,y:-14,z1:-62,z2:-32,width:12},bStage:null},foh:{x:0,y:-17,z:20,width:28,depth:9},sourceName:'D-SHOW / tixCraft 公告＋天母場館資料',sourceUrl:'https://tixcraft.com/',referenceExample:true,precisionGrade:'zone-reference-calibrated',notices:['全場座位席 reference；看台最前方固定欄杆列為視線風險。','不把第一排未販售座位生成為可選座位。']},
+  'ref-hwasa-nangang-2024': {venueId:'nangang-exhibition-hall1-4f',label:'HWASA 2024 · 場館範例',stage:{main:{x:0,y:-14,z:-101,width:88,depth:25},runway:{x:0,y:-13,z1:-88,z2:-31,width:17},bStage:{x:0,y:-12,z:-23,radius:16}},foh:{x:0,y:-16,z:29,width:48,depth:13},sourceName:'南港展覽館官方年報＋HWASA 活動 reference',sourceUrl:'https://www.tainex.com.tw/',referenceExample:true,precisionGrade:'event-layout-reference',notices:['南港一館 4F 是平面展演空間：本範例只生成臨時活動票區、舞台與 FOH，不生成固定 arena 看台。']},
+  'ref-woodz-zepp-2026': {venueId:'zepp-new-taipei',label:'WOODZ 2026 · 場館範例',stage:{main:{x:0,y:-13,z:-52,width:49,depth:15},runway:null,bStage:null},foh:{x:0,y:-15,z:9,width:17,depth:6},sourceName:'Zepp 官方樓層結構＋WOODZ 2026 activity cross-check',sourceUrl:'https://www.zepp.co.jp/hall/newtaipei/',referenceExample:true,precisionGrade:'reference-calibrated',notices:['1F 以活動站席／座席可變區處理；2F 291 固定座席保留。','小型 live house 模型以近距離視角為主，不放大成 arena 比例。']}
+};
+for (const [id,spec] of Object.entries(venueReferenceSpecs)) {
+  const model=venueModels[spec.venueId];
+  if(!model || venueLayouts[id]) continue;
+  venueLayouts[id]={id,...spec,defaultTier:model.defaultTier,defaultSection:model.defaultSection,defaultRow:model.defaultRow,historical:true};
+}
 
 
 function autoLayoutSlug(value='') {
@@ -617,7 +809,7 @@ function compactHallGeometry(kind='club') {
   return {sections:[...floor,...balcony],tiers:[{id:'FLOOR',label:standing?'1F 活動站區':'1F 活動座席',short:'1F',sections:floor.map(x=>x.id)},...(balcony.length?[{id:'2F',label:'2F 看台',short:'2F',sections:balcony.map(x=>x.id)}]:[])],field:{x:70,z:72},defaultTier:'FLOOR',defaultSection:'1F-C',defaultRow:standing?1:10,stage:genericStage(-62,58,18)};
 }
 
-const AUTO_EVENT_3D_PIPELINE_VERSION='0.40.2-auto3d.2';
+const AUTO_EVENT_3D_PIPELINE_VERSION='0.40.5-kstar-reference.1';
 function autoEvent3DSignature(event={},venueId=''){
   const compactRules=(event.sectionPriceRules||[]).map(r=>[r?.label||'',r?.price||'']);
   return JSON.stringify({
@@ -653,11 +845,12 @@ export function shouldGenerateEvent3D(event={}){
   const known=venueIdFromName(event.venue||'');
   if(known && venueModels[known]) return true;
   const venueText=String(event.venue||'').toLowerCase();
-  // Temporary outdoor plazas, parks and festival grounds do not benefit from a fabricated seat-view model.
-  // Keep the event in lists/calendars, but do not invent rows/seats for an ad-hoc open field.
+  // Never fabricate rows/seats for ad-hoc outdoor grounds.
   if(/廣場|公園|休閒園區|海灘|沙灘|草地|碼頭|河濱|戶外廣場|festival ground|open field/.test(venueText)) return false;
-  // Other indoor/specialty spaces still get a conservative runtime model and can be upgraded by an official map later.
-  return true;
+  // Accuracy-first policy: an unknown indoor venue is NOT allowed to silently fall back
+  // to a generic theatre/arena. It can opt in only after an explicit official seat-layout
+  // source has been attached and the event is marked provisional by the data maintainer.
+  return Boolean(event.allowProvisional3D===true && event.seatLayoutSourceUrl);
 }
 
 export function ensureVenueModelForEvent(event={}){
@@ -667,12 +860,12 @@ export function ensureVenueModelForEvent(event={}){
   const known=venueIdFromName(event.venue||'');
   if(known && venueModels[known]) return known;
   const venueName=String(event.venue||'').trim();
-  if(!venueName) return null;
+  if(!venueName || event.allowProvisional3D!==true || !event.seatLayoutSourceUrl) return null;
   const id=`runtime-${autoLayoutSlug(venueName)}`;
   if(!venueModels[id]){
     const geom=compactHallGeometry(runtimeVenueKind(event));
-    venueModels[id]={id,name:venueName,en:venueName.toUpperCase(),city:event.city||'Taiwan',...geom,baseLayoutId:`${id}-base`,sourceName:'自動新場館物理基準／等待官方場館或活動圖校正',sourceUrl:event.sourceUrl||null,confidence:'動態保守模型；不宣稱官方單椅精度',dynamicFallback:true};
-    venueLayouts[`${id}-base`]={id:`${id}-base`,venueId:id,label:'自動新場館基準',stage:geom.stage,dynamicFallback:true,notices:['此場館尚未有 NEUL 校正模型；先建立保守物理空間，活動官方座位圖取得後會再客製化。']};
+    venueModels[id]={id,name:venueName,en:venueName.toUpperCase(),city:event.city||'Taiwan',...geom,baseLayoutId:`${id}-base`,sourceName:'官方活動座位圖驅動的暫定場館模型',sourceUrl:event.seatLayoutSourceUrl,confidence:'暫定；僅在有官方座位圖且明確 opt-in 時建立',dynamicFallback:true,geometryPolicy:{topology:'provisional-official-map',fixedSectionsAuthoritative:false,flexibleTierIds:['FLOOR'],allowSyntheticSections:true,allowFullSectionReplacement:true,allowSeatMapStageOverride:true,minStageOverrideConfidence:.86}};
+    venueLayouts[`${id}-base`]={id:`${id}-base`,venueId:id,label:'官方座位圖暫定場館基準',stage:geom.stage,dynamicFallback:true,notices:['此場館尚未完成固定幾何校正；只有在已連結官方座位圖時才顯示暫定 3D，未驗證前不提供固定樓層／排號宣稱。']};
   }
   return id;
 }
@@ -807,58 +1000,147 @@ export function applyAutoSeatMapAnalysis(layoutId, analysis={}, options={}) {
   const layout=venueLayouts[layoutId];
   if(!layout || !analysis || !analysis.hash) return false;
   if(!layout.autoGenerated && !layout.seatMapAutoRegenerate && !layout.seatMapDetected) return false;
+
+  const model=venueModels[layout.venueId];
+  if(!model) return false;
+  const policy=model.geometryPolicy||{};
   const applyGeometry=options.geometry !== false;
-  const replaceSections=options.replaceSections ?? Boolean(layout.autoGenerated);
-  if(applyGeometry && analysis.stage) layout.stage=JSON.parse(JSON.stringify(analysis.stage));
-  if(applyGeometry && Array.isArray(analysis.extraStageRects)) layout.extraStageRects=JSON.parse(JSON.stringify(analysis.extraStageRects));
-  if(Array.isArray(analysis.sections) && analysis.sections.length>=3){
-    if(replaceSections){
-      layout.sections=JSON.parse(JSON.stringify(analysis.sections));
-      layout.tiers=JSON.parse(JSON.stringify(analysis.tiers||[]));
-      const priceLabels={}; for(const sec of analysis.sections) if(sec.autoPrice) priceLabels[sec.group]=sec.autoPrice;
-      layout.priceLabels={...(layout.priceLabels||{}),...priceLabels};
-      layout.replaceStructuralTiers=[...new Set([...(layout.replaceStructuralTiers||[]),'FLOOR'])];
-    } else {
-      // Hand-calibrated geometry stays authoritative. OCR may still enrich exact matched
-      // sections with official prices without moving seats/stage blocks.
-      const exact={...(layout.sectionPriceLabels||{})};
-      for(const sec of analysis.sections) if(sec.ocrDerived && sec.autoPrice && sec.id) exact[String(sec.id)]=sec.autoPrice;
-      layout.sectionPriceLabels=exact;
-    }
+  const fixedAuthoritative=policy.fixedSectionsAuthoritative!==false;
+  const flexibleTierIds=new Set((policy.flexibleTierIds||[]).map(String));
+  const minStageConfidence=Number(policy.minStageOverrideConfidence ?? .82);
+  const allowStageOverride=applyGeometry && policy.allowSeatMapStageOverride!==false && Number(analysis.stageConfidence||0)>=minStageConfidence;
+  const forceReplace=options.replaceSections===true;
+  const allowFullReplacement=Boolean(policy.allowFullSectionReplacement && (forceReplace || options.replaceSections!==false));
+
+  if(allowStageOverride && analysis.stage){
+    layout.stage=JSON.parse(JSON.stringify(analysis.stage));
+    if(Array.isArray(analysis.extraStageRects)) layout.extraStageRects=JSON.parse(JSON.stringify(analysis.extraStageRects));
+  } else if(policy.allowSeatMapStageOverride===false || fixedAuthoritative) {
+    // Fixed theatre / auditorium geometry stays physically anchored to the venue.
+    // A pixel detector is evidence for ticket zones, not permission to move a built-in stage.
+    layout.extraStageRects=Array.isArray(layout.extraStageRects)?layout.extraStageRects:[];
   }
+
+  const baseById=new Map((model.sections||[]).map(sec=>[String(sec.id),sec]));
+  const exactPriceLabels={...(layout.sectionPriceLabels||{})};
+  const eventSections=[];
+  const syntheticSections=[];
+  const analyzedSections=Array.isArray(analysis.sections)?analysis.sections:[];
+
+  for(const sec of analyzedSections){
+    const id=String(sec?.id||'');
+    const base=baseById.get(id);
+    if(base){
+      // OCR can activate/enrich a known venue section, but cannot move fixed venue geometry.
+      const merged=fixedAuthoritative
+        ? {...base,eventActive:true,autoDerived:Boolean(sec.autoDerived),ocrDerived:Boolean(sec.ocrDerived),autoPrice:sec.autoPrice||undefined}
+        : {...base,...sec,eventActive:true};
+      eventSections.push(merged);
+      if(sec.autoPrice) exactPriceLabels[id]=sec.autoPrice;
+      continue;
+    }
+    if(sec?.autoPrice && id) exactPriceLabels[id]=sec.autoPrice;
+    if(!applyGeometry || !policy.allowSyntheticSections || !flexibleTierIds.size) continue;
+
+    // Unmatched Vision components may exist only inside a physically reconfigurable tier
+    // (arena floor / live-house floor / exhibition floor). Never create a new 1F/2F/etc.
+    // fixed balcony from image pixels.
+    const targetTier=[...flexibleTierIds][0];
+    const reference=(model.sections||[]).filter(x=>String(x.tier)===targetTier);
+    const y=reference.length ? reference.reduce((sum,x)=>sum+Number(x.y??-19),0)/reference.length : -19;
+    syntheticSections.push({
+      ...sec,
+      id:id||`AUTO-${syntheticSections.length+1}`,
+      tier:targetTier,
+      y,
+      shape:'block',
+      structuralOnly:false,
+      eventFlexible:true,
+      syntheticOfficialMap:true,
+      eventActive:true
+    });
+  }
+
+  if(analyzedSections.length>=3){
+    if(allowFullReplacement){
+      // Only flat / explicitly replaceable venues may use full pixel-derived geometry.
+      layout.sections=JSON.parse(JSON.stringify(analyzedSections));
+      layout.tiers=JSON.parse(JSON.stringify(analysis.tiers||[]));
+      layout.replaceStructuralTiers=[...new Set([...(layout.replaceStructuralTiers||[]),...(policy.flexibleTierIds||['FLOOR'])])];
+    } else if(layout.autoGenerated){
+      layout.sections=[...eventSections,...syntheticSections];
+      const grouped=new Map();
+      for(const sec of syntheticSections){
+        const tier=String(sec.tier);
+        if(!grouped.has(tier)) grouped.set(tier,[]);
+        grouped.get(tier).push(String(sec.id));
+      }
+      layout.tiers=[...grouped].map(([id,sections])=>({id,label:model.tiers?.find(t=>String(t.id)===id)?.label||id,short:model.tiers?.find(t=>String(t.id)===id)?.short||id,sections}));
+      // Structural fixed tiers are never replaced by an automatically detected map.
+      layout.replaceStructuralTiers=(layout.replaceStructuralTiers||[]).filter(t=>flexibleTierIds.has(String(t)) && policy.allowFullSectionReplacement);
+    }
+    layout.sectionPriceLabels=exactPriceLabels;
+    const priceLabels={...(layout.priceLabels||{})};
+    for(const sec of [...eventSections,...syntheticSections]) if(sec.autoPrice && sec.group) priceLabels[sec.group]=sec.autoPrice;
+    layout.priceLabels=priceLabels;
+  }
+
   layout.seatMapFingerprint=analysis.hash;
   layout.seatMapDetected=true;
   layout.generationConfidence=analysis.confidence||'map-pixel-derived';
   layout.seatMapResolvedUrl=analysis.resolvedUrl||layout.sourceUrl||null;
+  layout.seatMapHintScore=Number(analysis.seatMapHintScore||0);
   layout.sectionMapping=analysis.ocr?JSON.parse(JSON.stringify(analysis.ocr)):null;
   layout.autoMapProfile=analysis.profile||'unknown';
   layout.autoStageConfidence=Number(analysis.stageConfidence||0);
   layout.autoLegendConfidence=analysis.legendConfidence||'unverified-no-price-guess';
-  layout.autoGeometryApplied=Boolean(applyGeometry && analysis.stage);
+  layout.autoGeometryApplied=Boolean((allowStageOverride && analysis.stage) || syntheticSections.length || allowFullReplacement);
   layout.autoMapAnalyzedAt=new Date().toISOString();
   layout.eventSpecific3D=true;
   layout.autoPipelineVersion=AUTO_EVENT_3D_PIPELINE_VERSION;
   layout.seatMapNeedsRefresh=false;
   layout.verifiedAgainstCurrentSource=true;
+
   const mappedCount=Number(layout.sectionMapping?.mappedCount||0);
-  const officialMapVerified=Number(layout.autoStageConfidence||0)>=0.82 && mappedCount>=2;
-  const mappedPriceCount=(analysis.sections||[]).filter(sec=>sec?.autoPrice).length+Object.keys(layout.sectionPriceLabels||{}).length+Object.keys(layout.priceLabels||{}).length;
+  const stageEvidenceOk=policy.allowSeatMapStageOverride===false ? true : Number(layout.autoStageConfidence||0)>=minStageConfidence;
+  const officialMapVerified=mappedCount>=2 && stageEvidenceOk;
+  const mappedPriceCount=analyzedSections.filter(sec=>sec?.autoPrice).length+Object.keys(layout.sectionPriceLabels||{}).length+Object.keys(layout.priceLabels||{}).length;
   const priceMappingVerified=mappedPriceCount>0 && Boolean((layout.sectionPriceRules||[]).length || (analysis.legend||[]).length);
-  layout.generationState=officialMapVerified ? 'official-map-verified' : 'official-map-partial';
+  layout.generationState=officialMapVerified ? 'official-map-verified-topology-guarded' : 'official-map-partial-topology-guarded';
   layout.priceMappingState=priceMappingVerified ? 'verified' : ((layout.sectionPriceRules||[]).length ? 'pending-section-match' : 'no-section-price-evidence');
-  layout.customizationLevel=mappedCount>=2 ? 'official-map-ocr-mapped' : 'official-map-vision';
-  layout.qaGate={eventSpecific:true,stagePresent:Boolean(layout.stage?.main),officialMapLinked:true,officialMapVerified,priceMappingVerified,requiresReview:!officialMapVerified};
-  if(layout.sectionMapping?.mappedCount>=2 && layout.autoGenerated){layout.sourceName='官方座位圖＋OCR/Vision Section Mapping 自動生成';layout.notices=[`已從官方座位圖辨識並映射 ${layout.sectionMapping.mappedCount} 個票區標籤；其餘區塊保留 Vision 幾何草稿。`,'同名區號會優先對回場館固定幾何，避免只靠圖片像素造成距離失真。','官方座位圖內容若更新，圖片 hash 改變後會自動重算本場 3D。'];}
+  layout.customizationLevel=mappedCount>=2 ? 'official-map-ocr-mapped-topology-guarded' : 'official-map-vision-topology-guarded';
+  layout.topologyGuard={
+    topology:policy.topology||'unknown',
+    fixedSectionsAuthoritative:fixedAuthoritative,
+    flexibleTierIds:[...flexibleTierIds],
+    syntheticSectionsAdded:syntheticSections.length,
+    stageOverrideApplied:Boolean(allowStageOverride&&analysis.stage),
+    forbiddenAudienceFloor1:policy.audienceFloor1===false
+  };
+  layout.qaGate={eventSpecific:true,stagePresent:Boolean(layout.stage?.main),officialMapLinked:true,officialMapVerified,priceMappingVerified,requiresReview:!officialMapVerified,topologyGuarded:true};
+
+  if(layout.autoGenerated){
+    const guardNote=policy.audienceFloor1===false
+      ? 'TICC 大會堂觀眾席固定為 2MF／3F／4F／5F／6F 與 L/R 包廂；自動辨識不得生成一般 1F 觀眾席。'
+      : '自動辨識只可改動該場館的活動可變區，固定看台／樓層拓樸保持場館校正模型。';
+    layout.sourceName='官方座位圖＋Venue Topology Guard＋OCR/Vision';
+    layout.notices=[
+      mappedCount>=2 ? `已從官方座位圖辨識並對回 ${mappedCount} 個既有票區標籤。` : '官方座位圖已解析，但尚未有足夠票區標籤可安全對回固定場館幾何。',
+      guardNote,
+      syntheticSections.length ? `僅在活動可變層新增 ${syntheticSections.length} 個 Vision 票區草稿；固定樓層不會被像素區塊取代。` : '未新增任何不屬於場館固定拓樸的樓層／看台。',
+      '官方座位圖內容若更新，圖片 hash 改變後會重新分析；若場館提示與圖片無法消歧義，系統會拒絕自動套圖而不是猜測。'
+    ];
+  }
   return true;
 }
 
 export function baseLayoutIdForVenue(venueId) {
-  return getVenueModel(venueId).baseLayoutId;
+  return getVenueModel(venueId)?.baseLayoutId || null;
 }
 
 export function activityLayoutMeta(event={}) {
-  const venueId=event.venueModelId || venueIdFromName(event.venue || '');
-  if (!venueId) return null;
+  const venueId=ensureVenueModelForEvent(event);
+  if (!venueId || !venueModels[venueId]) return null;
   const specificId=ensureAutoEventLayout({...event,venueModelId:venueId});
   const specific=getVenueLayout(specificId);
   return {
@@ -871,13 +1153,15 @@ export function activityLayoutMeta(event={}) {
 }
 
 export function layoutsForVenue(venueId) { return Object.values(venueLayouts).filter(x=>x.venueId===venueId); }
-export function getVenueModel(venueId) { return venueModels[venueId] || venueModels['taipei-dome']; }
-export function getVenueLayout(layoutId) { return venueLayouts[layoutId] || venueLayouts['taipei-dome-base']; }
+export function kstarExampleForVenue(venueId) { return layoutsForVenue(venueId).find(x=>x.kstarExample) || null; }
+export function getVenueModel(venueId) { return venueModels[venueId] || null; }
+export function getVenueLayout(layoutId) { return layoutId ? (venueLayouts[layoutId] || null) : null; }
 export function effectiveTiers(venueId, layoutId) {
   const model=getVenueModel(venueId), layout=getVenueLayout(layoutId);
-  const replace=new Set((layout.replaceStructuralTiers||[]).map(String));
+  if(!model) return [];
+  const replace=new Set(((layout?.replaceStructuralTiers)||[]).map(String));
   const base=(model.tiers||[]).filter(t=>!replace.has(String(t.id))).map(t=>({...t,sections:[...(t.sections||[])]}));
-  if(layout.venueId!==venueId || !Array.isArray(layout.tiers)) return base;
+  if(!layout || layout.venueId!==venueId || !Array.isArray(layout.tiers)) return base;
   const merged=new Map(base.map(t=>[String(t.id),t]));
   for(const eventTier of layout.tiers){
     const id=String(eventTier.id);
@@ -889,7 +1173,8 @@ export function effectiveTiers(venueId, layoutId) {
 }
 export function effectiveSections(venueId, layoutId) {
   const model=getVenueModel(venueId), layout=getVenueLayout(layoutId);
-  if(layout.venueId!==venueId || !Array.isArray(layout.sections)) return model.sections;
+  if(!model) return [];
+  if(!layout || layout.venueId!==venueId || !Array.isArray(layout.sections)) return model.sections;
   // Event-specific ticket maps often expose only sold/open blocks. For 3D we still
   // render the complete physical venue bowl and let event sections override the
   // corresponding structural sections. This prevents auto-generated events from
@@ -956,7 +1241,7 @@ function priceRuleMatch(ruleLabel='', section={}) {
   return false;
 }
 export function sectionTicketLabel(layoutId, sectionId) {
-  const layout=getVenueLayout(layoutId); const section=effectiveSections(layout.venueId,layoutId).find(s=>s.id===String(sectionId));
+  const layout=getVenueLayout(layoutId); if(!layout) return null; const section=effectiveSections(layout.venueId,layoutId).find(s=>s.id===String(sectionId));
   if (!section) return null;
   if (layout.sectionPriceLabels?.[String(sectionId)]) return layout.sectionPriceLabels[String(sectionId)];
   if (section.group && layout.priceLabels?.[section.group]) return layout.priceLabels[section.group];
@@ -965,7 +1250,7 @@ export function sectionTicketLabel(layoutId, sectionId) {
 }
 export function venueSectionWarning(venueId, sectionId, row, layoutId, viewer={}) {
   if (venueId==='taipei-dome') return domeSectionWarning(sectionId,row,getVenueLayout(layoutId),viewer);
-  const messages=[]; let level='normal'; const layout=getVenueLayout(layoutId); const id=String(sectionId);
+  const messages=[]; let level='normal'; const layout=getVenueLayout(layoutId) || {id:layoutId||'',venueId}; const id=String(sectionId);
   const structuralSection=getVenueSection(venueId,id,layoutId);
   if (structuralSection?.structuralOnly) {
     messages.push(`${structuralSection.tier==='B1'?'B1':'此層'}為可變動活動座席／結構示意，不代表本場實際售票區；實際排椅、站區與封閉範圍以該場官方座位圖為準。`);

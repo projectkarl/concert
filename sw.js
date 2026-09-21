@@ -1,4 +1,4 @@
-const VERSION = "neul-v0.40.2-ux3-news-venue-policy-officialmap";
+const VERSION = "neul-v0.40.5-kstar-reference-source-trace";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const APP_SHELL = [

@@ -1,9 +1,10 @@
 import { seedEvents } from "./data/events.js";
 import { seedArtists } from "./data/artists.js";
-import { venueModels, venueLayouts, layoutsForVenue, getVenueModel, getVenueLayout, getVenueTier, getVenueSection, venueSectionPosition, venueSectionWarning, sectionTicketLabel, venueIdFromName, effectiveTiers, effectiveSections, ensureAutoEventLayout, ensureVenueModelForEvent, shouldGenerateEvent3D, applyAutoSeatMapAnalysis, baseLayoutIdForVenue } from "./data/multi-venue-geometry.js";
+import { venueModels, venueLayouts, layoutsForVenue, getVenueModel, getVenueLayout, getVenueTier, getVenueSection, venueSectionPosition, venueSectionWarning, sectionTicketLabel, venueIdFromName, effectiveTiers, effectiveSections, ensureAutoEventLayout, ensureVenueModelForEvent, shouldGenerateEvent3D, applyAutoSeatMapAnalysis, baseLayoutIdForVenue, kstarExampleForVenue } from "./data/multi-venue-geometry.js";
 import { createVenueWebGL } from "./webgl-venue.js";
 import { analyzeSeatMap, canAnalyzeSeatMap } from "./seat-map-intelligence.js";
 import { saveFollowed, saveMode, recordEventChanges, saveOfflineSnapshot, loadFollowed } from "./storage.js";
+import { VENUE_KSTAR_REFERENCE } from "./data/venues.js";
 
 const $ = (q, root = document) => root.querySelector(q);
 const $$ = (q, root = document) => [...root.querySelectorAll(q)];
@@ -67,6 +68,7 @@ const friendlySourceName = value => {
   if (/official event source/i.test(v)) return "官方活動來源";
   return v.replace(/\s*API\s*/gi, " ").trim();
 };
+
 
 const TAIWAN_VENUE_CITIES = new Set(["Taipei","New Taipei","Taoyuan","Taichung","Tainan","Kaohsiung","Hsinchu","Keelung","Chiayi","Pingtung","Yilan","Hualien","Taitung","Penghu"]);
 const taiwanEventsOnly = events => (Array.isArray(events) ? events : []).filter(e => e?.region === "TW");
@@ -257,6 +259,35 @@ function posterCode(e) {
   return (e.shortArtist || e.artist.slice(0, 3)).toUpperCase();
 }
 
+function eventSourceInfoButton(e){
+  const count=Math.max(1,(e.sourceRefs||[]).filter(x=>x?.url).length || (e.sourceUrl?1:0));
+  return `<span class="event-source-i" role="button" tabindex="0" data-source-event="${escapeHtml(e.id)}" aria-label="查看 ${escapeHtml(e.artist)} 資料來源" title="資料來源 · ${count} 個核對來源">i</span>`;
+}
+function sourceRows(e){
+  const refs=[]; const seen=new Set();
+  const push=(name,url,kind='核對來源')=>{const safe=safeUrl(url);if(!url||safe==='#'||seen.has(safe))return;seen.add(safe);refs.push({name:name||kind,url:safe,kind});};
+  push(e.sourceName,e.sourceUrl,'主要來源');
+  for(const ref of (e.sourceRefs||[])) push(ref?.name,ref?.url,'交叉核對');
+  push('補充公告',e.secondarySourceUrl,'補充來源');
+  push('場館官方資料',e.venueSourceUrl,'場館資料');
+  push('官方座位配置',e.seatLayoutSourceUrl,'座位圖');
+  const demo=kstarExampleForVenue(eventVenueModelId(e));
+  if(demo?.sightlineSourceUrl) push(demo.sightlineSourceName||'twconcertview 實拍視角',demo.sightlineSourceUrl,'3D 視角交叉核對');
+  return refs;
+}
+function openSourceInfo(id){
+  const e=state.events.find(x=>x.id===id); const modal=$("#sourceInfoModal"), root=$("#sourceInfoContent"); if(!e||!modal||!root)return;
+  const refs=sourceRows(e), checked=e.checkedAt?new Intl.DateTimeFormat(uiLocale(),{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Taipei'}).format(new Date(e.checkedAt)):'未標記';
+  const layoutId=eventVenueLayoutId(e), layout=layoutId?getVenueLayout(layoutId):null, demo=kstarExampleForVenue(eventVenueModelId(e));
+  const threeD=layout?.kstarExample?'本場即為場館韓星校正範例':layout?.eventId?'本場有活動專屬 3D':demo?'此場館另有韓星實際場次校正範例':'目前無可信活動專屬 3D';
+  root.innerHTML=`<div class="source-info-event"><strong>${escapeHtml(e.artist)}</strong><span>${escapeHtml(e.title)}</span><small>${escapeHtml(fmtDate(e.start,e.end))} · ${escapeHtml(e.venue)}</small></div><div class="source-info-refs">${refs.length?refs.map(r=>`<a href="${escapeHtml(r.url)}" target="_blank" rel="noopener noreferrer"><span>${escapeHtml(r.kind)}</span><strong>${escapeHtml(r.name)}</strong><b>↗</b></a>`).join(''):'<p>目前只保留活動索引，尚未取得可直接開啟的官方頁。</p>'}</div><div class="source-info-3d"><span>3D 驗證</span><b>${escapeHtml(threeD)}</b>${demo?.distanceCalibration?.basis?`<small>${escapeHtml(demo.distanceCalibration.basis)}</small>`:''}</div><p class="source-info-foot">最後核對：${escapeHtml(checked)}。官方售票／主辦／場館資料優先；twconcertview 僅用於補漏與實際視野交叉比對，不覆寫官方座位幾何。</p>`;
+  modal.hidden=false;modal.setAttribute('aria-hidden','false');document.body.classList.add('source-info-open');
+}
+function closeSourceInfo(){const modal=$("#sourceInfoModal");if(!modal)return;modal.hidden=true;modal.setAttribute('aria-hidden','true');document.body.classList.remove('source-info-open');}
+function wireSourceInfo(root=document){
+  $$('.event-source-i',root).forEach(el=>{const go=ev=>{ev.preventDefault();ev.stopPropagation();if(el.closest('#allEventsModal')) closeAllEventsModal();openSourceInfo(el.dataset.sourceEvent);};el.addEventListener('click',go);el.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){go(ev);}});});
+}
+
 function renderEvents() {
   const list = filteredEvents();
   const root = $("#eventList");
@@ -270,17 +301,21 @@ function renderEvents() {
   }
   const visible = list.slice(0, 10);
   root.innerHTML = visible.map(e => `
-    <button class="event-row" data-event-id="${escapeHtml(e.id)}">
-      <span class="event-poster">${escapeHtml(posterCode(e))}</span>
-      <span class="event-info">
-        <strong>${escapeHtml(e.artist)}</strong>
-        <span class="title">${escapeHtml(e.title)}</span>
-        <span class="date">${fmtDate(e.start, e.end)}${e.end ? "" : ` · ${escapeHtml(fmtEventTime(e))}`}</span>
-        <span class="venue">${escapeHtml(e.venue)}</span>
-      </span>
-      <span class="event-arrow"><span class="event-tag">${escapeHtml(eventBadge(e))}</span><b>›</b></span>
-    </button>`).join("");
+    <div class="event-row-wrap">
+      <button class="event-row" data-event-id="${escapeHtml(e.id)}">
+        <span class="event-poster">${escapeHtml(posterCode(e))}</span>
+        <span class="event-info">
+          <strong>${escapeHtml(e.artist)}</strong>
+          <span class="title">${escapeHtml(e.title)}</span>
+          <span class="date">${fmtDate(e.start, e.end)}${e.end ? "" : ` · ${escapeHtml(fmtEventTime(e))}`}</span>
+          <span class="venue">${escapeHtml(e.venue)}</span>
+        </span>
+        <span class="event-arrow"><span class="event-tag">${escapeHtml(eventBadge(e))}</span><b>›</b></span>
+      </button>
+      <button class="event-source-i" type="button" data-source-event="${escapeHtml(e.id)}" aria-label="查看 ${escapeHtml(e.artist)} 活動資料來源" title="查看資料來源">i</button>
+    </div>`).join("");
   $$(".event-row", root).forEach(btn => btn.addEventListener("click", () => openDetail(btn.dataset.eventId)));
+  wireSourceInfo(root);
   if (more) {
     more.hidden = list.length <= 5;
     more.textContent = "查看更多活動 →";
@@ -670,7 +705,7 @@ function sectionPriceRulesMarkup(rules = []) {
   return `<section class="detail-section"><h3>官方票區價位</h3><div class="section-price-grid">${clean.map(x => `<div><span>${escapeHtml(x.label)}</span><strong>${escapeHtml(x.price)}</strong></div>`).join("")}</div><p class="section-price-note">能與 NEUL 票區名稱可靠對上的價位會自動顯示在 3D；名稱不一致時只保留官方價位，不會猜測配對。</p></section>`;
 }
 
-function eventVenueModelId(event) { if(!shouldGenerateEvent3D(event)) return null; return event?.venueModelId || venueIdFromName(event?.venue || "") || ensureVenueModelForEvent(event); }
+function eventVenueModelId(event) { if(!shouldGenerateEvent3D(event)) return null; return ensureVenueModelForEvent(event); }
 function eventBaseLayoutId(event) {
   const venueId = eventVenueModelId(event);
   return venueId ? baseLayoutIdForVenue(venueId) : null;
@@ -1026,9 +1061,9 @@ function applyEventsViewMode(){
 
 function eventModalRowMarkup(e,{agenda=false}={}) {
   const primary=agenda?(fmtEventTime(e)||'時間待公告'):`${fmtDate(e.start,e.end)}${e.end?'':` ${fmtEventTime(e)}`}`;
-  return `<button class="events-modal-row" data-event-id="${escapeHtml(e.id)}"><span class="events-modal-date">${escapeHtml(primary)}</span><span class="events-modal-copy"><strong>${escapeHtml(e.artist)}</strong><span>${escapeHtml(e.title)}</span><small>${escapeHtml(cityLabel(e.city))} · ${escapeHtml(e.venue)} · ${escapeHtml(eventBadge(e))}</small></span><span class="events-modal-arrow">›</span></button>`;
+  return `<div class="events-modal-row-wrap"><button class="events-modal-row" data-event-id="${escapeHtml(e.id)}"><span class="events-modal-date">${escapeHtml(primary)}</span><span class="events-modal-copy"><strong>${escapeHtml(e.artist)}</strong><span>${escapeHtml(e.title)}</span><small>${escapeHtml(cityLabel(e.city))} · ${escapeHtml(e.venue)} · ${escapeHtml(eventBadge(e))}</small></span><span class="events-modal-arrow">›</span></button><button class="event-source-i modal-source-i" type="button" data-source-event="${escapeHtml(e.id)}" aria-label="查看 ${escapeHtml(e.artist)} 活動資料來源">i</button></div>`;
 }
-function wireEventModalRows(root){ if(!root)return; $$(".events-modal-row",root).forEach(btn=>btn.addEventListener("click",()=>{closeAllEventsModal();openDetail(btn.dataset.eventId);})); }
+function wireEventModalRows(root){ if(!root)return; $$(".events-modal-row",root).forEach(btn=>btn.addEventListener("click",()=>{closeAllEventsModal();openDetail(btn.dataset.eventId);})); wireSourceInfo(root); }
 function renderAllEventsModal() {
   if(!allEventsList)return; const list=modalFilteredEvents(), cal=renderDailyCalendar(list), selected=cal.selected||[], monthCount=cal.occ.filter(x=>!cal.month||x.dateKey.startsWith(cal.month)).length;
   if(allEventsSummary) allEventsSummary.textContent=list.length?`${list.length} 場符合條件 · ${monthLabel(cal.month)} 共 ${monthCount} 個演出日`:"沒有符合時間條件的活動";
@@ -1057,12 +1092,13 @@ $("#featuredDetailBtn").addEventListener("click", () => openDetail(state.feature
 $("#featuredPrevBtn")?.addEventListener("click", () => { stepFeatured(-1); startFeaturedAutoplay(); });
 $("#featuredNextBtn")?.addEventListener("click", () => { stepFeatured(1); startFeaturedAutoplay(); });
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden) startFeaturedAutoplay(); });
-$("#featuredSourceBtn").addEventListener("click", () => { const e = state.events.find(x => x.id === state.featuredId) || seedEvents[0]; window.open(safeUrl(e.sourceUrl), "_blank", "noopener,noreferrer"); });
+$("#featuredSourceBtn").addEventListener("click", () => { const e = state.events.find(x => x.id === state.featuredId) || seedEvents[0]; if(e) openSourceInfo(e.id); });
 $(".follow-feature").addEventListener("click", e => toggleFollow(e.currentTarget.dataset.artist || "Stray Kids"));
 $("#clearFollowingBtn").addEventListener("click", openArtistDirectory);
 $("#detailClose").addEventListener("click", closeDetail);
 $("#detailBackdrop").addEventListener("click", closeDetail);
-document.addEventListener("keydown", e => { if (e.key === "Escape") { closeDetail(); closeViewer(); } });
+$("#sourceInfoClose")?.addEventListener("click",closeSourceInfo); $("#sourceInfoModal")?.addEventListener("click",e=>{if(e.target.id==="sourceInfoModal")closeSourceInfo();});
+document.addEventListener("keydown", e => { if (e.key === "Escape") { closeDetail(); closeViewer(); closeSourceInfo(); } });
 
 function applyTheme(mode, persist = true) {
   const light = mode === "light";
@@ -1171,26 +1207,38 @@ function renderVenueOptions() {
   if (!venueSelect) return;
   venueSelect.innerHTML = taiwanVenueModels().map(v => `<option value="${escapeHtml(v.id)}" ${v.id===state.venueId?"selected":""}>${escapeHtml(v.name)}</option>`).join("");
 }
+function renderVenueExampleMeta(){
+  const box=$('#venueExampleMeta'); if(!box)return;
+  const layout=currentVenueLayout(); const demo=kstarExampleForVenue(state.venueId);
+  const active=layout?.kstarExample?layout:demo;
+  if(!active){box.hidden=true;box.innerHTML='';return;} box.hidden=false;
+  const date=active.demoDate?String(active.demoDate).replaceAll('-','.'):'近期場次';
+  const sight=active.sightlineSourceUrl?`<a href="${safeUrl(active.sightlineSourceUrl)}" target="_blank" rel="noopener noreferrer">實拍視角 ↗</a>`:'';
+  box.innerHTML=`<span>韓星校正範例</span><b>${escapeHtml(active.demoArtist||active.label)} · ${escapeHtml(date)}</b><small>${escapeHtml(active.distanceCalibration?.basis||'官方場館結構＋活動票區圖交叉校正')}</small><div><a href="${safeUrl(active.sourceUrl)}" target="_blank" rel="noopener noreferrer">活動／官方來源 ↗</a>${sight}</div>`;
+}
+
 function renderLayoutOptions() {
   const now=Date.now();
   const model=activeVenueModel();
   const options=layoutsForVenue(state.venueId).filter(layout=>{
-    if(layout.id==="ive-show-what-i-am-2026" && state.venueId==="taipei-arena") return true;
+    if(layout.kstarExample) return true;
     if(layout.id===model.baseLayoutId || !layout.eventId) return !layout.historical;
     if(layout.id===state.layoutId) return true;
     const event=state.events.find(e=>e.id===layout.eventId);
     if(!event || event.historical) return false;
     return !eventLifecycle(event,now).ended;
   });
-  if (!options.some(x => x.id === state.layoutId)) state.layoutId = model.baseLayoutId;
-  layoutSelect.innerHTML = options.map(x => { const label=x.id==="ive-show-what-i-am-2026" ? `${x.label} · IVE 範例` : x.label; return `<option value="${escapeHtml(x.id)}" ${x.id===state.layoutId?"selected":""}>${escapeHtml(label)}</option>`; }).join("");
+  if (!options.some(x => x.id === state.layoutId)) state.layoutId = kstarExampleForVenue(state.venueId)?.id || model.baseLayoutId;
+  layoutSelect.innerHTML = options.map(x => { const label=x.kstarExample ? `${x.label} · ${x.id==='ive-show-what-i-am-2026'?'IVE 範例':'韓星範例'}` : x.label; return `<option value="${escapeHtml(x.id)}" ${x.id===state.layoutId?"selected":""}>${escapeHtml(label)}</option>`; }).join("");
   layoutSelect.title = getVenueLayout(state.layoutId)?.label || "";
+  renderVenueExampleMeta();
 }
 function setVenue(venueId, layoutId = null) {
   const model = getVenueModel(venueId);
   state.venueId = model.id;
   const candidate = layoutId ? getVenueLayout(layoutId) : null;
-  state.layoutId = candidate?.venueId === model.id ? candidate.id : model.baseLayoutId;
+  const demo = kstarExampleForVenue(model.id);
+  state.layoutId = candidate?.venueId === model.id ? candidate.id : (demo?.id || model.baseLayoutId);
   const activeLayout = getVenueLayout(state.layoutId);
   state.floor = activeLayout.defaultTier || model.defaultTier;
   state.section = activeLayout.defaultSection || model.defaultSection;
@@ -1246,7 +1294,9 @@ function updateSeatWarning() {
   const model = activeVenueModel();
   const layout = currentVenueLayout();
   const warning = venueSectionWarning(state.venueId, state.section, state.row, state.layoutId, {heightCm:state.viewerHeight,posture:state.posture,seatNumber:state.seatNumber,lens:state.lens});
-  confidence.textContent = layout.historical
+  confidence.textContent = layout.kstarExample
+    ? `韓星實際場次客製 3D · ${layout.demoArtist || layout.label} · 官方場館結構＋本場票區／實拍交叉校正 · 距離以誤差帶呈現`
+    : layout.historical
     ? "歷史官方票區圖重建 · 區域位置校正 · 單席視角未宣稱精準"
     : layout.eventId
       ? "官方本場配置已核對 · 固定席排數依公開座位紀錄校正 · 座號依排別可能不同 · 現場舞台／燈光為 3D 模擬"
@@ -1268,6 +1318,31 @@ function positionSelectedZoneOverlay(){
   zone.style.right='auto'; zone.style.bottom='auto';
   zone.style.transform='translate(-50%,-50%) skew(-8deg)';
 }
+function stageReferencePoints(layout){
+  const out=[]; const st=layout?.stage||{};
+  if(st.main) out.push({label:'主舞台',x:Number(st.main.x||0),y:Number(st.main.y||-16),z:Number(st.main.z||0)});
+  if(st.bStage) out.push({label:'副舞台',x:Number(st.bStage.x||0),y:Number(st.bStage.y||-14),z:Number(st.bStage.z||0)});
+  if(st.runway){ const z2=Number(st.runway.z2??st.runway.z1??0); out.push({label:'延伸台前端',x:Number(st.runway.x||0),y:Number(st.runway.y||-15),z:z2}); }
+  for(const [i,r] of (layout?.extraStageRects||[]).entries()) out.push({label:i===0?'延伸舞台':'延伸舞台',x:Number(r.x||0),y:Number(r.y||-15),z:Number(r.z||0)});
+  return out;
+}
+function estimateSeatDistances(){
+  const layout=currentVenueLayout(), cal=layout?.distanceCalibration; if(!cal?.metersPerUnit)return null;
+  const sec=getVenueSection(state.venueId,String(state.section),state.layoutId); if(!sec)return null;
+  const p=venueSectionPosition(state.venueId,sec,Number(state.row),state.seatNumber);
+  const pts=stageReferencePoints(layout); if(!pts.length)return null;
+  const scale=Number(cal.metersPerUnit), u=Math.max(1,Number(cal.uncertaintyM||4));
+  const items=pts.map(t=>{const m=Math.hypot(p.x-t.x,p.z-t.z,(p.y-t.y)*.7)*scale;return {...t,m};}).sort((a,b)=>a.m-b.m);
+  const main=items.find(x=>x.label==='主舞台')||items[0], nearest=items[0];
+  const range=m=>`${Math.max(1,Math.round(m-u))}–${Math.round(m+u)} m`;
+  return {main:range(main.m),nearest:range(nearest.m),nearestLabel:nearest.label,basis:cal.basis,uncertainty:u};
+}
+function updatePreviewDistance(){
+  const el=$('#previewDistance'); if(!el)return; const d=estimateSeatDistances();
+  if(!d){el.textContent='此配置尚未完成可驗證的公尺比例校正；只顯示相對視角。';return;}
+  el.innerHTML=`<b>主舞台約 ${escapeHtml(d.main)}</b>${d.nearestLabel!=='主舞台'?`<span>${escapeHtml(d.nearestLabel)}最近約 ${escapeHtml(d.nearest)}</span>`:''}<small>票區／排別級估算 · ${escapeHtml(d.basis)}</small>`;
+}
+
 function updateSeatLabel() {
   const tier = tierById(state.floor);
   const id = String(state.section);
@@ -1297,6 +1372,8 @@ function updateSeatLabel() {
     viewerPriceChip.textContent = shownPrice;
   }
   updateSeatWarning();
+  updatePreviewDistance();
+  renderVenueExampleMeta();
   drawSeatPreview();
   drawVenueOverview();
   renderOfficialSeatMap(false);
@@ -1313,6 +1390,7 @@ layoutSelect.addEventListener("change", e => {
   if (layout.defaultRow) state.row = String(layout.defaultRow);
   renderTierTabs();
   refreshSectionOptions(false);
+  renderVenueExampleMeta();
   renderOfficialSeatMap(true);
 });
 sectionSelect.addEventListener("change", e => { state.section = e.target.value; refreshRowOptions(); updateSeatLabel(); });

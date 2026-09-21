@@ -102,7 +102,7 @@
             <p id="featuredMeta">2026.12.12（六）19:00<br>臺北大巨蛋</p>
             <div class="featured-actions">
               <button class="pink-mini follow-feature" data-artist="Stray Kids">加入追蹤</button>
-              <button class="outline-mini" id="featuredSourceBtn">官方網站 →</button>
+              <button class="outline-mini" id="featuredSourceBtn">ⓘ 資料來源</button>
             </div>
           </div>
           <div class="carousel-mini" aria-label="Featured Concert 輪播">
@@ -124,34 +124,6 @@
         <blockquote>“Good Music.<br>Better Days.”</blockquote>
         <span class="tiny-sign">NEUL</span>
       </article>
-    </section>
-
-    <section class="entertainment-news" id="entertainmentNews" aria-labelledby="entertainmentNewsTitle">
-      <div class="entertainment-news-head">
-        <div>
-          <span class="eyebrow">ENTERTAINMENT NEWS</span>
-          <h2 id="entertainmentNewsTitle">演藝新聞</h2>
-          <p>即時整理近期演藝動態，可依區域切換或搜尋關鍵字。</p>
-        </div>
-        <button class="news-refresh" id="newsRefreshBtn" type="button" aria-label="重新整理新聞">↻</button>
-      </div>
-      <div class="news-toolbar">
-        <div class="news-tabs" role="tablist" aria-label="演藝新聞分類">
-          <button type="button" class="active" data-news-category="kr" role="tab" aria-selected="true">韓星</button>
-          <button type="button" data-news-category="tw" role="tab" aria-selected="false">台灣</button>
-          <button type="button" data-news-category="west" role="tab" aria-selected="false">歐美</button>
-          <button type="button" data-news-category="other" role="tab" aria-selected="false">其他</button>
-        </div>
-        <form class="news-search" id="newsSearchForm" role="search">
-          <input id="newsSearchInput" type="search" maxlength="80" autocomplete="off" placeholder="搜尋演藝新聞關鍵字" aria-label="搜尋演藝新聞" />
-          <button type="submit">搜尋</button>
-        </form>
-      </div>
-      <div class="news-status" id="newsStatus" aria-live="polite">正在更新韓星新聞…</div>
-      <div class="news-grid" id="newsGrid" aria-live="polite">
-        <div class="news-skeleton"></div><div class="news-skeleton"></div><div class="news-skeleton"></div><div class="news-skeleton"></div>
-      </div>
-      <p class="news-note">新聞標題、時間與來源由公開新聞索引整理；內容與後續更正仍以原始媒體頁面為準。</p>
     </section>
 
     <section class="brand-story" id="aboutNeul" aria-labelledby="aboutNeulTitle">
@@ -189,6 +161,7 @@
         <select id="venueSelect" aria-label="選擇場館"></select>
         <label for="layoutSelect">活動配置</label>
         <select id="layoutSelect"></select>
+        <div class="venue-reference-note" id="venueReferenceNote" aria-live="polite"></div>
         <label>座位層級</label>
         <div class="floor-tabs venue-tier-tabs" id="floorTabs"></div>
         <label for="sectionSelect">區域</label>
@@ -204,10 +177,12 @@
         <label>視野模式</label>
         <div class="view-mode-tabs lens-tabs" id="lensTabs"><button class="active" data-lens="eye">肉眼</button><button data-lens="phone1">1×</button><button data-lens="phone2">2×</button><button data-lens="phone5">5×</button></div>
         <div class="venue-confidence" id="venueConfidence">官方配置已核對 · 區域幾何模擬</div>
+        <div class="venue-example-meta" id="venueExampleMeta" aria-live="polite"></div>
         <button class="view-button" id="seatPreviewBtn">查看視角 →</button>
       </div>
       <div class="seat-preview-card">
         <div class="preview-title">座位視角預覽（<span id="previewSeatLabel">下層 · 106區 18排</span>）<button id="expandPreviewBtn" aria-label="放大預覽">↗</button></div>
+        <div class="preview-distance" id="previewDistance">距離估算會依目前範例與票區顯示</div>
         <div class="seat-preview-img"><canvas id="seatPreviewCanvas" aria-label="依所選座位區即時計算的舞台視角模擬"></canvas></div>
         <div class="seat-warning" id="seatWarning" hidden></div>
         <p>視角方向依官方場館資料與可取得的活動配置重建；未有本場專屬舞台圖時採場館基準，非實際拍攝畫面。</p>
@@ -223,6 +198,37 @@
         <div class="preview-tools"><span>↔ 左右觀看</span><span>⊕ 放大縮小</span><span>↻ 拖曳旋轉</span></div>
       </div>
       <div class="venue-tip"><span>TIP</span> 場館分區依官方資料重建；有本場售票配置時再疊加舞台方向。實際視野仍受舞台、欄杆、控台與設備影響。</div>
+    </section>
+
+    <section class="entertainment-news" id="entertainmentNews" aria-labelledby="entertainmentNewsTitle">
+      <div class="entertainment-news-head">
+        <div>
+          <span class="eyebrow">ENTERTAINMENT NEWS</span>
+          <h2 id="entertainmentNewsTitle">演藝新聞</h2>
+          <p>近期演藝動態整理；韓星、日本、台灣、歐美與其他地區可從選單切換。</p>
+        </div>
+        <button class="news-refresh" id="newsRefreshBtn" type="button" aria-label="重新整理新聞">↻</button>
+      </div>
+      <div class="news-toolbar">
+        <label class="news-category-select" for="newsCategorySelect"><span>新聞分類</span>
+          <select id="newsCategorySelect" aria-label="演藝新聞分類">
+            <option value="kr">韓星</option>
+            <option value="jp">日本</option>
+            <option value="tw">台灣</option>
+            <option value="west">歐美</option>
+            <option value="other">其他</option>
+          </select>
+        </label>
+        <form class="news-search" id="newsSearchForm" role="search">
+          <input id="newsSearchInput" type="search" maxlength="80" autocomplete="off" placeholder="搜尋演藝新聞關鍵字" aria-label="搜尋演藝新聞" />
+          <button type="submit">搜尋</button>
+        </form>
+      </div>
+      <div class="news-status" id="newsStatus" aria-live="polite">正在更新韓星新聞…</div>
+      <div class="news-grid" id="newsGrid" aria-live="polite">
+        <div class="news-skeleton"></div><div class="news-skeleton"></div><div class="news-skeleton"></div><div class="news-skeleton"></div>
+      </div>
+      <p class="news-note">新聞標題、時間與來源由公開新聞索引整理；內容與後續更正仍以原始媒體頁面為準。</p>
     </section>
 
     <footer class="footer">
@@ -249,8 +255,17 @@
     <div class="viewer-help" id="viewerHelp">拖曳觀看 · 滾輪／雙指縮放 · 官方配置校正／模擬視角</div>
   </div>
 
+  <div class="source-info-modal" id="sourceInfoModal" hidden aria-hidden="true">
+    <section class="source-info-card" role="dialog" aria-modal="true" aria-labelledby="sourceInfoTitle">
+      <button class="source-info-close" id="sourceInfoClose" type="button" aria-label="關閉">×</button>
+      <span class="eyebrow">SOURCE</span>
+      <h2 id="sourceInfoTitle">活動資料來源</h2>
+      <div id="sourceInfoContent"></div>
+    </section>
+  </div>
+
   <nav class="mobile-bottom" aria-label="手機導覽">
-    <a href="#top"><span>⌂</span>首頁</a><a href="#upcoming"><span>♬</span>活動</a><a href="#venue3d"><span>◉</span>視野</a><a href="#planner"><span>✓</span>作戰</a><a href="#myList"><span>♡</span>我的</a>
+    <a href="#top"><span>⌂</span>首頁</a><a href="#upcoming"><span>♬</span>活動</a><a href="#venue3d"><span>◉</span>視野</a><a href="#entertainmentNews"><span>▤</span>新聞</a><a href="#myList"><span>♡</span>我的</a>
   </nav>
 
 
