@@ -18,6 +18,7 @@ const state = {
   upstream: "curated-fallback",
   coverage: null,
   discoveryHealth: null,
+  discovery: null,
   officialUpdatedAt: null,
   officialMonitorCount: 0,
   query: "",
@@ -77,6 +78,7 @@ const taiwanVenueModels = () => Object.values(venueModels).filter(v => MAINSTREA
 
 const TAIPEI_TZ = "Asia/Taipei";
 const dayMs = 86400000;
+const ARCHIVE_LIMIT = 20;
 
 
 function eventSessionTs(session, event={}) {
@@ -110,6 +112,15 @@ function eventLifecycle(event={}, now=Date.now()) {
   if(Number.isFinite(startTs) && now < startTs) return {state:'upcoming',ended:false,active:false,upcoming:true,startTs,endTs};
   if(Number.isFinite(endTs) && now <= endTs) return {state:'active',ended:false,active:true,upcoming:false,startTs,endTs};
   return {state:'ended',ended:true,active:false,upcoming:false,startTs,endTs};
+}
+
+function retainRecentArchive(events=[], now=Date.now(), limit=ARCHIVE_LIMIT) {
+  const current=[]; const ended=[];
+  for (const event of events || []) {
+    if (eventLifecycle(event, now).ended) ended.push(event); else current.push(event);
+  }
+  ended.sort((a,b)=>eventEffectiveEndTs(b)-eventEffectiveEndTs(a) || new Date(b.start||0)-new Date(a.start||0));
+  return [...current, ...ended.slice(0, limit)].sort((a,b)=>new Date(a.start||0)-new Date(b.start||0));
 }
 
 function relativeTime(iso) {
@@ -208,7 +219,7 @@ function applyOfficialResults(data) {
   });
   if (changed) window.addEventListener("resize",()=>requestAnimationFrame(positionSelectedZoneOverlay));
 
-state.events = prepareEvents3D(state.events);
+state.events = prepareEvents3D(retainRecentArchive(state.events));
   state.officialUpdatedAt = data.updatedAt || null;
   state.officialMonitorCount = data.monitored || 0;
   if (changed) rebuildArtistStats();
@@ -294,7 +305,15 @@ function renderEvents() {
   const root = $("#eventList");
   const meta = $("#eventResultMeta");
   const more = $("#viewMoreBtn");
-  if (meta) meta.textContent = list.length ? "台灣活動 · 已去重同步" : "沒有符合條件的活動";
+  if (meta) {
+    if (!list.length) meta.textContent = "沒有符合條件的活動";
+    else {
+      const ref=Number(state.discovery?.coverageReferenceCount||0), parsed=Number(state.discovery?.coverageReferenceParsedCount||0);
+      const ratio=state.discovery?.coverageReferenceRatio;
+      const coverage=ref?` · 補漏對帳 ${parsed}/${ref}${Number.isFinite(ratio)?` (${Math.round(ratio*100)}%)`:''}`:'';
+      meta.textContent = `台灣活動 ${list.length} 場 · 已去重同步${coverage}`;
+    }
+  }
   if (!list.length) {
     root.innerHTML = `<div class="empty-upcoming">目前沒有符合條件的活動。<br>切回「台灣／全部活動」可查看已核對資料。</div>`;
     if (more) more.hidden = true;
@@ -318,7 +337,7 @@ function renderEvents() {
   $$(".event-row", root).forEach(btn => btn.addEventListener("click", () => openDetail(btn.dataset.eventId)));
   wireSourceInfo(root);
   if (more) {
-    more.hidden = list.length <= 5;
+    more.hidden = list.length <= 10;
     more.textContent = "查看更多活動 →";
   }
 }
@@ -828,7 +847,7 @@ function updateSearchScope() {
   if (!starts.length) return;
   const earliest = new Date(Math.min(...starts.map(d => d.getTime())));
   const label = new Intl.DateTimeFormat(uiLocale(), { year: "numeric", month: "2-digit", timeZone: TAIPEI_TZ }).format(earliest);
-  el.textContent = `目前已收錄資料自 ${label} 起；更早場次持續補齊。搜尋會同時查近期與已收錄 Archive。`;
+  el.textContent = `目前已收錄資料自 ${label} 起；Upcoming 持續自動更新，Archive 僅保留最近 ${ARCHIVE_LIMIT} 場。`;
 }
 
 async function loadEvents({ preserveOnFailure = false } = {}) {
@@ -836,17 +855,18 @@ async function loadEvents({ preserveOnFailure = false } = {}) {
     const res = await fetch("/api/events", { headers: { Accept: "application/json" } });
     if (!res.ok) throw new Error("events unavailable");
     const data = await res.json();
-    if (Array.isArray(data.events) && data.events.length) state.events = prepareEvents3D(taiwanEventsOnly(data.events));
+    if (Array.isArray(data.events) && data.events.length) state.events = prepareEvents3D(retainRecentArchive(taiwanEventsOnly(data.events)));
     if (Array.isArray(data.artists) && data.artists.length) state.artists = data.artists;
     state.dataUpdatedAt = data.updatedAt || null;
     state.nextUpdateAt = data.nextUpdateAt || (data.updatedAt ? new Date(new Date(data.updatedAt).getTime()+3600000).toISOString() : null);
     state.coverage = data.coverage || null;
     state.discoveryHealth = data.discovery?.sourceHealth || null;
+    state.discovery = data.discovery || null;
     state.autoUpdateEnabled = data.autoUpdateEnabled !== false;
     state.upstream = data.upstream || "curated-fallback";
   } catch {
     if (!preserveOnFailure || !state.events.length) {
-      state.events = prepareEvents3D(taiwanEventsOnly(seedEvents));
+      state.events = prepareEvents3D(retainRecentArchive(taiwanEventsOnly(seedEvents)));
       state.artists = seedArtists.map(a => ({ ...a, upcomingEventCount: seedEvents.filter(e => e.artist.toLowerCase() === a.name.toLowerCase()).length, nextEvent: null, eventIds: [] }));
       state.dataUpdatedAt = null;
       state.nextUpdateAt = null;
@@ -854,6 +874,7 @@ async function loadEvents({ preserveOnFailure = false } = {}) {
       state.upstream = "curated-fallback";
       state.coverage = { completenessGuaranteed:false, sourceWarnings:1 };
       state.discoveryHealth = null;
+      state.discovery = null;
     }
   }
   await recordEventChanges(state.events);
@@ -878,6 +899,8 @@ function startAutomaticEventVerification(){
   clearInterval(lifecycleSyncTimer);
   eventsAutoRefreshTimer=setInterval(()=>{ if(!document.hidden) loadEvents({preserveOnFailure:true}); },3600000);
   lifecycleSyncTimer=setInterval(()=>{
+    const compacted=retainRecentArchive(state.events);
+    if(compacted.length!==state.events.length) state.events=prepareEvents3D(compacted);
     renderEvents();
     renderFeatured();
     const previousLayoutId=state.layoutId;
@@ -1167,6 +1190,7 @@ function officialSeatMapSourceForCurrentLayout() {
     sourceUrl:layout.sourceUrl||'',
     seatLayoutSourceUrl:layout.seatMapResolvedUrl||layout.latestSeatLayoutSourceUrl||layout.seatLayoutSourceUrl||layout.sourceUrl||'',
     seatLayoutDisplayUrl:layout.seatMapDisplayUrl||layout.seatMapResolvedUrl||layout.seatLayoutSourceUrl||'',
+    seatLayoutDisplaySource:layout.seatMapDisplaySource||layout.sourceName||'官方位置配置',
     sharedSourceUrl:Boolean(layout.sharedSourceUrl)
   } : null);
   if(!event) return null;
@@ -1176,7 +1200,9 @@ function officialSeatMapSourceForCurrentLayout() {
   const officialPages=[event.ticketUrl,event.ticketSourceUrl,event.secondarySourceUrl,event.sourceUrl,...refs,layout.sourceUrl].filter(u=>u&&isOfficialMapUrl(u));
   const sourcePage=event.seatLayoutResolvedFrom||cachedSourcePage||officialPages[0]||layout.sourceUrl||"";
   const machineRaw=event.seatLayoutSourceUrl||event.seatMapResolvedUrl||cachedResolved||layout.seatMapResolvedUrl||layout.latestSeatLayoutSourceUrl||sourcePage||null;
-  const officialDisplay=isOfficialMapUrl(event.seatLayoutDisplayUrl||'') ? event.seatLayoutDisplayUrl : null;
+  const displayCandidate=event.seatLayoutDisplayUrl||layout.seatMapDisplayUrl||'';
+  const trustedArchive=Boolean(layout.seatMapDisplayTrustedArchive && /^https:\/\//i.test(displayCandidate));
+  const officialDisplay=(isOfficialMapUrl(displayCandidate)||trustedArchive) ? displayCandidate : null;
   const displayRaw=officialDisplay||event.seatLayoutSourceUrl||event.seatMapResolvedUrl||cachedResolved||layout.seatMapResolvedUrl||layout.latestSeatLayoutSourceUrl||null;
   if(!machineRaw) return {event,layout,missing:true,raw:"",machineRaw:"",sourcePage,proxied:"",directImage:false};
   const params=new URLSearchParams({
@@ -1188,7 +1214,7 @@ function officialSeatMapSourceForCurrentLayout() {
   if(event.sharedSourceUrl) params.set('shared','1');
   const proxied=`/api/seat-map-image?${params.toString()}`;
   const directImage=Boolean(displayRaw&&/\.(?:png|jpe?g|webp|avif)(?:\?|$)/i.test(displayRaw));
-  return {event,layout,missing:false,raw:displayRaw||"",machineRaw,sourcePage:sourcePage||machineRaw,proxied,directImage};
+  return {event,layout,missing:false,raw:displayRaw||"",machineRaw,sourcePage:layout.seatMapOriginalSourceUrl||sourcePage||machineRaw,proxied,directImage,trustedArchive};
 }
 function normalizeSeatMapSectionLabel(value="") { return String(value||"").toUpperCase().replace(/[區席票座位\s_]/g,"").replace(/[（）()]/g,"").replace(/[^A-Z0-9\-\u4e00-\u9fff]/g,""); }
 function seatMapMappings(layout,event) {
@@ -1248,7 +1274,6 @@ function renderLayoutOptions() {
   const options=layoutsForVenue(state.venueId).filter(layout=>{
     if(layout.kstarExample) return true;
     if(layout.id===model.baseLayoutId || !layout.eventId) return !layout.historical;
-    if(layout.id===state.layoutId) return true;
     const event=state.events.find(e=>e.id===layout.eventId);
     if(!event || event.historical) return false;
     return !eventLifecycle(event,now).ended;
@@ -1343,29 +1368,88 @@ function positionSelectedZoneOverlay(){
   zone.style.right='auto'; zone.style.bottom='auto';
   zone.style.transform='translate(-50%,-50%) skew(-8deg)';
 }
-function stageReferencePoints(layout){
+function effectiveDistanceCalibration(layout=currentVenueLayout()){
+  return layout?.distanceCalibration || kstarExampleForVenue(state.venueId)?.distanceCalibration || null;
+}
+function nearestPointOnRectXZ(rect,p){
+  const a=Number(rect?.ry||0), ca=Math.cos(-a), sa=Math.sin(-a), dx=p.x-Number(rect?.x||0), dz=p.z-Number(rect?.z||0);
+  const lx=dx*ca-dz*sa, lz=dx*sa+dz*ca, hw=Math.max(.1,Number(rect?.width||0)/2), hd=Math.max(.1,Number(rect?.depth||0)/2);
+  const cx=Math.max(-hw,Math.min(hw,lx)), cz=Math.max(-hd,Math.min(hd,lz));
+  const c=Math.cos(a), s=Math.sin(a);
+  return {x:Number(rect?.x||0)+cx*c-cz*s,y:Number(rect?.y??-15),z:Number(rect?.z||0)+cx*s+cz*c};
+}
+function nearestPointOnRunway(runway,p){
+  const z1=Number(runway?.z1||0), z2=Number(runway?.z2||0), half=Math.max(.1,Number(runway?.width||0)/2);
+  return {x:Number(runway?.x||0)+Math.max(-half,Math.min(half,p.x-Number(runway?.x||0))),y:Number(runway?.y??-15),z:Math.max(Math.min(z1,z2),Math.min(Math.max(z1,z2),p.z))};
+}
+function nearestPointOnCircle(stage,p){
+  const cx=Number(stage?.x||0),cz=Number(stage?.z||0),r=Math.max(.1,Number(stage?.radius||0)),dx=p.x-cx,dz=p.z-cz,l=Math.hypot(dx,dz)||1;
+  return {x:cx+dx/l*r,y:Number(stage?.y??-14),z:cz+dz/l*r};
+}
+function stageReferencePoints(layout,p){
   const out=[]; const st=layout?.stage||{};
-  if(st.main) out.push({label:'主舞台',x:Number(st.main.x||0),y:Number(st.main.y||-16),z:Number(st.main.z||0)});
-  if(st.bStage) out.push({label:'副舞台',x:Number(st.bStage.x||0),y:Number(st.bStage.y||-14),z:Number(st.bStage.z||0)});
-  if(st.runway){ const z2=Number(st.runway.z2??st.runway.z1??0); out.push({label:'延伸台前端',x:Number(st.runway.x||0),y:Number(st.runway.y||-15),z:z2}); }
-  for(const [i,r] of (layout?.extraStageRects||[]).entries()) out.push({label:i===0?'延伸舞台':'延伸舞台',x:Number(r.x||0),y:Number(r.y||-15),z:Number(r.z||0)});
+  if(st.main){const q=nearestPointOnRectXZ(st.main,p);out.push({label:'主舞台',...q,center:{x:Number(st.main.x||0),y:Number(st.main.y??-16),z:Number(st.main.z||0)}});}
+  if(st.runway){const q=nearestPointOnRunway(st.runway,p);out.push({label:'延伸台',...q});}
+  if(st.bStage){const q=nearestPointOnCircle(st.bStage,p);out.push({label:'副舞台',...q});}
+  for(const r of (layout?.extraStageRects||[])){const q=nearestPointOnRectXZ(r,p);out.push({label:'延伸舞台',...q});}
   return out;
 }
+function stageViewingAngle(layout,p){
+  const m=layout?.stage?.main; if(!m)return null;
+  if(layout?.stage?.centerStage || Math.abs(Number(m.z||0))<Math.max(18,Number(m.depth||24)*.45))return {deg:0,label:'環形／中央舞台'};
+  const a=Number(m.ry||0),fx=Math.sin(a),fz=Math.cos(a),dx=p.x-Number(m.x||0),dz=p.z-Number(m.z||0),l=Math.hypot(dx,dz)||1;
+  const dot=Math.max(-1,Math.min(1,(fx*dx+fz*dz)/l)),deg=Math.round(Math.acos(dot)*180/Math.PI);
+  const label=deg<=24?'正面':deg<=48?'斜前方':deg<=78?'側前方':deg<=108?'側面':'舞台後側';
+  return {deg,label};
+}
+function occluderSightlineImpact(o,eye=seatCameraPosition(),target=activeSeatTarget()){
+  const dx=target[0]-eye[0],dy=target[1]-eye[1],dz=target[2]-eye[2],den=dx*dx+dz*dz||1;
+  const t=((Number(o.x||0)-eye[0])*dx+(Number(o.z||0)-eye[2])*dz)/den;
+  if(t<=.015||t>=.985)return {hit:false,t,clearance:Infinity};
+  const x=eye[0]+dx*t,y=eye[1]+dy*t,z=eye[2]+dz*t,a=-Number(o.ry||0),ca=Math.cos(a),sa=Math.sin(a);
+  const ox=x-Number(o.x||0),oz=z-Number(o.z||0),lx=ox*ca-oz*sa,lz=ox*sa+oz*ca;
+  const inside=Math.abs(lx)<=Math.max(.25,Number(o.width||1)/2+.35)&&Math.abs(lz)<=Math.max(.25,Number(o.depth||1)/2+.35);
+  const bottom=Number(o.y||0),top=bottom+Math.max(.1,Number(o.height||1)),clearance=y-top;
+  return {hit:inside&&y>=bottom-.35&&clearance<=.35,t,clearance};
+}
+function obstructionSummary(){
+  const candidates=activeOccluders();
+  if(!candidates.length)return {level:'clear',label:'未偵測固定遮擋',detail:'仍可能受前方觀眾與臨時設備影響'};
+  const impacted=candidates.map(o=>({o,...occluderSightlineImpact(o)})).filter(x=>x.hit);
+  const labels={rail:'欄杆／矮牆',overhang:'屋簷／上方結構',equipment:'固定設備',crowd:'前方人群'};
+  if(!impacted.length)return {level:'clear',label:'已避開已知遮擋',detail:'已知結構未穿過目前座位到舞台的中心視線'};
+  const kinds=[...new Set(impacted.map(x=>x.o.kind))];
+  const high=kinds.some(k=>k==='overhang'||k==='equipment'),variable=kinds.includes('crowd');
+  return {level:high?'caution':variable?'variable':'notice',label:kinds.map(k=>labels[k]||k).join('＋'),detail:high?'已知固定結構穿過中心視線':variable?'前方人群高度可能穿過中心視線':'低高度結構接近中心視線'};
+}
 function estimateSeatDistances(){
-  const layout=currentVenueLayout(), cal=layout?.distanceCalibration; if(!cal?.metersPerUnit)return null;
+  const layout=currentVenueLayout(), cal=effectiveDistanceCalibration(layout); if(!cal?.metersPerUnit)return null;
   const sec=getVenueSection(state.venueId,String(state.section),state.layoutId); if(!sec)return null;
-  const p=venueSectionPosition(state.venueId,sec,Number(state.row),state.seatNumber);
-  const pts=stageReferencePoints(layout); if(!pts.length)return null;
+  const p=venueSectionPosition(state.venueId,sec,Number(state.row),state.seatNumber), eye=seatCameraPosition();
+  const pts=stageReferencePoints(layout,p); if(!pts.length)return null;
   const scale=Number(cal.metersPerUnit), u=Math.max(1,Number(cal.uncertaintyM||4));
-  const items=pts.map(t=>{const m=Math.hypot(p.x-t.x,p.z-t.z,(p.y-t.y)*.7)*scale;return {...t,m};}).sort((a,b)=>a.m-b.m);
+  const items=pts.map(t=>{const horizontal=Math.hypot(p.x-t.x,p.z-t.z), m=Math.hypot(horizontal,p.y-t.y)*scale;return {...t,m,horizontal};}).sort((a,b)=>a.m-b.m);
   const main=items.find(x=>x.label==='主舞台')||items[0], nearest=items[0];
-  const range=m=>`${Math.max(1,Math.round(m-u))}–${Math.round(m+u)} m`;
-  return {main:range(main.m),nearest:range(nearest.m),nearestLabel:nearest.label,basis:cal.basis,uncertainty:u};
+  const mainCenter=main.center||{x:main.x,y:main.y,z:main.z}, horizontalToCenter=Math.hypot(mainCenter.x-eye[0],mainCenter.z-eye[2]);
+  const elevationDeg=Math.round(Math.atan2(Math.max(-999,eye[1]-mainCenter.y),Math.max(1,horizontalToCenter))*180/Math.PI);
+  const angle=stageViewingAngle(layout,p), obstruction=obstructionSummary();
+  const range=m=>`${Math.max(1,Math.round(m-u))}–${Math.max(2,Math.round(m+u))} m`;
+  return {main:range(main.m),mainM:main.m,nearest:range(nearest.m),nearestM:nearest.m,nearestLabel:nearest.label,basis:cal.basis,uncertainty:u,angle,elevationDeg,obstruction,calibrationInherited:!layout?.distanceCalibration};
+}
+function updateViewerMetrics(d=estimateSeatDistances()){
+  const el=$('#viewerMetrics'); if(!el)return;
+  if(!d){el.innerHTML='<span>相對視角</span><span>公尺比例待校正</span>';return;}
+  const angle=d.angle?`${d.angle.label}${d.angle.deg?` ${d.angle.deg}°`:''}`:'角度待校正';
+  const elevation=d.elevationDeg>1?`俯角 ${d.elevationDeg}°`:d.elevationDeg<-1?`仰角 ${Math.abs(d.elevationDeg)}°`:'近水平視線';
+  el.innerHTML=`<span><b>${escapeHtml(d.main)}</b> 主舞台最近</span><span>${escapeHtml(angle)} · ${escapeHtml(elevation)}</span><span class="risk-${escapeHtml(d.obstruction.level)}">遮擋：${escapeHtml(d.obstruction.label)}</span>`;
 }
 function updatePreviewDistance(){
-  const el=$('#previewDistance'); if(!el)return; const d=estimateSeatDistances();
+  const el=$('#previewDistance'); if(!el)return; const d=estimateSeatDistances(); updateViewerMetrics(d);
   if(!d){el.textContent='此配置尚未完成可驗證的公尺比例校正；只顯示相對視角。';return;}
-  el.innerHTML=`<b>主舞台約 ${escapeHtml(d.main)}</b>${d.nearestLabel!=='主舞台'?`<span>${escapeHtml(d.nearestLabel)}最近約 ${escapeHtml(d.nearest)}</span>`:''}<small>票區／排別級估算 · ${escapeHtml(d.basis)}</small>`;
+  const angle=d.angle?`${d.angle.label}${d.angle.deg?` ${d.angle.deg}°`:''}`:'角度待校正';
+  const elevation=d.elevationDeg>1?`俯角約 ${d.elevationDeg}°`:d.elevationDeg<-1?`仰角約 ${Math.abs(d.elevationDeg)}°`:'近水平視線';
+  const nearest=d.nearestLabel!=='主舞台'?`<span>${escapeHtml(d.nearestLabel)}最近約 ${escapeHtml(d.nearest)}</span>`:'';
+  el.innerHTML=`<b>主舞台最近約 ${escapeHtml(d.main)}</b>${nearest}<span>${escapeHtml(angle)} · ${escapeHtml(elevation)}</span><span class="distance-risk risk-${escapeHtml(d.obstruction.level)}">遮擋：${escapeHtml(d.obstruction.label)}</span><small>依目前排數＋座號左右位置估算 · 誤差約 ±${d.uncertainty}m${d.calibrationInherited?' · 公尺比例沿用同場館韓星校正範例':''}<br>${escapeHtml(d.basis)}</small>`;
 }
 
 function updateSeatLabel() {
@@ -1749,8 +1833,8 @@ window.NEUL_APP = {
   state, openDetail, closeDetail, setVenue, renderEvents, renderFollowing, renderFeatured, updateFreshness,
   getEvent: id => state.events.find(e => e.id === id),
   activeVenueModel, currentVenueLayout, activeSection, activeStage, seatCameraPosition, activeSeatTarget,
-  getVenueModel, getVenueLayout, getVenueSection, venueSectionPosition, venueSectionWarning, sectionTicketLabel,
-  fmtDate, fmtTime, fmtEventTime, safeUrl, escapeHtml, nextAction, drawSeatPreview, drawVenueOverview, updateSeatLabel
+  getVenueModel, getVenueLayout, getVenueSection, venueSectionPosition, venueSectionWarning, sectionTicketLabel, kstarExampleForVenue,
+  fmtDate, fmtTime, fmtEventTime, safeUrl, escapeHtml, nextAction, drawSeatPreview, drawVenueOverview, updateSeatLabel, estimateSeatDistances
 };
 window.dispatchEvent(new CustomEvent("neul:ready", { detail: window.NEUL_APP }));
 window.addEventListener("resize", () => { drawVenueOverview(); drawSeatPreview(); if(!viewer.hidden) requestVenueFrame(); });

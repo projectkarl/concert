@@ -172,9 +172,9 @@ function seatSamples(section,selected,quality,layout){
   // official event map before drawing chairs. Official standing zones likewise never get chairs.
   if(section.structuralOnly || section.standingOnly)return out;
   const actualRows=Math.max(1,Number(section.rowMax??30)-Number(section.rowMin??1)+1);
-  const rows=selected?(quality==='high'?Math.min(42,actualRows):Math.min(24,actualRows)):(quality==='high'?Math.min(8,actualRows):Math.min(5,actualRows));
+  const rows=selected?(quality==='high'?Math.min(48,actualRows):Math.min(24,actualRows)):(quality==='high'?Math.min(8,actualRows):Math.min(5,actualRows));
   const seatMax=Math.max(10,Number(section.seatEstimateMax||28));
-  const cols=selected?(quality==='high'?Math.min(34,seatMax):Math.min(20,seatMax)):(quality==='high'?9:6);
+  const cols=selected?(quality==='high'?Math.min(38,seatMax):Math.min(20,seatMax)):(quality==='high'?9:6);
   if(section.shape==='block'||section.tier==='FLOOR'||Number.isFinite(section.x)){
     const w=section.width||38,d=section.depth||32;for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const u=(c+.5)/cols,v=(r+.5)/rows;{const seat={x:section.x-w/2+u*w,y:(section.y??-20)+2.4+v*Number(section.rise||2),z:section.z-d/2+v*d,rot:Math.atan2(-section.x,-section.z)};if(!pointInProduction(seat.x,seat.z,layout))out.push(seat);}}return out;
   }
@@ -205,7 +205,7 @@ function sectionArchitecture(section,selected,quality,theme){
   // Side stair / aisle edges follow the actual rake of each bowl section.
   for(const side of [-1,1]){const pts=[];const n=selected?(quality==='high'?Math.min(rows,32):12):6;for(let i=0;i<=n;i++){const v=i/n,a=section.angle+side*half*.91;pts.push(Math.cos(a)*(section.radiusX+v*dx),section.y+1.1+v*rise,Math.sin(a)*(section.radiusZ+v*dz));}lines.push({vertices:new Float32Array(pts),color:railColor});if(selected)strip(section.angle+side*half*.86,.02,.98,Math.max(.006,half*.055));}
   // Individual riser edges are shown for the selected zone; nearby zones keep sparse steps.
-  const nSteps=selected?(quality==='high'?Math.min(rows,32):Math.min(rows,18)):Math.min(3,rows);
+  const nSteps=selected?(quality==='high'?Math.min(rows,40):Math.min(rows,18)):Math.min(3,rows);
   for(let i=0;i<=nSteps;i++){const v=nSteps?i/nSteps:0,a0=section.angle-half*.88,a1=section.angle+half*.88,rx=section.radiusX+v*dx,rz=section.radiusZ+v*dz,y=section.y+.55+v*rise;lines.push({vertices:new Float32Array([Math.cos(a0)*rx,y,Math.sin(a0)*rz,Math.cos(a1)*rx,y,Math.sin(a1)*rz]),color:light?[.36,.41,.46,.40]:[.72,.76,.80,.30]});}
   // Cross aisle surface makes the circulation path legible in deep bowls.
   if(rows>=18){const v=.63,a0=section.angle-half*.95,a1=section.angle+half*.95,rx=section.radiusX+v*dx,rz=section.radiusZ+v*dz,y=section.y+1.0+v*rise;lines.push({vertices:new Float32Array([Math.cos(a0)*rx,y,Math.sin(a0)*rz,Math.cos(a1)*rx,y,Math.sin(a1)*rz]),color:walkwayEdge});if(selected){const dv=.026,point=(a,vv)=>[Math.cos(a)*(section.radiusX+vv*dx),section.y+1.16+vv*rise,Math.sin(a)*(section.radiusZ+vv*dz)],top=[point(a0,v-dv),point(a1,v-dv),point(a1,v+dv),point(a0,v+dv)];solids.push({mesh:prism(top,.30),model:mat4Identity(),color:walkway,emissive:'#101216'});}}
@@ -269,10 +269,17 @@ function buildCPUScene(config,quality){
   // Truss and hanging speaker arrays make the venue feel more like a live concert without pretending to be an exact rig.
   const trussY=m.y+screenH+18;
   solids.push(boxItem({x:m.x,y:trussY,z:m.z,width:m.width*1.24,depth:2.4},'#29313a','#111923',2.4));
-  solids.push(boxItem({x:m.x-m.width*.62,y:m.y+screenH*.55,z:m.z,width:2.2,depth:2.2},'#252d35','#090c12',screenH+28));
-  solids.push(boxItem({x:m.x+m.width*.62,y:m.y+screenH*.55,z:m.z,width:2.2,depth:2.2},'#252d35','#090c12',screenH+28));
-  solids.push(boxItem({x:m.x-m.width*.76,y:m.y+screenH*.48,z:m.z+3,width:4.8,depth:5.5},'#10151b','#050608',screenH*.72));
-  solids.push(boxItem({x:m.x+m.width*.76,y:m.y+screenH*.48,z:m.z+3,width:4.8,depth:5.5},'#10151b','#050608',screenH*.72));
+  const rig=layout.stageRig||{};
+  // Event references may explicitly suppress generic support towers/speaker arrays when the
+  // official seating plan does not identify those objects as sightline obstructions.
+  if(rig.verticalSupportTowers!==false){
+    solids.push(boxItem({x:m.x-m.width*.62,y:m.y+screenH*.55,z:m.z,width:2.2,depth:2.2},'#252d35','#090c12',screenH+28));
+    solids.push(boxItem({x:m.x+m.width*.62,y:m.y+screenH*.55,z:m.z,width:2.2,depth:2.2},'#252d35','#090c12',screenH+28));
+  }
+  if(rig.sideSpeakerArrays!==false){
+    solids.push(boxItem({x:m.x-m.width*.76,y:m.y+screenH*.48,z:m.z+3,width:4.8,depth:5.5},'#10151b','#050608',screenH*.72));
+    solids.push(boxItem({x:m.x+m.width*.76,y:m.y+screenH*.48,z:m.z+3,width:4.8,depth:5.5},'#10151b','#050608',screenH*.72));
+  }
   for(let i=0;i<9;i++){const u=i/8,px=m.x-m.width*.42+u*m.width*.84;solids.push(boxItem({x:px,y:m.y+5,z:m.z+m.depth*.42,width:1.1,depth:1.1},'#fff1ff',i%2?'#7c63ff':'#d85bff',1.4));}
   // Sparse audience silhouettes on the floor add scale without loading character assets.
   const crowdCount=quality==='high'?38:18;
@@ -299,7 +306,7 @@ function buildCPUScene(config,quality){
   for(let i=0;i<16;i++){const a=i/16*Math.PI*2;solids.push(boxItem({x:Math.cos(a)*rx*.99,y:-18,z:Math.sin(a)*rz*.99,width:2.5,depth:2.5},'#26303a','#05070a',maxY+65));}
   for(const o of config.occluders||[]){solids.push(boxItem(o,o.color||'#343b42',o.kind==='overhang'?'#080a0c':'#101318',o.height||4));}
   const sp=config.seatPosition;solids.push(boxItem({x:sp[0],y:sp[1]-3,z:sp[2],width:4,depth:4,height:6},'#ffe2ff','#c45de4',6));
-  const maxSeats=quality==='high'?5200:1900,seatCount=Math.min(maxSeats,seatMats.length);
+  const maxSeats=quality==='high'?6200:1900,seatCount=Math.min(maxSeats,seatMats.length);
   return{solids,lines:lines.filter(x=>x.vertices),seatMats:seatMats.slice(0,seatCount),seatColors:new Float32Array(seatColors.slice(0,seatCount*3)),seatCount};
 }
 

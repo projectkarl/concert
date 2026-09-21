@@ -1,14 +1,35 @@
-# NEUL v0.40.6
+# NEUL v0.40.10 — 3D Precision + Non-Regression
 
-**本版收斂為 10 個主流 3D 場館，桌面版 Planner 改為 News，演藝新聞維持在全頁最後一個內容區塊；所有韓星場館示範統一在活動配置名稱後標示「範例」。**
+本版不改 NEUL 既有 3D 互動方式，核心仍是可旋轉／縮放／平移的原生 WebGL2 場館。新增排／座號級左右位移、舞台最近邊緣距離、側向觀看角、俯仰角與視線遮擋交會判定；同時以實際 Chromium WebGL2 驗收避免「優化後退化成平面圖」。
 
-主流 3D 場館：臺北大巨蛋、臺北小巨蛋、NTSU 林口體育館、高雄巨蛋、臺北流行音樂中心、TICC、高雄流行音樂中心海音館、高雄國家體育場（世運主場館）、南港展覽館一館 4F、Zepp New Taipei。
+- 保留 12 個主要 3D 場館與各自韓星範例。
+- 距離改算到主舞台／延伸台／副舞台最近可視邊緣，並保留校正誤差帶。
+- 座號會改變同排左右相機位置；排數會改變前後與高度。
+- 遮擋不再只看該區是否有欄杆／設備，而是檢查該物件是否實際穿過目前座位到舞台的中心視線。
+- WebGL2 不可用時仍保留既有 Canvas fallback，但支援 WebGL2 的瀏覽器優先使用真 3D renderer。
+- 修正 enhancements 的 `offlineState()` 遺漏，避免頁面 Console exception。
+- Archive 仍自動只保留最近 20 場；完整活動補漏與 News 置底規則全部保留。
 
-桃園巨蛋、臺大綜合體育館、天母體育館仍保留活動資料與既有幾何程式碼作相容性/歷史資料用途，但不再出現在主流 3D 場館選單，也不啟動活動自動 3D/OCR 生成。
+# NEUL v0.40.9 — Full Concert Coverage Reconciliation
 
-官方圖預覽修正：範例 layout 即使沒有目前活動資料的 `eventId`，也會使用該範例自己的官方活動／售票／場館來源交給 `/api/seat-map-image` 解析；resolver 會收到場館、場館 ID、活動名稱提示，降低共用售票頁抓錯圖。官方來源若當下封鎖抓取、撤圖或沒有提供可解析圖片，介面仍會保留官方來源連結與已驗證 3D，不會把第三方圖冒充官方圖。
+**本版把「演唱會清單完整性」改成可驗證流程，不再用單一頁面或固定 seed 數量假設已收齊。首頁仍只顯示摘要，但「查看更多活動」會保留所有已發現、去重後的演唱會；公開來源若只回傳部分資料，畫面會顯示補漏對帳比例。**
 
-> 3D 原則：只把資源集中在主流 10 場館；官方固定場館結構優先，活動舞台／可變票區逐場客製；twconcertview 僅作實拍視野交叉核對。
+### v0.40.9 重點
+
+- `twconcertview` 由單頁摘要改成逐月掃描，跨月份合併後再去重；同時讀取來源宣告的 upcoming 總數作 coverage reconciliation。
+- 官方售票／主辦／藝人／場館來源優先覆寫日期、場館、售票與座位圖；`twconcertview` 只負責發現可能漏掉的活動。
+- 排除返鄉專車、接駁、周邊商品、純球賽等非演出商品頁；VIP／信用卡等同一演出的衍生頁透過 identity normalization 合併。
+- API 額外回傳 `coverageReferenceCount / ParsedCount / Ratio / Complete / MonthsScanned / SuccessfulPages`，前端可直接看目前補漏是否真的收齊。
+- aespa 臺北大巨蛋範例採官方票區邏輯 001–014；未在官方圖中出現的三根遮擋柱、通用支撐塔、長花道／B-stage 不得自行生成。
+- 官方圖預覽維持 v0.40.8 修正：範例 layout 沒有 `eventId` 也可用自身官方來源解析座位圖；官方主機禁止嵌入時才使用已核對的同圖存檔，不用第三方示意圖冒充官方圖。
+
+> 完整性邊界：公開網頁隨時可能新增、撤下或封鎖抓取，因此系統不宣稱能保證「全台每一場」；但在已設定的公開來源範圍內，所有解析到的演唱會都會納入完整清單，並用來源總數與健康狀態直接暴露缺口。
+
+### 3D 場館政策
+
+保留的 12 個 3D 場館：臺北大巨蛋、臺北小巨蛋、NTSU 林口體育館、高雄巨蛋、臺北流行音樂中心、TICC、高雄流行音樂中心海音館、高雄國家體育場（世運主場館）、桃園巨蛋、臺大綜合體育館、南港展覽館一館 4F、Zepp New Taipei。
+
+桃園巨蛋與臺大綜合體育館維持 3D／OCR 支援；天母體育館仍保留活動資料，但不投入自動 3D/OCR 資源。固定場館結構以官方幾何為準，活動舞台與可變票區才允許逐場客製。
 
 # NEUL v0.40.3 — Venue Topology Guard (2026-09-21)
 
@@ -111,3 +132,11 @@ Deleting the only Git repository or working folder can lose manual edits and any
 - Temporary outdoor plazas/parks/festival grounds remain listed but do not receive fabricated seating 3D.
 - Jason Mraz Taipei uses a flat Nangang Exhibition Hall 1 4F baseline until the official event map upgrades it.
 - Official seat-map preview can resolve directly from supported official event pages; it no longer requires a pre-filled direct image URL.
+## Archive retention
+
+- Upcoming / active events refresh automatically from the configured public sources.
+- Supported calibrated venues can auto-create event-specific 3D drafts; official seat-map OCR/Vision remains behind the QA guard.
+- Once an event is finished, it leaves Upcoming and the live event-specific 3D selector automatically.
+- Archive is capped at the **20 most recently ended events**. Older ended events are discarded from the runtime event set instead of accumulating indefinitely.
+- K-star venue reference examples are calibration assets and are independent from the rolling 20-event Archive.
+

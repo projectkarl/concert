@@ -1,4 +1,4 @@
-const VERSION = "neul-v0.40.6-mainstream10-news-bottom-official-map";
+const VERSION = "neul-v0.40.10-3dprecision-nonregression";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const APP_SHELL = [

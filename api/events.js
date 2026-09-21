@@ -38,6 +38,37 @@ function normalizeText(value = "") {
 const MAINSTREAM_3D_SET = new Set(MAINSTREAM_3D_VENUE_IDS);
 const CALIBRATED_3D_VENUES = new Set(calibratedVenues.filter(v=>MAINSTREAM_3D_SET.has(v.id)).map(v => v.id));
 
+
+const ARCHIVE_LIMIT = 20;
+function isMidnightIso(iso='') { return /T00:00(?::00)?(?:\+08:00|Z)?$/i.test(String(iso)); }
+function endOfTaipeiDayTs(iso='') {
+  const d=new Date(iso); if(!Number.isFinite(d.getTime())) return NaN;
+  const key=new Intl.DateTimeFormat('en-CA',{year:'numeric',month:'2-digit',day:'2-digit',timeZone:'Asia/Taipei'}).format(d);
+  return new Date(`${key}T23:59:59+08:00`).getTime();
+}
+function eventSessionTs(session={},event={}) {
+  const date=String(session.date||'').replaceAll('/','-');
+  const time=/^\d{1,2}:\d{2}$/.test(String(session.time||''))?String(session.time):'23:59';
+  if(/^20\d{2}-\d{2}-\d{2}$/.test(date)) return new Date(`${date}T${time}:00+08:00`).getTime();
+  return NaN;
+}
+function eventEffectiveEndTs(event={}) {
+  const sessionTs=(event.sessions||[]).map(x=>eventSessionTs(x,event)).filter(Number.isFinite);
+  if(sessionTs.length) return Math.max(...sessionTs)+6*3600000;
+  if(event.end){ const raw=new Date(event.end).getTime(); if(Number.isFinite(raw)) return isMidnightIso(event.end)?endOfTaipeiDayTs(event.end):raw+6*3600000; }
+  const start=new Date(event.start||0).getTime(); if(!Number.isFinite(start)) return NaN;
+  if(event.timeConfirmed===false||isMidnightIso(event.start)) return endOfTaipeiDayTs(event.start);
+  return start+6*3600000;
+}
+export function retainRecentArchive(events=[], now=Date.now(), limit=ARCHIVE_LIMIT) {
+  const current=[]; const ended=[];
+  for(const event of events||[]) {
+    const endedNow=Boolean(event.historical)||(!Number.isFinite(eventEffectiveEndTs(event))||eventEffectiveEndTs(event)<now);
+    (endedNow?ended:current).push(event);
+  }
+  ended.sort((a,b)=>eventEffectiveEndTs(b)-eventEffectiveEndTs(a)||new Date(b.start||0)-new Date(a.start||0));
+  return [...current,...ended.slice(0,limit)].sort((a,b)=>new Date(a.start||0)-new Date(b.start||0));
+}
 const TAIWAN_CITIES = new Set(["Taipei","New Taipei","Taoyuan","Taichung","Tainan","Kaohsiung","Hsinchu","Keelung","Chiayi","Changhua","Miaoli","Nantou","Yunlin","Pingtung","Yilan","Hualien","Taitung","Penghu","Kinmen","Matsu"]);
 function isTaiwanEvent(event = {}) {
   if (event.region !== "TW") return false;
@@ -52,6 +83,8 @@ const VENUE_ALIASES = [
   [/林口體育館|國立體育大學.*(?:體育館|ntsu)|ntsu arena|linkou arena/i, "ntsu-arena"],
   [/高雄巨蛋|kaohsiung arena/i, "kaohsiung-arena"],
   [/高雄國家體育場|世運主場館|kaohsiung national stadium/i, "kaohsiung-stadium"],
+  [/桃園巨蛋|桃園市立綜合體育館|taoyuan arena/i, "taoyuan-arena"],
+  [/臺?大綜合體育館|台大綜合體育館|ntu sports center/i, "ntu-sports-center"],
   [/台北國際會議中心|臺北國際會議中心|\bticc\b/i, "ticc"],
   [/臺?北流行音樂中心|taipei music center|\btmc\b/i, "taipei-music-center"],
   [/高雄流行音樂中心|kaohsiung music center/i, "kaohsiung-music-center"],
@@ -67,6 +100,7 @@ function canonicalVenue(value = "") {
 
 function eventIdentityText(event = {}) {
   return normalizeText(`${event.artist || ""} ${event.shortArtist || ""} ${event.title || ""}`)
+    .replace(/mastercard專區|vip upgrade|升級vip|加購福利|add on benefit|優先購票|預售專區/g, " ")
     .replace(/\b(world|tour|taipei|taiwan|concert|live|in|the|2026|2025|show|fan|meeting)\b/g, " ")
     .replace(/\s+/g, " ").trim();
 }
@@ -180,10 +214,17 @@ function mergeRecords(existing, incoming) {
   return out;
 }
 
+function isNonPerformanceTicketProduct(event = {}) {
+  const text = normalizeText(`${event.artist || ""} ${event.title || ""} ${event.venue || ""}`);
+  if (/返鄉專車|歌迷專車|接駁專車|接駁車|蛋黃酥|周邊商品|商品預購/.test(text)) return true;
+  if (/例行賽|季後賽|季票專區|球賽門票|棒球(?:賽事|門票)|籃球(?:賽事|門票)/.test(text)) return true;
+  return false;
+}
+
 export function mergeAndDedupe(seeds, discovered) {
   const result = [];
   for (const candidate of [...seeds, ...discovered]) {
-    if (!isTaiwanEvent(candidate)) continue;
+    if (!isTaiwanEvent(candidate) || isNonPerformanceTicketProduct(candidate)) continue;
     const idx = result.findIndex(existing => likelySameEvent(existing, candidate));
     if (idx >= 0) result[idx] = mergeRecords(result[idx], candidate);
     else result.push({ ...candidate, sourceRefs: sourceRef(candidate) ? [sourceRef(candidate)] : [] });
@@ -278,7 +319,13 @@ function coverageSnapshot(discovery = {}, events = [], auditor = null) {
       detectedCoverageGaps: auditor.detectedCoverageGaps,
       sourceHealthWarnings: auditor.sourceHealthWarnings,
       coverageReferenceCandidates: auditor.coverageReferenceCandidates || 0,
-      coverageReferenceUnmatched: auditor.coverageReferenceUnmatched || 0
+      coverageReferenceUnmatched: auditor.coverageReferenceUnmatched || 0,
+      coverageReferenceCount: discovery.coverageReferenceCount || 0,
+      coverageReferenceParsedCount: discovery.coverageReferenceParsedCount || 0,
+      coverageReferenceRatio: discovery.coverageReferenceRatio ?? null,
+      coverageReferenceComplete: Boolean(discovery.coverageReferenceComplete),
+      coverageReferenceMonthsScanned: discovery.coverageReferenceMonthsScanned || 0,
+      coverageReferenceSuccessfulPages: discovery.coverageReferenceSuccessfulPages || 0
     } : null,
     note: 'No public source can guarantee every Taiwan performance. NEUL reconciles official ticket/promoter/artist/venue sources and uses twconcertview only as a discovery cross-check; cross-check-only items stay flagged until an official source is found.'
   };
@@ -358,13 +405,17 @@ export default async function handler(req, res) {
     discovery.coverageReferenceHealth = d.sourceHealth || [];
     discovery.coverageReferenceCount = d.referenceCount || 0;
     discovery.coverageReferenceParsedCount = d.parsedCount || 0;
+    discovery.coverageReferenceRatio = d.coverageRatio ?? null;
+    discovery.coverageReferenceComplete = Boolean(d.completeAgainstReference);
+    discovery.coverageReferenceMonthsScanned = d.monthsScanned || 0;
+    discovery.coverageReferenceSuccessfulPages = d.successfulPages || 0;
     sources.push(d.source || "twconcertview coverage cross-check");
   } else errors.push(twConcertViewResult.reason?.message || "twconcertview coverage cross-check unavailable");
   if (errors.length) autoUpdateError = errors.join(" · ");
   discovery.source = sources.join(" + ") || "curated fallback";
 
   const mergedEvents = mergeAndDedupe(seedEvents, discovery.events || []);
-  const events = mergedEvents.map(event => {
+  const allEvents = mergedEvents.map(event => {
     const seatMapFound = Boolean(event.seatLayoutSourceUrl);
     const sectionPricesFound = Boolean(event.sectionPriceRules?.length);
     const explicitEventLayout = Boolean(event.venueLayoutId);
@@ -399,9 +450,11 @@ export default async function handler(req, res) {
       }
     };
   });
+  const events = retainRecentArchive(allEvents);
+  const archiveCount = events.filter(e => Boolean(e.historical) || eventEffectiveEndTs(e) < Date.now()).length;
   const combinedSourceHealth = [...(discovery.sourceHealth || []), ...(discovery.venueSourceHealth || []), ...(discovery.coverageReferenceHealth || [])];
   discovery.sourceHealth = combinedSourceHealth;
-  const coverageAudit = auditCoverage({events, rawDiscovered: discovery.events || [], sourceHealth: combinedSourceHealth});
+  const coverageAudit = auditCoverage({events: allEvents, rawDiscovered: discovery.events || [], sourceHealth: combinedSourceHealth});
   const artists = buildArtists(events);
   const updatedAt = new Date();
   const nextUpdateAt = new Date(updatedAt.getTime() + 3600000);
@@ -422,13 +475,19 @@ export default async function handler(req, res) {
       coverageReferenceHealth: discovery.coverageReferenceHealth || [],
       coverageReferenceCount: discovery.coverageReferenceCount || 0,
       coverageReferenceParsedCount: discovery.coverageReferenceParsedCount || 0,
+      coverageReferenceRatio: discovery.coverageReferenceRatio ?? null,
+      coverageReferenceComplete: Boolean(discovery.coverageReferenceComplete),
+      coverageReferenceMonthsScanned: discovery.coverageReferenceMonthsScanned || 0,
+      coverageReferenceSuccessfulPages: discovery.coverageReferenceSuccessfulPages || 0,
       coverageReferenceUnmatched: coverageAudit.coverageReferenceUnmatchedEvents || [],
       coverageGaps: coverageAudit.gaps || [],
       needsTicketBackfill: coverageAudit.needsTicketBackfill || []
     },
-    coverage: coverageSnapshot(discovery, events, coverageAudit),
+    coverage: {...coverageSnapshot(discovery, allEvents, coverageAudit), archiveLimit: ARCHIVE_LIMIT, archiveCount},
     coverageAudit,
     count: events.length,
+    archiveLimit: ARCHIVE_LIMIT,
+    archiveCount,
     artistCount: artists.length,
     events,
     artists

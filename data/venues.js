@@ -55,8 +55,8 @@ export const venues = [
     confidence: "官方容量／場館級幾何＋實景校正", disclaimer: "官方可確認固定席容量；細分區域採區域級重建，平面區人頭與欄杆遮擋以公開實景回報校正。"
   }
 ];
-// v0.40.6 — keep interactive 3D focused on the ten venues most useful to concert users.
-// Other venues remain valid event/listing data, but are excluded from auto 3D/OCR work.
+// v0.40.7 — keep interactive 3D focused on the twelve venues most useful to concert users.
+// 桃園巨蛋 and 臺大綜合體育館 are retained by user request; other lower-priority venues stay listing-only.
 export const MAINSTREAM_3D_VENUE_IDS = Object.freeze([
   'taipei-dome',
   'taipei-arena',
@@ -66,6 +66,8 @@ export const MAINSTREAM_3D_VENUE_IDS = Object.freeze([
   'ticc',
   'kaohsiung-music-center',
   'kaohsiung-stadium',
+  'taoyuan-arena',
+  'ntu-sports-center',
   'nangang-exhibition-hall1-4f',
   'zepp-new-taipei'
 ]);
@@ -131,7 +133,7 @@ for (const venue of venues) {
 // The reference event calibrates stage direction / floor usage / relative viewing distance.
 // Official venue geometry remains authoritative; community photos are sightline cross-checks only.
 export const VENUE_KSTAR_REFERENCE = {
-  'taipei-dome': {artist:'aespa', event:'2026 aespa LIVE TOUR – SYNK : COMPLæXITY', date:'2026-08-11', layoutId:'ref-aespa-taipei-dome-2026', sourceName:'官方售票／臺北大巨蛋場館資料', sourceUrl:'https://www.farglorydome.com.tw/park-detail/map/', note:'大型端景舞台＋地面特區；以大巨蛋固定看台層級與活動票區相對距離校正。'},
+  'taipei-dome': {artist:'aespa', event:'2026 aespa LIVE TOUR – SYNK : COMPLæXITY', date:'2026-08-11', layoutId:'aespa-complexity-taipei-dome-2026', sourceName:'Live Nation Taiwan／拓元官方座位配置', sourceUrl:'https://www.livenation.com.tw/aespa-tpe', note:'依官方座位圖重建 B2 001–014 與 FOH；官方圖未標示長花道、B-stage 或三根遮擋柱，因此不自行生成。'},
   'taipei-arena': {artist:'IVE', event:'IVE 2ND WORLD TOUR SHOW WHAT I AM', date:'2026-09-11~13', layoutId:'ive-show-what-i-am-2026', sourceName:'tixCraft / Live Nation Taiwan', sourceUrl:'https://tixcraft.com/activity/detail/26_ive', note:'官方票區圖客製；延伸台、FOH、特區與固定看台均為本場 reference。'},
   'ntsu-arena': {artist:'NCT WISH', event:'NCT WISH LIVE TOUR in TAIPEI', date:'2026-09-05', layoutId:'ref-nct-wish-ntsu-2026', sourceName:'官方售票／林口體育館資料', sourceUrl:'https://phk.ntsu.edu.tw/var/file/8/1008/img/1439/147422320.pdf', note:'端景主舞台＋林口固定色區看台；平面區以演唱會典型中央延伸動線保守重建。'},
   'kaohsiung-arena': {artist:'NMIXX', event:'NMIXX 1ST WORLD TOUR EPISODE 1: ZERO FRONTIER', date:'2026-07-12~13', layoutId:'ref-nmixx-kaohsiung-arena-2026', sourceName:'Live Nation Taiwan / 高雄巨蛋', sourceUrl:'https://www.livenation.com.tw/nmixx-khh', note:'官方場域圖確認高雄巨蛋活動方向；固定 2F/4F/5F 與 VIP/平面區相對位置校正。'},

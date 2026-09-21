@@ -508,20 +508,41 @@ for (const [venueId,policy] of Object.entries(VENUE_GEOMETRY_POLICIES)) {
 const kstarDemoLayouts = {
   'aespa-complexity-taipei-dome-2026': {
     id:'aespa-complexity-taipei-dome-2026', venueId:'taipei-dome', label:'aespa · SYNK : COMPLæXITY', historical:true, kstarExample:true,
-    demoArtist:'aespa', demoDate:'2026-08-11', customizationLevel:'hand-calibrated-kstar-demo',
-    stage:{main:{x:0,y:-16,z:-160,width:112,depth:34},runway:{x:0,y:-15,z1:-143,z2:-64,width:19},bStage:{x:0,y:-14,z:-56,radius:22,shape:'octagon'}},
-    foh:{x:0,y:-19,z:70,width:72,depth:20},
+    demoArtist:'aespa', demoDate:'2026-08-11', customizationLevel:'official-seatmap-calibrated-kstar-demo',
+    // 2026 Taipei official seating graphic shows an end-stage with no long runway / B-stage.
+    // Keep only the shallow stage apron visible in the official plan; do not invent view-blocking towers.
+    stage:{main:{x:0,y:-16,z:-158,width:110,depth:31},runway:null,bStage:null},
+    extraStageRects:[{x:0,y:-15,z:-137,width:34,depth:16}],
+    stageRig:{verticalSupportTowers:false,sideSpeakerArrays:false},
+    foh:{x:0,y:-19,z:31,width:45,depth:24},
     sections:[
-      {...block('B2-VIP-A','FLOOR',-53,-89,44,62,'vip'),rowMin:1,rowMax:28}, {...block('B2-VIP-B','FLOOR',0,-89,44,62,'vip'),rowMin:1,rowMax:28}, {...block('B2-VIP-C','FLOOR',53,-89,44,62,'vip'),rowMin:1,rowMax:28},
-      {...block('B2-A','FLOOR',-61,-17,52,50,'floor'),rowMin:1,rowMax:24}, {...block('B2-B','FLOOR',0,-17,52,50,'floor'),rowMin:1,rowMax:24}, {...block('B2-C','FLOOR',61,-17,52,50,'floor'),rowMin:1,rowMax:24}
+      {...block('001','FLOOR',-76,-116,31,42,'vip'),rowMin:1,rowMax:24,officialId:'001'},
+      {...block('002','FLOOR',-39,-118,31,43,'vip'),rowMin:1,rowMax:24,officialId:'002'},
+      {...block('003','FLOOR',-7,-122,25,34,'vip'),rowMin:1,rowMax:20,officialId:'003'},
+      {...block('004','FLOOR',25,-122,25,34,'vip'),rowMin:1,rowMax:20,officialId:'004'},
+      {...block('005','FLOOR',56,-118,30,43,'vip'),rowMin:1,rowMax:24,officialId:'005'},
+      {...block('006','FLOOR',88,-112,28,43,'vip'),rowMin:1,rowMax:24,officialId:'006'},
+      {...block('007','FLOOR',-62,-70,31,35,'vip'),rowMin:1,rowMax:20,officialId:'007'},
+      {...block('008','FLOOR',-28,-69,27,35,'vip'),rowMin:1,rowMax:20,officialId:'008'},
+      {...block('009','FLOOR',-7,-68,16,20,'vip'),rowMin:1,rowMax:14,officialId:'009'},
+      {...block('010','FLOOR',12,-68,16,20,'vip'),rowMin:1,rowMax:14,officialId:'010'},
+      {...block('011','FLOOR',34,-69,27,35,'vip'),rowMin:1,rowMax:20,officialId:'011'},
+      {...block('012','FLOOR',67,-70,31,35,'vip'),rowMin:1,rowMax:20,officialId:'012'},
+      {...block('013','FLOOR',-45,-27,35,30,'6880'),rowMin:1,rowMax:18,officialId:'013'},
+      {...block('014','FLOOR',45,-27,35,30,'6880'),rowMin:1,rowMax:18,officialId:'014'}
     ],
-    tiers:[{id:'FLOOR',label:'B2 活動平面席',short:'B2',sections:['B2-VIP-A','B2-VIP-B','B2-VIP-C','B2-A','B2-B','B2-C']}],
-    replaceStructuralTiers:['FLOOR'], defaultTier:'FLOOR', defaultSection:'B2-B', defaultRow:12,
-    sourceName:'Live Nation Taiwan · aespa 2026 臺北大巨蛋入場／場域圖', sourceUrl:'https://www.livenation.com.tw/aespa-tpe',
-    sightlineSourceUrl:'https://twconcertview.com/en/venue/taipei-dome/', sightlineSourceName:'twconcertview 臺北大巨蛋實拍視角',
-    distanceCalibration:{metersPerUnit:.47,uncertaintyM:6,basis:'大巨蛋固定看台比例＋本場 B2 場域圖＋實拍視角交叉校正'},
-    verifiedAt:'2026-09-21T16:10:00+08:00',
-    notices:['本範例依 aespa 2026 臺北大巨蛋實際場次重建 B2 平面席、主舞台、中央延伸台與 FOH 相對位置。','固定 B1／L2–L5 看台不因活動票區圖任意變形；實際燈架、攝影台與當日封區仍以主辦為準。','距離顯示為票區／排別級估算，不宣稱單一椅面的測量級精度。']
+    tiers:[{id:'FLOOR',label:'B2 活動平面席',short:'B2',sections:['001','002','003','004','005','006','007','008','009','010','011','012','013','014']}],
+    replaceStructuralTiers:['FLOOR'], defaultTier:'FLOOR', defaultSection:'003', defaultRow:12,
+    sourceName:'Live Nation Taiwan／拓元 · aespa 2026 臺北大巨蛋官方座位配置', sourceUrl:'https://www.livenation.com.tw/aespa-tpe',
+    seatLayoutSourceUrl:'https://news-images.tvbs.com.tw/legacy/img/upload/2026/05/05/20260505080706-0466e602.jpeg',
+    seatMapDisplayUrl:'https://news-images.tvbs.com.tw/legacy/img/upload/2026/05/05/20260505080706-0466e602.jpeg',
+    seatMapDisplaySource:'Live Nation Taiwan 官方座位圖（TVBS 新聞轉載存檔）', seatMapDisplayTrustedArchive:true,
+    seatMapOriginalSourceUrl:'https://www.livenation.com.tw/aespa-tpe',
+    sectionPriceLabels:{'001':'VIP NT$7,880','002':'VIP NT$7,880','003':'VIP NT$7,880','004':'VIP NT$7,880','005':'VIP NT$7,880','006':'VIP NT$7,880','007':'VIP NT$7,880','008':'VIP NT$7,880','009':'VIP NT$7,880','010':'VIP NT$7,880','011':'VIP NT$7,880','012':'VIP NT$7,880','013':'NT$6,880','014':'NT$6,880'},
+    sightlineSourceUrl:'https://twconcertview.com/venue/taipei-dome/', sightlineSourceName:'twconcertview 臺北大巨蛋實拍視角',
+    distanceCalibration:{metersPerUnit:.47,uncertaintyM:6,basis:'大巨蛋固定看台比例＋aespa 官方座位圖 001–014／FOH 相對位置＋實拍視角交叉校正'},
+    verifiedAt:'2026-09-21T17:05:00+08:00',
+    notices:['本範例依 aespa 2026 官方座位圖重建 B2 001–014 平面區與 FOH；官方圖未標示長花道或 B-stage，因此 3D 不再自行生成。','官方座位圖沒有標示三根舞台遮擋柱；本場關閉通用垂直支撐塔與側掛喇叭陣列，避免把示意舞台設備誤當成真實遮擋。','固定 B1／L2–L5 看台保持大巨蛋場館基準；前排仍依主辦提醒保留固定欄杆／防護牆視線風險。','距離顯示為票區／排別級估算，不宣稱單一椅面的測量級精度。']
   },
   'nct-wish-anniversary-ntsu-2026': {
     id:'nct-wish-anniversary-ntsu-2026', venueId:'ntsu-arena', eventId:'nct-wish-2nd-anniversary-taipei-2026', label:'NCT WISH · 2ND ANNIVERSARY', historical:true, kstarExample:true,
@@ -735,7 +756,7 @@ export const venueLayouts = {
 // event drafts: they are stable calibration scenes used to compare stage direction, floor depth,
 // fixed tiers and relative sightline distance at each venue.
 const venueReferenceSpecs = {
-  'ref-aespa-taipei-dome-2026': {venueId:'taipei-dome',label:'aespa 2026 · 場館範例',stage:{main:{x:0,y:-16,z:-176,width:126,depth:32},runway:{x:0,y:-15,z1:-157,z2:-42,width:22},bStage:{x:0,y:-14,z:-28,radius:27}},foh:{x:0,y:-18,z:66,width:76,depth:18},sourceName:'臺北大巨蛋固定看台＋aespa 2026 活動 reference',sourceUrl:'https://www.farglorydome.com.tw/park-detail/map/',referenceExample:true,precisionGrade:'reference-calibrated',notices:['大巨蛋固定看台沿用官方幾何；本範例專門校正大型 K-pop 端景舞台、延伸台與長距離視角。','距離為場館比例與票區相對距離示意，不宣稱單席測量公尺值。']},
+  'ref-aespa-taipei-dome-2026': {venueId:'taipei-dome',label:'aespa 2026 · 場館範例',stage:{main:{x:0,y:-16,z:-158,width:110,depth:31},runway:null,bStage:null},extraStageRects:[{x:0,y:-15,z:-137,width:34,depth:16}],stageRig:{verticalSupportTowers:false,sideSpeakerArrays:false},foh:{x:0,y:-19,z:31,width:45,depth:24},sourceName:'aespa 2026 官方座位圖＋臺北大巨蛋固定看台',sourceUrl:'https://www.livenation.com.tw/aespa-tpe',seatLayoutSourceUrl:'https://news-images.tvbs.com.tw/legacy/img/upload/2026/05/05/20260505080706-0466e602.jpeg',seatMapDisplayUrl:'https://news-images.tvbs.com.tw/legacy/img/upload/2026/05/05/20260505080706-0466e602.jpeg',seatMapDisplayTrustedArchive:true,referenceExample:true,precisionGrade:'official-seatmap-calibrated',notices:['官方圖未標示長花道或 B-stage，本範例不自行生成。','官方圖未標示三根舞台遮擋柱，通用垂直支撐塔在本場關閉。']},
   'ref-nct-wish-ntsu-2026': {venueId:'ntsu-arena',label:'NCT WISH 2026 · 場館範例',stage:{main:{x:0,y:-16,z:-112,width:92,depth:27},runway:{x:0,y:-15,z1:-98,z2:-34,width:17},bStage:{x:0,y:-14,z:-27,radius:20}},foh:{x:0,y:-18,z:56,width:52,depth:16},sourceName:'林口官方場館圖＋NCT WISH 2026 reference',sourceUrl:'https://phk.ntsu.edu.tw/var/file/8/1008/img/1439/147422320.pdf',referenceExample:true,precisionGrade:'reference-calibrated',notices:['固定色區與排深沿用林口場館幾何；平面區以近期 K-pop 演唱會比例重建。']},
   'ref-nmixx-kaohsiung-arena-2026': {venueId:'kaohsiung-arena',label:'NMIXX 2026 · 場館範例',stage:{main:{x:0,y:-16,z:-111,width:94,depth:28},runway:{x:0,y:-15,z1:-96,z2:-31,width:18},bStage:{x:0,y:-14,z:-24,radius:19}},foh:{x:0,y:-18,z:54,width:58,depth:17},sourceName:'Live Nation NMIXX 場域圖／高雄巨蛋官方席位',sourceUrl:'https://www.livenation.com.tw/nmixx-khh',referenceExample:true,precisionGrade:'reference-calibrated',notices:['高雄巨蛋固定 2F/4F/5F 看台不由活動圖改寫；平面 VIP 與舞台方向依 NMIXX 場域圖做 reference。']},
   'ref-youngji-tmc-2026': {venueId:'taipei-music-center',label:'李泳知 2026 · 場館範例',stage:{main:{x:0,y:-15,z:-77,width:70,depth:22},runway:{x:0,y:-14,z1:-65,z2:-23,width:13},bStage:null},foh:{x:0,y:-17,z:24,width:30,depth:10},sourceName:'Live Nation / 北流固定觀眾席資料',sourceUrl:'https://www.livenation.com.tw/event/2026-lee-youngji-world-tour-2-0--taipei-tickets-edp1669737',referenceExample:true,precisionGrade:'reference-calibrated',notices:['1F 以站區配置呈現；2F/3F 固定席保持北流官方樓層幾何。','北流 2F 後排存在天花／結構視線風險，視角警示不因活動配置取消。']},
@@ -810,7 +831,7 @@ function compactHallGeometry(kind='club') {
   return {sections:[...floor,...balcony],tiers:[{id:'FLOOR',label:standing?'1F 活動站區':'1F 活動座席',short:'1F',sections:floor.map(x=>x.id)},...(balcony.length?[{id:'2F',label:'2F 看台',short:'2F',sections:balcony.map(x=>x.id)}]:[])],field:{x:70,z:72},defaultTier:'FLOOR',defaultSection:'1F-C',defaultRow:standing?1:10,stage:genericStage(-62,58,18)};
 }
 
-const AUTO_EVENT_3D_PIPELINE_VERSION='0.40.6-mainstream10-official-preview.1';
+const AUTO_EVENT_3D_PIPELINE_VERSION='0.40.10-mainstream12-3dprecision.1';
 function autoEvent3DSignature(event={},venueId=''){
   const compactRules=(event.sectionPriceRules||[]).map(r=>[r?.label||'',r?.price||'']);
   return JSON.stringify({
@@ -849,7 +870,7 @@ export function shouldGenerateEvent3D(event={}){
   const venueText=String(event.venue||'').toLowerCase();
   // Never fabricate rows/seats for ad-hoc outdoor grounds.
   if(/廣場|公園|休閒園區|海灘|沙灘|草地|碼頭|河濱|戶外廣場|festival ground|open field/.test(venueText)) return false;
-  // v0.40.6 resource policy: only the ten mainstream calibrated venues receive 3D work.
+  // v0.40.7 resource policy: only the twelve retained calibrated venues receive 3D work.
   // Unknown / lower-priority halls stay in the activity list even when a seat-map URL exists.
   return false;
 }
