@@ -4,7 +4,7 @@ import { venueModels, venueLayouts, layoutsForVenue, getVenueModel, getVenueLayo
 import { createVenueWebGL } from "./webgl-venue.js";
 import { analyzeSeatMap, canAnalyzeSeatMap } from "./seat-map-intelligence.js";
 import { saveFollowed, saveMode, recordEventChanges, saveOfflineSnapshot, loadFollowed } from "./storage.js";
-import { VENUE_KSTAR_REFERENCE } from "./data/venues.js";
+import { VENUE_KSTAR_REFERENCE, MAINSTREAM_3D_VENUE_IDS } from "./data/venues.js";
 
 const $ = (q, root = document) => root.querySelector(q);
 const $$ = (q, root = document) => [...root.querySelectorAll(q)];
@@ -72,7 +72,8 @@ const friendlySourceName = value => {
 
 const TAIWAN_VENUE_CITIES = new Set(["Taipei","New Taipei","Taoyuan","Taichung","Tainan","Kaohsiung","Hsinchu","Keelung","Chiayi","Pingtung","Yilan","Hualien","Taitung","Penghu"]);
 const taiwanEventsOnly = events => (Array.isArray(events) ? events : []).filter(e => e?.region === "TW");
-const taiwanVenueModels = () => Object.values(venueModels).filter(v => TAIWAN_VENUE_CITIES.has(String(v.city || "")));
+const MAINSTREAM_3D_VENUES = new Set(MAINSTREAM_3D_VENUE_IDS);
+const taiwanVenueModels = () => Object.values(venueModels).filter(v => MAINSTREAM_3D_VENUES.has(v.id) && TAIWAN_VENUE_CITIES.has(String(v.city || "")));
 
 const TAIPEI_TZ = "Asia/Taipei";
 const dayMs = 86400000;
@@ -1146,22 +1147,46 @@ function activeLayoutEvent() {
 function isOfficialMapUrl(raw="") {
   try {
     const host=new URL(raw,location.href).hostname.toLowerCase();
-    return /(?:^|\.)(?:tixcraft\.com|kktix\.io|kktix\.cc|ticketplus\.com\.tw|kham\.com\.tw|ticket\.ibon\.com\.tw|famiticket\.com\.tw|udnfunlife\.com|ticket\.mna\.com\.tw|ticket\.com\.tw|opentix\.life|tixfun\.com|fansi\.me|indievox\.com|tickets\.books\.com\.tw|livenation\.com\.tw|weverse\.io|ygfamily\.com|arena\.taipei|tmc\.taipei|kaoarena\.com\.tw|kpmc\.com\.tw)$/.test(host) || host.endsWith('.tixcraft.com') || host.endsWith('.kktix.io');
+    return /(?:^|\.)(?:tixcraft\.com|kktix\.io|kktix\.cc|ticketplus\.com\.tw|kham\.com\.tw|ticket\.ibon\.com\.tw|famiticket\.com\.tw|udnfunlife\.com|ticket\.mna\.com\.tw|ticket\.com\.tw|opentix\.life|tixfun\.com|fansi\.me|indievox\.com|tickets\.books\.com\.tw|livenation\.com\.tw|weverse\.io|ygfamily\.com|arena\.taipei|tmc\.taipei|kaoarena\.com\.tw|kpmc\.com\.tw|farglorydome\.com\.tw|ntsu\.edu\.tw|ticc\.com\.tw|tainex\.com\.tw|zepp\.co\.jp|kcg\.gov\.tw|kph\.tw)$/.test(host) || host.endsWith('.tixcraft.com') || host.endsWith('.kktix.io');
   } catch { return false; }
 }
 function officialSeatMapSourceForCurrentLayout() {
-  const layout=currentVenueLayout(), event=activeLayoutEvent();
-  if(!layout?.eventId || !event) return null;
+  const layout=currentVenueLayout();
+  if(!layout) return null;
+  const realEvent=activeLayoutEvent();
+  const venue=activeVenueModel();
+  // Korean-star venue samples are historical/reference productions too. Some are not part of
+  // the current activity dataset, so do not hide their official-map preview just because eventId is absent.
+  const event=realEvent || (layout.kstarExample ? {
+    id:`reference:${layout.id}`,
+    title:layout.label||layout.demoArtist||'場館範例',
+    artist:layout.demoArtist||'',
+    venue:venue?.name||'',
+    venueModelId:layout.venueId||state.venueId,
+    sourceName:layout.sourceName||'官方活動／場館來源',
+    sourceUrl:layout.sourceUrl||'',
+    seatLayoutSourceUrl:layout.seatMapResolvedUrl||layout.latestSeatLayoutSourceUrl||layout.seatLayoutSourceUrl||layout.sourceUrl||'',
+    seatLayoutDisplayUrl:layout.seatMapDisplayUrl||layout.seatMapResolvedUrl||layout.seatLayoutSourceUrl||'',
+    sharedSourceUrl:Boolean(layout.sharedSourceUrl)
+  } : null);
+  if(!event) return null;
   let cachedResolved="", cachedSourcePage="";
   try{cachedResolved=localStorage.getItem(`neul-seatmap-hash:${event.id}:resolvedUrl`)||"";cachedSourcePage=localStorage.getItem(`neul-seatmap-hash:${event.id}:sourcePage`)||"";}catch{}
   const refs=(event.sourceRefs||[]).map(x=>x?.url).filter(Boolean);
   const officialPages=[event.ticketUrl,event.ticketSourceUrl,event.secondarySourceUrl,event.sourceUrl,...refs,layout.sourceUrl].filter(u=>u&&isOfficialMapUrl(u));
-  const sourcePage=event.seatLayoutResolvedFrom||cachedSourcePage||officialPages[0]||"";
+  const sourcePage=event.seatLayoutResolvedFrom||cachedSourcePage||officialPages[0]||layout.sourceUrl||"";
   const machineRaw=event.seatLayoutSourceUrl||event.seatMapResolvedUrl||cachedResolved||layout.seatMapResolvedUrl||layout.latestSeatLayoutSourceUrl||sourcePage||null;
   const officialDisplay=isOfficialMapUrl(event.seatLayoutDisplayUrl||'') ? event.seatLayoutDisplayUrl : null;
   const displayRaw=officialDisplay||event.seatLayoutSourceUrl||event.seatMapResolvedUrl||cachedResolved||layout.seatMapResolvedUrl||layout.latestSeatLayoutSourceUrl||null;
   if(!machineRaw) return {event,layout,missing:true,raw:"",machineRaw:"",sourcePage,proxied:"",directImage:false};
-  const proxied=`/api/seat-map-image?url=${encodeURIComponent(machineRaw)}`;
+  const params=new URLSearchParams({
+    url:machineRaw,
+    venue:venue?.name||event.venue||'',
+    venueId:layout.venueId||event.venueModelId||state.venueId||'',
+    event:event.title||layout.label||''
+  });
+  if(event.sharedSourceUrl) params.set('shared','1');
+  const proxied=`/api/seat-map-image?${params.toString()}`;
   const directImage=Boolean(displayRaw&&/\.(?:png|jpe?g|webp|avif)(?:\?|$)/i.test(displayRaw));
   return {event,layout,missing:false,raw:displayRaw||"",machineRaw,sourcePage:sourcePage||machineRaw,proxied,directImage};
 }
@@ -1229,7 +1254,7 @@ function renderLayoutOptions() {
     return !eventLifecycle(event,now).ended;
   });
   if (!options.some(x => x.id === state.layoutId)) state.layoutId = kstarExampleForVenue(state.venueId)?.id || model.baseLayoutId;
-  layoutSelect.innerHTML = options.map(x => { const label=x.kstarExample ? `${x.label} · ${x.id==='ive-show-what-i-am-2026'?'IVE 範例':'韓星範例'}` : x.label; return `<option value="${escapeHtml(x.id)}" ${x.id===state.layoutId?"selected":""}>${escapeHtml(label)}</option>`; }).join("");
+  layoutSelect.innerHTML = options.map(x => { const label=x.kstarExample ? `${x.label} · 範例` : x.label; return `<option value="${escapeHtml(x.id)}" ${x.id===state.layoutId?"selected":""}>${escapeHtml(label)}</option>`; }).join("");
   layoutSelect.title = getVenueLayout(state.layoutId)?.label || "";
   renderVenueExampleMeta();
 }

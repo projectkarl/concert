@@ -7,7 +7,7 @@ const api=fs.readFileSync(new URL('../api/events.js',import.meta.url),'utf8');
 const auditor=fs.readFileSync(new URL('../lib/coverage-auditor.js',import.meta.url),'utf8');
 const geometry=fs.readFileSync(new URL('../data/multi-venue-geometry.js',import.meta.url),'utf8');
 const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8'));
-if(!/^0\.40\.(4|5)$/.test(pkg.version)) fail('package version',pkg.version);
+if(!/^0\.40\.(4|5|6)$/.test(pkg.version)) fail('package version',pkg.version);
 if(!api.includes('discoverTwConcertViewCalendar()')) fail('twconcertview coverage discovery not integrated into /api/events');
 if(!api.includes('twconcertview-crosscheck')) fail('upstream crosscheck marker missing');
 if(!api.includes('CALIBRATED_3D_VENUES.has(event.venueModelId)')) fail('3D eligibility is not restricted to calibrated venue models');
@@ -28,6 +28,6 @@ if(Object.keys(VENUE_CROSSCHECK_REFERENCES).length<12) fail('twconcertview venue
 const ticc=venues.find(v=>v.id==='ticc');
 if(!/2MF/.test(ticc?.precisionNote||'')) fail('TICC precision note does not preserve 2MF topology');
 if(!/audienceFloor1:false/.test(geometry) || !/allowedTierIds:\['2MF','3F','4F','5F','6F','BOX'\]/.test(geometry)) fail('TICC topology guard lost');
-if(!/0\.40\.(4-precision-guard\.1|5-kstar-reference\.1)/.test(geometry)) fail('3D pipeline version not bumped');
+if(!/0\.40\.(4-precision-guard\.1|5-kstar-reference\.1|6-mainstream10-official-preview\.1)/.test(geometry)) fail('3D pipeline version not bumped');
 if(!ok) process.exit(1);
 console.log(`NEUL v0.40.4 checks passed · ${parsed.referenceCount} reference shows fixture · ${venues.length} calibrated venue metadata rows · community sightlines are cross-check only`);

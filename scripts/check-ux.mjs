@@ -18,7 +18,7 @@ if(!/positionSelectedZoneOverlay/.test(app)||!/zone\.style\.left/.test(app)||!/v
 if(!/transition:left \.24s ease,top \.24s ease/.test(css)) fail('selected-zone movement styling missing');
 if(!/Cross aisle surface/.test(webgl)||!/Selected zone uses a simple chair silhouette/.test(webgl)||!/walkway/.test(webgl)) fail('concrete aisle/chair WebGL pass missing');
 if(!/Canvas fallback: keep the selected area readable with chair-like marks and visible aisles/.test(app)) fail('Canvas chair/aisle fallback missing');
-if(!/ive-show-what-i-am-2026/.test(app)||!/IVE 範例/.test(app)) fail('IVE Taipei Arena dropdown example missing');
+if(!/ive-show-what-i-am-2026/.test(app)||!/· 範例/.test(app)) fail('venue reference dropdown example missing');
 const ive=getVenueLayout('ive-show-what-i-am-2026');
 if(!ive||ive.venueId!=='taipei-arena'||!ive.historical) fail('IVE example layout not preserved as Taipei Arena historical sample',ive);
 if(seedEvents.length<101) fail('fallback coverage shrank',seedEvents.length);

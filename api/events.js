@@ -7,7 +7,7 @@ import { discoverArtistOfficialTours } from "../lib/artist-official-discovery.js
 import { discoverTaiwanTicketPlatforms } from "../lib/taiwan-ticket-platform-discovery.js";
 import { discoverVenueCalendars } from "../lib/venue-calendar-discovery.js";
 import { discoverTwConcertViewCalendar } from "../lib/twconcertview-discovery.js";
-import { venues as calibratedVenues } from "../data/venues.js";
+import { venues as calibratedVenues, MAINSTREAM_3D_VENUE_IDS } from "../data/venues.js";
 import { auditCoverage } from "../lib/coverage-auditor.js";
 
 const dateKey = iso => {
@@ -35,7 +35,8 @@ function normalizeText(value = "") {
   return String(value).toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/g, " ").trim();
 }
 
-const CALIBRATED_3D_VENUES = new Set(calibratedVenues.map(v => v.id));
+const MAINSTREAM_3D_SET = new Set(MAINSTREAM_3D_VENUE_IDS);
+const CALIBRATED_3D_VENUES = new Set(calibratedVenues.filter(v=>MAINSTREAM_3D_SET.has(v.id)).map(v => v.id));
 
 const TAIWAN_CITIES = new Set(["Taipei","New Taipei","Taoyuan","Taichung","Tainan","Kaohsiung","Hsinchu","Keelung","Chiayi","Changhua","Miaoli","Nantou","Yunlin","Pingtung","Yilan","Hualien","Taitung","Penghu","Kinmen","Matsu"]);
 function isTaiwanEvent(event = {}) {
@@ -367,7 +368,7 @@ export default async function handler(req, res) {
     const seatMapFound = Boolean(event.seatLayoutSourceUrl);
     const sectionPricesFound = Boolean(event.sectionPriceRules?.length);
     const explicitEventLayout = Boolean(event.venueLayoutId);
-    const renderable3D = Boolean(event.venueLayoutId || (event.venueModelId && CALIBRATED_3D_VENUES.has(event.venueModelId)));
+    const renderable3D = Boolean(event.venueModelId && CALIBRATED_3D_VENUES.has(event.venueModelId));
     let threeDVerificationLevel = "venue-derived-client-qa-required";
     if (seatMapFound && sectionPricesFound) threeDVerificationLevel = "official-map-price-linked-client-qa-required";
     else if (seatMapFound) threeDVerificationLevel = "official-map-linked-client-qa-required";

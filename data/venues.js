@@ -55,6 +55,20 @@ export const venues = [
     confidence: "官方容量／場館級幾何＋實景校正", disclaimer: "官方可確認固定席容量；細分區域採區域級重建，平面區人頭與欄杆遮擋以公開實景回報校正。"
   }
 ];
+// v0.40.6 — keep interactive 3D focused on the ten venues most useful to concert users.
+// Other venues remain valid event/listing data, but are excluded from auto 3D/OCR work.
+export const MAINSTREAM_3D_VENUE_IDS = Object.freeze([
+  'taipei-dome',
+  'taipei-arena',
+  'ntsu-arena',
+  'kaohsiung-arena',
+  'taipei-music-center',
+  'ticc',
+  'kaohsiung-music-center',
+  'kaohsiung-stadium',
+  'nangang-exhibition-hall1-4f',
+  'zepp-new-taipei'
+]);
 
 // v0.40.4 — community sightline cross-check metadata.
 // These links are NOT geometry authorities. Official venue/ticket maps remain the topology source;

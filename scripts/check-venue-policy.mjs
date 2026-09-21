@@ -12,7 +12,7 @@ const unknownIndoor={id:'unknown-indoor',artist:'TEST',title:'TEST',venue:'Unkno
 if(shouldGenerateEvent3D(unknownIndoor)||ensureVenueModelForEvent(unknownIndoor)||ensureAutoEventLayout(unknownIndoor)) fail('unknown indoor venue must not silently fabricate generic 3D');
 const provisional={...unknownIndoor,id:'unknown-official',seatLayoutSourceUrl:'https://static.tixcraft.com/images/activity/field/test.jpg',allowProvisional3D:true};
 const provisionalId=ensureVenueModelForEvent(provisional);
-if(!String(provisionalId||'').startsWith('runtime-')) fail('explicit official-map provisional opt-in did not create guarded runtime venue',provisionalId);
+if(provisionalId||shouldGenerateEvent3D(provisional)) fail('non-mainstream provisional hall should stay out of 3D resource pipeline',provisionalId);
 
 const jason=seedEvents.find(x=>x.id==='jason-mraz-asia-tour-taipei-2026');
 if(!jason) fail('Jason Mraz event missing');

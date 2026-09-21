@@ -1,4 +1,5 @@
 import { taipeiDomeSections, taipeiDomeTiers, taipeiDomeBase, strayKidsRunItLayout, getTaipeiDomeSection, sectionPosition as domeSectionPosition, sectionWarning as domeSectionWarning } from './taipei-dome-geometry.js';
+import { MAINSTREAM_3D_VENUE_IDS } from './venues.js';
 
 const TAU = Math.PI * 2;
 const pad = (n, width=3) => String(n).padStart(width, '0');
@@ -809,7 +810,7 @@ function compactHallGeometry(kind='club') {
   return {sections:[...floor,...balcony],tiers:[{id:'FLOOR',label:standing?'1F 活動站區':'1F 活動座席',short:'1F',sections:floor.map(x=>x.id)},...(balcony.length?[{id:'2F',label:'2F 看台',short:'2F',sections:balcony.map(x=>x.id)}]:[])],field:{x:70,z:72},defaultTier:'FLOOR',defaultSection:'1F-C',defaultRow:standing?1:10,stage:genericStage(-62,58,18)};
 }
 
-const AUTO_EVENT_3D_PIPELINE_VERSION='0.40.5-kstar-reference.1';
+const AUTO_EVENT_3D_PIPELINE_VERSION='0.40.6-mainstream10-official-preview.1';
 function autoEvent3DSignature(event={},venueId=''){
   const compactRules=(event.sectionPriceRules||[]).map(r=>[r?.label||'',r?.price||'']);
   return JSON.stringify({
@@ -839,18 +840,18 @@ function runtimeVenueKind(event={}){
   if(/legacy|live house|warehouse|westar|space|club|音樂空間/.test(text)) return 'club';
   return 'theater';
 }
+const MAINSTREAM_3D_SET = new Set(MAINSTREAM_3D_VENUE_IDS);
 export function shouldGenerateEvent3D(event={}){
   const explicit=event.venueModelId;
-  if(explicit && venueModels[explicit]) return true;
+  if(explicit && venueModels[explicit]) return MAINSTREAM_3D_SET.has(explicit);
   const known=venueIdFromName(event.venue||'');
-  if(known && venueModels[known]) return true;
+  if(known && venueModels[known]) return MAINSTREAM_3D_SET.has(known);
   const venueText=String(event.venue||'').toLowerCase();
   // Never fabricate rows/seats for ad-hoc outdoor grounds.
   if(/廣場|公園|休閒園區|海灘|沙灘|草地|碼頭|河濱|戶外廣場|festival ground|open field/.test(venueText)) return false;
-  // Accuracy-first policy: an unknown indoor venue is NOT allowed to silently fall back
-  // to a generic theatre/arena. It can opt in only after an explicit official seat-layout
-  // source has been attached and the event is marked provisional by the data maintainer.
-  return Boolean(event.allowProvisional3D===true && event.seatLayoutSourceUrl);
+  // v0.40.6 resource policy: only the ten mainstream calibrated venues receive 3D work.
+  // Unknown / lower-priority halls stay in the activity list even when a seat-map URL exists.
+  return false;
 }
 
 export function ensureVenueModelForEvent(event={}){

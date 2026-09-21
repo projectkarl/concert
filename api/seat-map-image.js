@@ -4,10 +4,11 @@ import { extractOfficialSeatLayoutCandidates, extractOfficialTicketLinks } from 
 const ALLOWED = [
   'tixcraft.com','static.tixcraft.com','kktix.com','kktix.cc','assets.kktix.io','ticketplus.com.tw','www.ticketplus.com.tw',
   'kham.com.tw','www.kham.com.tw','ticket.ibon.com.tw','www.famiticket.com.tw','famiticket.com.tw',
-  'tickets.udnfunlife.com','ticket.mna.com.tw','ticket.com.tw','www.ticket.com.tw','livenation.com.tw','www.livenation.com.tw','weverse.io','www.weverse.io','ygfamily.com','www.ygfamily.com','arena.taipei','www.arena.taipei','tmc.taipei','www.tmc.taipei','kaoarena.com.tw','www.kaoarena.com.tw','kpmc.com.tw','www.kpmc.com.tw','opentix.life','www.opentix.life','tixfun.com','www.tixfun.com','go.fansi.me','tickets.books.com.tw','indievox.com','www.indievox.com'
+  'tickets.udnfunlife.com','ticket.mna.com.tw','ticket.com.tw','www.ticket.com.tw','livenation.com.tw','www.livenation.com.tw','weverse.io','www.weverse.io','ygfamily.com','www.ygfamily.com','arena.taipei','www.arena.taipei','tmc.taipei','www.tmc.taipei','kaoarena.com.tw','www.kaoarena.com.tw','kpmc.com.tw','www.kpmc.com.tw','opentix.life','www.opentix.life','tixfun.com','www.tixfun.com','go.fansi.me','tickets.books.com.tw','indievox.com','www.indievox.com',
+  'farglorydome.com.tw','www.farglorydome.com.tw','ntsu.edu.tw','phk.ntsu.edu.tw','ticc.com.tw','www.ticc.com.tw','tainex.com.tw','www.tainex.com.tw','zepp.co.jp','www.zepp.co.jp','kcg.gov.tw','www.kcg.gov.tw','kph.tw','www.kph.tw'
 ];
 function allowed(u){return u.protocol==='https:'&&ALLOWED.some(h=>u.hostname===h||u.hostname.endsWith('.'+h));}
-async function fetchOfficial(u,accept,fetchImpl=fetch){return fetchImpl(u.href,{headers:{'user-agent':'Mozilla/5.0 (compatible; NEUL/0.40.10 auto-seat-map)','accept':accept,'accept-language':'zh-TW,zh;q=0.9,en;q=0.7','referer':`${u.protocol}//${u.hostname}/`},redirect:'follow',signal:AbortSignal.timeout(7000)});}
+async function fetchOfficial(u,accept,fetchImpl=fetch){return fetchImpl(u.href,{headers:{'user-agent':'Mozilla/5.0 (compatible; NEUL/0.40.6 auto-seat-map)','accept':accept,'accept-language':'zh-TW,zh;q=0.9,en;q=0.7','referer':`${u.protocol}//${u.hostname}/`},redirect:'follow',signal:AbortSignal.timeout(7000)});}
 const contentType=r=>(r.headers.get('content-type')||'application/octet-stream').split(';')[0].toLowerCase();
 
 const HINT_GROUPS = [
