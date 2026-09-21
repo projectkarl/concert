@@ -4,7 +4,7 @@ import { getVenueSection, venueSectionPosition, getVenueLayout } from '../data/m
 
 const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8'));
 let ok=true; const fail=(m,x='')=>{console.error('FAIL',m,x);ok=false;};
-if(pkg.version!=='0.40.10') fail('package must be 0.40.10',pkg.version);
+if(!['0.40.10','0.40.11'].includes(pkg.version)) fail('package must preserve v0.40.10+ 3D behavior',pkg.version);
 const app=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
 const webgl=fs.readFileSync(new URL('../webgl-venue.js',import.meta.url),'utf8');
 const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');

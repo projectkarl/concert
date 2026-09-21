@@ -12,7 +12,7 @@ const resolver=fs.readFileSync(new URL('../api/seat-map-image.js',import.meta.ur
 const webgl=fs.readFileSync(new URL('../webgl-venue.js',import.meta.url),'utf8');
 const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8'));
 
-if(!/^0\.40\.(?:8|9|10)$/.test(pkg.version)) fail('package must retain v0.40.8+ aespa fixes',pkg.version);
+if(!/^0\.40\.(?:8|9|10|11)$/.test(pkg.version)) fail('package must retain v0.40.8+ aespa fixes',pkg.version);
 if(MAINSTREAM_3D_VENUE_IDS.length!==12) fail('mainstream 3D venue list must be exactly 12',MAINSTREAM_3D_VENUE_IDS.length);
 if(new Set(MAINSTREAM_3D_VENUE_IDS).size!==12) fail('mainstream 3D venue ids contain duplicates');
 for(const id of MAINSTREAM_3D_VENUE_IDS){
@@ -42,8 +42,8 @@ else {
   if(JSON.stringify(ids)!==JSON.stringify(expected)) fail('aespa floor must follow official 001-014 blocks',ids);
   if(aespa.stage?.runway||aespa.stage?.bStage) fail('aespa official map does not support long runway/B-stage',aespa.stage);
   if(aespa.stageRig?.verticalSupportTowers!==false||aespa.stageRig?.sideSpeakerArrays!==false) fail('aespa generic blocking towers/speakers must be disabled',aespa.stageRig);
-  if(!aespa.seatMapDisplayUrl?.includes('20260505080706-0466e602.jpeg')) fail('aespa official map display archive missing',aespa.seatMapDisplayUrl);
-  if(!aespa.seatMapDisplayTrustedArchive) fail('aespa official map archive not marked trusted');
+  if(!aespa.seatMapDisplayUrl?.includes('networksites.livenationinternational.com/networksites/ho2pada2/site-map.jpg')) fail('aespa official Live Nation field-map display missing',aespa.seatMapDisplayUrl);
+  if(aespa.seatMapDisplayTrustedArchive) fail('aespa Live Nation official field map should not be marked as archive');
   if(!aespa.sourceUrl?.includes('livenation.com.tw/aespa-tpe')) fail('aespa official source page missing',aespa.sourceUrl);
   if(aespa.foh?.z>45) fail('aespa FOH remains too far back for official map',aespa.foh);
 }

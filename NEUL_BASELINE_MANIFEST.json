@@ -1,5 +1,5 @@
 {
-  "baseline": "NEUL v0.40.10 · 3D Precision + WebGL Non-Regression + Full Coverage + Archive20 + Mainstream 12 Venues",
+  "baseline": "NEUL v0.40.11 · Official Map CDN Display Fix + 3D Precision + Full Coverage + Archive20 + Mainstream 12 Venues",
   "createdAt": "2026-09-21",
   "fallbackEventCount": 101,
   "requiredFeatures": [
@@ -48,34 +48,36 @@
     "automatic ended-event rollover with Archive hard-capped to the 20 most recent events on server and browser fallback",
     "interactive WebGL2 venue non-regression: rotate / wheel zoom / touch pinch remain primary 3D experience",
     "row + seat-number camera parallax with nearest-stage-edge calibrated meter bands and explicit uncertainty",
-    "seat-to-stage line-of-sight obstruction intersection for rails / overhang / equipment / crowd proxies"
+    "seat-to-stage line-of-sight obstruction intersection for rails / overhang / equipment / crowd proxies",
+    "official Live Nation CDN image discovery/proxy with official-page referer and direct preview fallback"
   ],
   "runtimeStateWarning": "Browser localStorage/IndexedDB seat-map analysis caches are not a substitute for the source repository. Preserve a release ZIP/Git tag before deleting a working repo.",
   "coreFileSha256": {
     "index.html": "1d48d1d4ec9bec3eda567c269b94af5e7f5ea554b75cdc46870517176f40a41d",
     "styles.css": "a513295ae1c86e1110bc529b3e4116b1c77b286c734055c44e9e010778cbfd1d",
-    "app.js": "78499f15c0ea58a1e9b54bb26e5605ff7608ce4d30993447c7b824407dde49c9",
+    "app.js": "fbfc4121dee3e2158bc5c6bed9bc215f8487e25ded0a1aa663869a9759b87cfe",
     "webgl-venue.js": "f5036edc80735e1e9528bd8888565caf06167d70674ef76828e9b0bdc1b6e579",
     "seat-map-intelligence.js": "60e745438145e58096bf1c2185abe59b7bac1e896b5b6f6b4fe1f3accaf4819c",
     "data/events.js": "215aec3fa57eb7c5873e0db910803b6412a7d1348f4b817ac47e31f115bde412",
-    "data/multi-venue-geometry.js": "e1d31186ed23aecced718902f39237f7f4796457c21004077d1b84dc5987d021",
+    "data/multi-venue-geometry.js": "f73138570aad8da2e7221d31e185b98b7203ee0af3a59f378977282ee357522c",
     "lib/coverage-auditor.js": "8a177a808c418f169f672d10a4747326761cabf7c627ab7ef0ba7e023e2ec99b",
     "lib/taiwan-ticket-platform-discovery.js": "5768b5c20474819316c89730663e5cfdf44b9bde00547f09f4978a1983825bed",
     "api/events.js": "3c19c9087e6a5e607151e428b247a14d18d72279f0b0c025c7bd744c9514a65d",
-    "api/seat-map-image.js": "15d2b3f175cb423b184904ee3faf5a51e480be3b5824b5c25a4a7ede69421952",
-    "sw.js": "1553d14c5bb1f51abf1d4e5bc98706584e848e026e9a1631569d5e96911ed519",
-    "package.json": "386dd84274d447d96609edf02599a3cdc7a8b3f986a0d83a0ef0ecd9293b7bc2",
+    "api/seat-map-image.js": "d0cc854f5184fb135627d0f47bf6a924e09fef2b30bb5b3e62c270f96c5b6d77",
+    "sw.js": "585f8e1811d9594e5096d84b9d6915d62d9d543803fc7356404eba54f798ad20",
+    "package.json": "2f3c8dce1676b053d32092efb719de1fd162ac30b9e1e4ba340ba968ed227175",
     "news.js": "2267bf83b85d02b8abdbb810fb1c5dfb34fcd348a8a4c4ed8af637275db58431",
     "api/entertainment-news.js": "c9377d6024bc350690657b0a42505dcbf11f68e648e6b34615626fecbae0ca80",
-    "lib/official-monitor.js": "02a67ecf9d7663bcc57e0f5029b58fc6a92dcad20ba2a68f277d20f404138e81",
+    "lib/official-monitor.js": "fd387749e8318cd34e5fcf16c1d16446d6900799381f85223ce64af82cd3fd99",
     "scripts/check-topology-integrity.mjs": "98f89d8f0346dde277c1540c43dc9244ee773b0b5684d00807bee61b7e56b19b",
     "data/venues.js": "79dc992f54b6dc075eff653fa3a8fd21df2aff6caea8e292529060c68ce16628",
     "lib/twconcertview-discovery.js": "aa930b07dbf4ede72aebb7204088ad32b69964015d9418e04e91f2c355f6c84c",
     "scripts/check-v0407.mjs": "7555b71aaa1d4ab3e5e83180932c7cf34ac8b7e5e7456bfb1586f406d4b23f32",
-    "scripts/check-v0408.mjs": "dcba9f73e2bfecef0277b03d37a77bfa66fa6caa954793c51f159adc12369c6a",
-    "scripts/check-v0409.mjs": "0a559006d58a8fa7a2117e0ff6d5c5ec9438c6fd743ceebe6036dc6c40ec6dd6",
+    "scripts/check-v0408.mjs": "08597c83dfeb2b04a7b3b5210673e5fbde1ca63948a4381b6439d82702e6827e",
+    "scripts/check-v0409.mjs": "887bb966e100dd390f258360673e63ed1ec0cd94e66a64a334032c24950735ef",
     "enhancements.js": "787fbbc26ce02fb8d1609f00c79c68557d17a29c6af4971eee4ac66fd71a5eda",
     "scripts/check-v0410.mjs": "46f104a06614866d9882ada7ab940f7afd6e9d08e8ed80e709b4019f04bf0068",
-    "scripts/check-v0411.mjs": "9005f159fb4b98614011076aaa8814ee305e4574628922c532e1258c7f491751"
+    "scripts/check-v0411.mjs": "7bcc2614fad5b0640dafa3b5617aa28e0e5f098bafa1b7e9786c8db949b27e4d",
+    "scripts/check-v0412.mjs": "a56f620ce743b3eaac1202788cb446be21dcc086baa304da43739eaa34704a70"
   }
 }

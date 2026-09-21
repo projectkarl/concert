@@ -1,4 +1,4 @@
-const VERSION = "neul-v0.40.10-3dprecision-nonregression";
+const VERSION = "neul-v0.40.11-officialmap-cdn-fix";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const APP_SHELL = [
