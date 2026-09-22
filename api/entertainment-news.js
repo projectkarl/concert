@@ -83,16 +83,20 @@ export default async function handler(req, res) {
   const category = CATEGORIES[req.query.category] ? req.query.category : "kr";
   const extra = cleanSearch(req.query.q || "");
   const base = CATEGORIES[category];
-  const query = `${base.query}${extra ? ` ${extra}` : ""} when:14d`;
+  const query = `${base.query}${extra ? ` ${extra}` : ""} when:7d`;
   const feedUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
   try {
     const response = await fetch(feedUrl, {
-      headers: { "User-Agent": "Mozilla/5.0 NEUL/0.40.4", "Accept": "application/rss+xml, application/xml, text/xml;q=0.9,*/*;q=0.5" },
+      headers: { "User-Agent": "Mozilla/5.0 NEUL/0.40.13", "Accept": "application/rss+xml, application/xml, text/xml;q=0.9,*/*;q=0.5" },
       signal: AbortSignal.timeout(8000)
     });
     if (!response.ok) throw new Error(`RSS_${response.status}`);
     const xml = await response.text();
-    const results = dedupe(parseFeed(xml)).slice(0, 12);
+    const cutoff = Date.now() - 7 * 86400000;
+    const results = dedupe(parseFeed(xml))
+      .filter(item => { const ts=Date.parse(item.publishedAt); return Number.isFinite(ts) && ts >= cutoff && ts <= Date.now() + 3600000; })
+      .sort((a,b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt))
+      .slice(0, 32);
     res.setHeader("Cache-Control", "public, s-maxage=900, stale-while-revalidate=3600");
     return res.status(200).json({ category, label: base.label, query: extra, fetchedAt: new Date().toISOString(), results });
   } catch (error) {

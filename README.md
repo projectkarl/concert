@@ -1,4 +1,4 @@
-# NEUL v0.40.10 — 3D Precision + Non-Regression
+# NEUL v0.40.13 — Verified 316 Discovery + Recent Data
 
 本版不改 NEUL 既有 3D 互動方式，核心仍是可旋轉／縮放／平移的原生 WebGL2 場館。新增排／座號級左右位移、舞台最近邊緣距離、側向觀看角、俯仰角與視線遮擋交會判定；同時以實際 Chromium WebGL2 驗收避免「優化後退化成平面圖」。
 
@@ -41,6 +41,15 @@ This release keeps the v0.40.2 UX3 interface and changes the 3D correctness pipe
 - Unknown indoor venues no longer silently fall back to a generic theatre or Taipei Dome. Uncalibrated venues keep the event listing but withhold 3D until an official geometry source exists.
 - `VENUE_3D_TOPOLOGY_AUDIT_2026-09-21.md` contains the 101-event audit; `TEST_REPORT_v0.40.3-VenueTopology.md` records regression checks.
 
+
+
+## v0.40.13 Recent Data Policy
+
+- Upcoming：只顯示尚未結束的台灣演出，未來活動不因資料精簡而被裁掉。
+- Archive：只保留最近 20 場已結束活動。
+- Coverage：twconcertview 公開頁於 2026-09-22 宣告 316 場 upcoming，NEUL 將其作為候選對帳總量，去重並由官方售票／主辦／場館來源優先核對，不硬湊 316。
+- News：只保留最近 7 天，依發布時間由新到舊；初始 8 則，可逐批看更多。
+- Sightline：第三方實拍只做內部 3D 校正，不在前台標示。
 
 ## v0.40.2 Full Audit (2026-09-20)
 - Fixed premature “ended” state with session-aware lifecycle rules.

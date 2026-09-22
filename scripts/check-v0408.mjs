@@ -12,7 +12,7 @@ const resolver=fs.readFileSync(new URL('../api/seat-map-image.js',import.meta.ur
 const webgl=fs.readFileSync(new URL('../webgl-venue.js',import.meta.url),'utf8');
 const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8'));
 
-if(!/^0\.40\.(?:8|9|10|11)$/.test(pkg.version)) fail('package must retain v0.40.8+ aespa fixes',pkg.version);
+if(!/^0\.40\.(?:8|9|10|11|12|13)$/.test(pkg.version)) fail('package must retain v0.40.8+ aespa fixes',pkg.version);
 if(MAINSTREAM_3D_VENUE_IDS.length!==12) fail('mainstream 3D venue list must be exactly 12',MAINSTREAM_3D_VENUE_IDS.length);
 if(new Set(MAINSTREAM_3D_VENUE_IDS).size!==12) fail('mainstream 3D venue ids contain duplicates');
 for(const id of MAINSTREAM_3D_VENUE_IDS){
