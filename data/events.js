@@ -1,4 +1,6 @@
-export const seedEvents = [
+import { referenceBootstrapEvents } from "./reference-bootstrap.js";
+
+const coreSeedEvents = [
   {
     id: "super-junior-83z-1983-kaohsiung-2026",
     artist: "SUPER JUNIOR-83z",
@@ -1341,3 +1343,5 @@ export const seedEvents = [
   },
 
 ];
+
+export const seedEvents = [...coreSeedEvents, ...referenceBootstrapEvents];

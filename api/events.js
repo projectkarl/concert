@@ -7,6 +7,7 @@ import { discoverArtistOfficialTours } from "../lib/artist-official-discovery.js
 import { discoverTaiwanTicketPlatforms } from "../lib/taiwan-ticket-platform-discovery.js";
 import { discoverVenueCalendars } from "../lib/venue-calendar-discovery.js";
 import { discoverTwConcertViewCalendar } from "../lib/twconcertview-discovery.js";
+import { discoverArtistsTwGigs } from "../lib/artists-tw-discovery.js";
 import { venues as calibratedVenues, MAINSTREAM_3D_VENUE_IDS } from "../data/venues.js";
 import { auditCoverage } from "../lib/coverage-auditor.js";
 import { monitorOfficialSource } from "../lib/official-monitor.js";
@@ -174,7 +175,7 @@ function sourcePriority(event = {}) {
   const s = `${event.sourceName || ""} ${event.sourceUrl || ""} ${event.ticketing || ""}`.toLowerCase();
   // Community calendars are discovery-only. They may add a missing event, but never overwrite
   // richer official ticket/promoter/venue details when the same event is already known.
-  if (/twconcertview|coverage cross-check|覆蓋補漏/.test(s)) return 10;
+  if (/twconcertview|artists\.tw|coverage cross-check|覆蓋補漏|現場音樂索引|reference bootstrap|補漏快照/.test(s)) return 10;
   if (/tixcraft|拓元|kktix|ticketplus|遠大|kham|寬宏|ibon|famiticket|全網|udn|聯合|ticket\.mna|mna|牛耳|ticket\.com\.tw|年代|indievox|fansi|opentix|tixfun|tickets\.books/.test(s)) return 60;
   if (/livenation|live nation/.test(s)) return 55;
   if (/weverse|ygfamily|jype|smtown|hybe|official.*tour|藝人官方/.test(s)) return 50;
@@ -340,7 +341,7 @@ function coverageSnapshot(discovery = {}, events = [], auditor = null) {
   const priceMappedCount = events.filter(e => Array.isArray(e.sectionPriceRules) && e.sectionPriceRules.length).length;
   return {
     completenessGuaranteed: false,
-    scope: 'Taiwan public music/concert events discovered from configured official ticket, promoter, artist and venue sources, plus twconcertview coverage cross-check',
+    scope: 'Taiwan public music/concert events discovered from configured official ticket, promoter, artist and venue sources, plus twconcertview and Artists.tw reference indexes',
     sourceCount: health.length + 4,
     sourceWarnings,
     emptySources,
@@ -367,7 +368,7 @@ function coverageSnapshot(discovery = {}, events = [], auditor = null) {
       coverageReferenceSuccessfulPages: discovery.coverageReferenceSuccessfulPages || 0,
       coverageReferenceQueueCount: discovery.coverageReferenceQueueCount || 0
     } : null,
-    note: 'No public source can guarantee every Taiwan performance. NEUL uses twconcertview as a reference queue for gap discovery only; reference-only rows are visible but clearly flagged until a ticket/promoter/artist/venue official source is matched.'
+    note: 'No public source can guarantee every Taiwan performance. NEUL uses twconcertview and Artists.tw as reference queues for gap discovery only; reference-only rows are visible but clearly flagged until a ticket/promoter/artist/venue official source is matched.'
   };
 }
 
@@ -377,14 +378,15 @@ export default async function handler(req, res) {
 
   let discovery = { events: [], checkedUrls: 0, indexErrors: [], pageErrors: [], source: "Taiwan official public pages" };
   let autoUpdateError = null;
-  const [liveNationResult, kaohsiungResult, taipeiArenaResult, artistOfficialResult, ticketPlatformResult, venueCalendarResult, twConcertViewResult] = await Promise.allSettled([
+  const [liveNationResult, kaohsiungResult, taipeiArenaResult, artistOfficialResult, ticketPlatformResult, venueCalendarResult, twConcertViewResult, artistsTwResult] = await Promise.allSettled([
     discoverLiveNationTaiwan(),
     discoverKaohsiungArena(),
     discoverTaipeiArena(),
     discoverArtistOfficialTours(),
     discoverTaiwanTicketPlatforms(),
     discoverVenueCalendars(),
-    discoverTwConcertViewCalendar()
+    discoverTwConcertViewCalendar(),
+    discoverArtistsTwGigs()
   ]);
   const sources = [];
   const errors = [];
@@ -456,6 +458,17 @@ export default async function handler(req, res) {
     discovery.coverageReferenceQueueCount = d.referenceQueueCount || (d.events || []).filter(event=>event.referenceOnly).length;
     sources.push(d.source || "twconcertview reference queue");
   } else errors.push(twConcertViewResult.reason?.message || "twconcertview coverage cross-check unavailable");
+  if (artistsTwResult.status === "fulfilled") {
+    const d = artistsTwResult.value;
+    discovery.events.push(...(d.events || []));
+    discovery.checkedUrls += d.checkedUrls || 0;
+    discovery.indexErrors.push(...(d.indexErrors || []));
+    discovery.pageErrors.push(...(d.pageErrors || []));
+    discovery.supplementaryReferenceHealth = d.sourceHealth || [];
+    discovery.supplementaryReferenceCount = d.referenceCount || 0;
+    discovery.supplementaryReferenceParsedCount = d.parsedCount || 0;
+    sources.push(d.source || "Artists.tw live reference");
+  } else errors.push(artistsTwResult.reason?.message || "Artists.tw supplemental reference unavailable");
   if (errors.length) autoUpdateError = errors.join(" · ");
   discovery.source = sources.join(" + ") || "curated fallback";
 
@@ -483,7 +496,7 @@ export default async function handler(req, res) {
 
   const mergedEvents = mergeAndDedupe(seedEvents, discovery.events || []);
   const referenceQueuePending = mergedEvents.filter(event=>event.referenceOnly).length;
-  const referenceQueuePromoted = mergedEvents.filter(event=>!event.referenceOnly && (event.sourceRefs||[]).some(ref=>/twconcertview/i.test(`${ref?.name||''} ${ref?.url||''}`))).length;
+  const referenceQueuePromoted = mergedEvents.filter(event=>!event.referenceOnly && (event.sourceRefs||[]).some(ref=>/twconcertview|artists\.tw|補漏快照/i.test(`${ref?.name||''} ${ref?.url||''}`))).length;
   discovery.coverageReferenceQueuePending = referenceQueuePending;
   discovery.coverageReferenceQueuePromoted = referenceQueuePromoted;
 
@@ -548,7 +561,7 @@ export default async function handler(req, res) {
   const events = retainRecentArchive(allEvents);
   const upcomingUniqueEventCount = events.filter(e => !(Boolean(e.historical) || eventEffectiveEndTs(e) < Date.now())).length;
   const archiveCount = events.filter(e => Boolean(e.historical) || eventEffectiveEndTs(e) < Date.now()).length;
-  const combinedSourceHealth = [...(discovery.sourceHealth || []), ...(discovery.venueSourceHealth || []), ...(discovery.coverageReferenceHealth || [])];
+  const combinedSourceHealth = [...(discovery.sourceHealth || []), ...(discovery.venueSourceHealth || []), ...(discovery.coverageReferenceHealth || []), ...(discovery.supplementaryReferenceHealth || [])];
   discovery.sourceHealth = combinedSourceHealth;
   const coverageAudit = auditCoverage({events: allEvents, rawDiscovered: discovery.events || [], sourceHealth: combinedSourceHealth});
   const artists = buildArtists(events);
@@ -557,7 +570,7 @@ export default async function handler(req, res) {
   return res.status(200).json({
     updatedAt: updatedAt.toISOString(),
     nextUpdateAt: nextUpdateAt.toISOString(),
-    upstream: discovery.events?.length ? "taiwan-official+twconcertview-crosscheck+curated" : "curated-fallback",
+    upstream: discovery.events?.length ? "taiwan-official+twconcertview+artists-tw-reference+curated" : "curated-reference-fallback",
     autoUpdateEnabled: true,
     liveEnabled: true,
     autoUpdateError,
@@ -569,6 +582,9 @@ export default async function handler(req, res) {
       sourceHealth: discovery.sourceHealth || [],
       venueSourceHealth: discovery.venueSourceHealth || [],
       coverageReferenceHealth: discovery.coverageReferenceHealth || [],
+      supplementaryReferenceHealth: discovery.supplementaryReferenceHealth || [],
+      supplementaryReferenceCount: discovery.supplementaryReferenceCount || 0,
+      supplementaryReferenceParsedCount: discovery.supplementaryReferenceParsedCount || 0,
       coverageReferenceCount: discovery.coverageReferenceCount || 0,
       coverageReferenceParsedCount: discovery.coverageReferenceParsedCount || 0,
       coverageReferenceShowingParsedCount: discovery.coverageReferenceShowingParsedCount || 0,
@@ -595,7 +611,7 @@ export default async function handler(req, res) {
     count: events.length,
     upcomingUniqueEventCount,
     upcomingShowReferenceCount: discovery.coverageReferenceCount || 0,
-    countSemantics: { uniqueEvents: '去重後活動筆數', showReference: '外部公開行事曆場次參考值', referenceQueue: 'twconcertview 補漏參考筆數；待官方來源覆核' },
+    countSemantics: { uniqueEvents: '去重後活動筆數', showReference: 'twconcertview 外部場次參考值', supplementaryReference: 'Artists.tw 現場音樂索引參考值', referenceQueue: '第三方補漏參考筆數；待官方來源覆核' },
     archiveLimit: ARCHIVE_LIMIT,
     archiveCount,
     artistCount: artists.length,

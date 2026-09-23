@@ -7,7 +7,7 @@ const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),
 const app=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
 const api=fs.readFileSync(new URL('../api/events.js',import.meta.url),'utf8');
 const refresh=fs.readFileSync(new URL('../api/refresh.js',import.meta.url),'utf8');
-if(pkg.version!=='0.40.16') fail('package version',pkg.version);
+if(!['0.40.16','0.40.17'].includes(pkg.version)) fail('package version',pkg.version);
 
 const sample=`2026 台灣演唱會行事曆 近期 317 場演出\n2026-09-26｜TREASURE｜高雄巨蛋\n2026-09-26｜TREASURE｜高雄巨蛋\n2026-09-27｜Ozone｜WESTAR`;
 const parsed=parseTwConcertViewCalendar(sample);
@@ -25,7 +25,7 @@ const promoted=mergeAndDedupe([], [
 if(promoted.length!==1||promoted[0].referenceOnly||!promoted[0].verified) fail('official source did not promote reference queue row',promoted);
 if(!(promoted[0].sourceRefs||[]).some(ref=>/twconcertview/i.test(`${ref?.name||''} ${ref?.url||''}`))) fail('reference provenance lost after promotion',promoted[0]);
 
-if(!/參考待核對/.test(app)||!/參考補漏/.test(app)||!/coverageReferenceQueuePending/.test(app)) fail('reference queue UI missing');
+if(!/參考待核對/.test(app)||!/(?:參考補漏|待官方覆核)/.test(app)||!/coverageReferenceQueuePending/.test(app)) fail('reference queue UI missing');
 if(!/coverageReferenceQueuePromoted/.test(api)||!/referenceQueuePromoted/.test(api)||!/liveShowingParsed/.test(api)) fail('reference queue API telemetry / unit fix missing');
 if(!/pendingOfficialVerification/.test(refresh)||!/promotedByOfficialMatch/.test(refresh)) fail('refresh telemetry missing');
 

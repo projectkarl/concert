@@ -1,3 +1,13 @@
+# NEUL v0.40.17 — Expanded Auto Coverage
+
+本版針對「實際活動仍只有八十幾筆」重新做資料源與 fallback 稽核。v0.40.16 的 twconcertview 繁中 URL 在伺服器抓取時可能被導向較少的英文行事曆，而且六個月份的輪替資料若 Vercel Blob 未配置就無法跨請求累積，因此冷啟動時仍可能退回舊的 83 筆。
+
+v0.40.17 新增 Artists.tw 現場音樂索引作第二層補漏 reference：優先讀公開 iCalendar feed，失敗或資料偏少時再讀首頁與有限分頁。這個來源只負責發現可能漏掉的 live house／中小型／大型演出，不會覆寫官方票價、開賣、座位圖或場館 3D。twconcertview 若繁中入口被導向英文頁，系統也會辨識 redirect，不再把英文較少的總數誤認為完整繁中 coverage。
+
+同時加入 2026-09-24 已驗證的近期 reference bootstrap；即使所有即時 crawler 暫時失效，離線 upcoming fallback 也由約 83 筆提高到 120 筆以上。這些新增資料全部標記「參考收錄 · 待官方覆核」，一旦 tixCraft／KKTIX／ibon／寬宏／MNA／年代／主辦／藝人／場館官方來源找到同場活動，就自動合併並升級。
+
+前端現在分開顯示「台灣活動筆數」「TWCV 場次參考」「現場音樂索引參考」「待官方覆核」，避免把 317／427 這類外部索引總數誤當成 NEUL 已完成官方驗證的活動筆數。
+
 # NEUL v0.40.16 — twconcertview Reference Queue
 
 本版把 twconcertview 從「只拿總數做對帳」升級成真正的補漏參考佇列。來源目前公開顯示的近期演出場次會作為 coverage 參考；解析到但尚未在官方售票／主辦／藝人／場館來源找到對應資料的活動，會先以「參考收錄 · 待官方覆核」進入完整清單。之後官方來源抓到同一活動時，會自動合併、取消 reference-only 標記，並以官方資料覆寫票價、開賣、座位圖與活動細節。

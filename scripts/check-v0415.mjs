@@ -5,7 +5,7 @@ const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),
 const app=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
 const api=fs.readFileSync(new URL('../api/events.js',import.meta.url),'utf8');
 const seatApi=fs.readFileSync(new URL('../api/seat-map-image.js',import.meta.url),'utf8');
-if(!['0.40.15','0.40.16'].includes(pkg.version)) fail('package version must preserve v0.40.15+',pkg.version);
+if(!['0.40.15','0.40.16','0.40.17'].includes(pkg.version)) fail('package version must preserve v0.40.15+',pkg.version);
 const zh=buildTwConcertViewCalendarUrls(new Date('2026-09-23T12:00:00+08:00'),0,2,'zh');
 const en=buildTwConcertViewCalendarUrls(new Date('2026-09-23T12:00:00+08:00'),0,2,'en');
 if(!zh.every(x=>x.includes('twconcertview.com/calendar'))||zh.some(x=>x.includes('/en/calendar'))) fail('zh month sweep path wrong',zh);

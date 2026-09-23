@@ -309,9 +309,12 @@ function renderEvents() {
     if (!list.length) meta.textContent = "沒有符合條件的活動";
     else {
       const ref=Number(state.discovery?.coverageReferenceCount||0), parsed=Number(state.discovery?.coverageReferenceParsedCount||0);
+      const supplement=Number(state.discovery?.supplementaryReferenceCount||0);
       const pending=Number(state.discovery?.coverageReferenceQueuePending||list.filter(event=>event.referenceOnly).length||0);
       const ratio=state.discovery?.coverageReferenceRatio;
-      const coverage=ref?` · 場次參考 ${ref} 場 · 參考補漏 ${pending} 筆${Number.isFinite(ratio)?` · ${Math.round(ratio*100)}% 對帳`:''}`:'';
+      const refText=ref?` · TWCV 場次參考 ${ref} 場`:'';
+      const supplementText=supplement?` · 現場音樂索引 ${supplement} 場`:'';
+      const coverage=`${refText}${supplementText}${pending?` · 待官方覆核 ${pending} 筆`:''}${Number.isFinite(ratio)&&ref?` · TWCV ${Math.round(ratio*100)}% 對帳`:''}`;
       meta.textContent = `台灣活動 ${list.length} 筆 · 已去重同步${coverage}`;
     }
   }
