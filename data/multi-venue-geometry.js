@@ -63,30 +63,66 @@ const taipeiArenaTiers = [
 ];
 
 // NTSU Arena base geometry: official floor plan uses Yellow/Green/Orange/Blue quadrants and middle/upper fixed seating.
+// NTSU / Linkou fixed bowl. The official venue map splits each colour family into named
+// sub-sections. The base 3D keeps one geometry segment per physical family for performance,
+// but retains the official sub-section names/capacities as metadata so event seat-map mapping
+// can resolve the real ticket labels instead of inventing generic ones.
+const ntsuMiddleMeta = {
+  '黃4中':{officialSubsections:['黃4中-2','黃4中-1'],officialSeatCapacity:262},
+  '黃2中':{officialSubsections:['黃2中-1','黃2中-2'],officialSeatCapacity:450},
+  '黃1中':{officialSubsections:['黃1中-1','黃1中-2'],officialSeatCapacity:450},
+  '黃3中':{officialSubsections:['黃3中-1','黃3中-2'],officialSeatCapacity:262},
+  '綠5中':{officialSubsections:['綠5中'],officialSeatCapacity:120},
+  '綠4中':{officialSubsections:['綠4中-1','綠4中-2'],officialSeatCapacity:236},
+  '綠3中':{officialSubsections:['綠3中-1','綠3中-2'],officialSeatCapacity:250},
+  '綠2中':{officialSubsections:['綠2中-1','綠2中-2'],officialSeatCapacity:229},
+  '綠1中':{officialSubsections:['綠1中-1','綠1中-2'],officialSeatCapacity:240},
+  '藍5中':{officialSubsections:['藍5中-2','藍5中-1'],officialSeatCapacity:240},
+  '藍4中':{officialSubsections:['藍4中-2','藍4中-1'],officialSeatCapacity:204},
+  '藍3中':{officialSubsections:['藍3中-2','藍3中-1'],officialSeatCapacity:318},
+  '藍2中':{officialSubsections:['藍2中-2','藍2中-1'],officialSeatCapacity:235},
+  '藍1中':{officialSubsections:['藍1中-2','藍1中-1'],officialSeatCapacity:240}
+};
+const ntsuUpperMeta = {
+  '黃4上':{officialSubsections:['黃4上-1','黃4上-2'],officialSeatCapacity:509},
+  '黃2上':{officialSubsections:['黃2上-1','黃2上-2'],officialSeatCapacity:591},
+  '黃1上':{officialSubsections:['黃1上-1','黃1上-2'],officialSeatCapacity:602},
+  '黃3上':{officialSubsections:['黃3上-1','黃3上-2'],officialSeatCapacity:394},
+  '綠5上':{officialSubsections:['綠5上-1','綠5上-2'],officialSeatCapacity:186},
+  '綠4上':{officialSubsections:['綠4上-1','綠4上-2'],officialSeatCapacity:101},
+  '綠3上':{officialSubsections:['綠3上-2','綠3上-1'],officialSeatCapacity:195},
+  '綠2上':{officialSubsections:['綠2上-2','綠2上-1'],officialSeatCapacity:101},
+  '綠1上':{officialSubsections:['綠1上-2','綠1上-1'],officialSeatCapacity:186},
+  '藍5上':{officialSubsections:['藍5上-3','藍5上-2','藍5上-1'],officialSeatCapacity:376},
+  '藍4上':{officialSubsections:['藍4上-2','藍4上-1'],officialSeatCapacity:99},
+  '藍3上':{officialSubsections:['藍3上-2','藍3上-1'],officialSeatCapacity:99},
+  '藍2上':{officialSubsections:['藍2上-2','藍2上-1'],officialSeatCapacity:126},
+  '藍1上':{officialSubsections:['藍1上-2','藍1上-1'],officialSeatCapacity:281}
+};
 const ntsuMiddle = [
   ...arcGroup(['黃4中','黃2中','黃1中','黃3中'], 'MIDDLE', 170,126,18,-2.48,-.66),
   ...arcGroup(['綠5中','綠4中','綠3中','綠2中','綠1中'], 'MIDDLE', 170,126,18,-.48,.92),
   ...arcGroup(['橙4中','橙2中','橙1中','橙3中'], 'MIDDLE', 170,126,18,1.12,2.10),
   ...arcGroup(['藍1中','藍2中','藍3中','藍4中','藍5中'], 'MIDDLE', 170,126,18,2.32,3.62)
-];
+].map(s=>({...s,...(ntsuMiddleMeta[s.id]||{}),officialAggregate:true}));
 const ntsuUpper = [
   ...arcGroup(['黃4上','黃2上','黃1上','黃3上'], 'UPPER', 216,160,57,-2.48,-.66),
   ...arcGroup(['綠5上','綠4上','綠3上','綠2上','綠1上'], 'UPPER', 216,160,57,-.48,.92),
   ...arcGroup(['橙4上','橙2上','橙1上','橙3上'], 'UPPER', 216,160,57,1.12,2.10),
   ...arcGroup(['藍1上','藍2上','藍3上','藍4上','藍5上'], 'UPPER', 216,160,57,2.32,3.62)
+].map(s=>({...s,...(ntsuUpperMeta[s.id]||{}),officialAggregate:true}));
+const ntsuMiddleCal = ntsuMiddle.map(s=>({...s,rowMin:1,rowMax:15,rowDirection:'reverse',depthX:32,depthZ:24,rise:13,rowCurve:1.08,rowRangeConfidence:'official-bowl-band'}));
+const ntsuUpperCal = ntsuUpper.map(s=>({...s,rowMin:0,rowMax:16,depthX:40,depthZ:30,rise:19,rowCurve:1.10,rowRangeConfidence:'official-bowl-band'}));
+// Official venue documentation marks the inner red areas as activity seating rather than
+// permanent fixed ticket sections. Keep the physical lower-bowl volume but use explicit
+// STRUCT ids so the UI never presents fabricated permanent ticket-zone labels.
+const ntsuLowerFamilies = [
+  ...arcGroup(['STRUCT-LOWER-Y1','STRUCT-LOWER-Y2','STRUCT-LOWER-Y3'],'LOWER',132,98,-5,-2.40,-.72).map(s=>({...s,sideLabel:'黃色側'})),
+  ...arcGroup(['STRUCT-LOWER-G1','STRUCT-LOWER-G2','STRUCT-LOWER-G3'],'LOWER',132,98,-5,-.48,.88).map(s=>({...s,sideLabel:'綠色側'})),
+  ...arcGroup(['STRUCT-LOWER-O1','STRUCT-LOWER-O2','STRUCT-LOWER-O3'],'LOWER',132,98,-5,1.10,2.08).map(s=>({...s,sideLabel:'橙色側'})),
+  ...arcGroup(['STRUCT-LOWER-B1','STRUCT-LOWER-B2','STRUCT-LOWER-B3'],'LOWER',132,98,-5,2.30,3.58).map(s=>({...s,sideLabel:'藍色側'}))
 ];
-const ntsuMiddleCal = ntsuMiddle.map(s=>({...s,rowMin:1,rowMax:15,rowDirection:'reverse',depthX:32,depthZ:24,rise:13,rowCurve:1.08}));
-const ntsuUpperCal = ntsuUpper.map(s=>({...s,rowMin:0,rowMax:16,depthX:40,depthZ:30,rise:19,rowCurve:1.10}));
-// NTSU / Linkou also has configurable 1F activity seating. Older NEUL builds exposed only
-// MIDDLE/UPPER fixed bowls, making every concert look as if the lower arena did not exist.
-// These LOWER/FLOOR envelopes preserve the physical venue volume without pretending they are
-// permanent ticket-zone names. Event-specific official maps may add/override exact blocks.
-const ntsuLower = [
-  ...arcGroup(['1F黃側A','1F黃側B','1F黃側C'],'LOWER',132,98,-5,-2.40,-.72),
-  ...arcGroup(['1F綠側A','1F綠側B','1F綠側C'],'LOWER',132,98,-5,-.48,.88),
-  ...arcGroup(['1F橙側A','1F橙側B','1F橙側C'],'LOWER',132,98,-5,1.10,2.08),
-  ...arcGroup(['1F藍側A','1F藍側B','1F藍側C'],'LOWER',132,98,-5,2.30,3.58)
-].map(s=>({...s,rowMin:1,rowMax:12,depthX:22,depthZ:17,rise:8,rowCurve:1.04,structuralOnly:true,eventFlexible:true,label:`${s.id}（依活動配置）`}));
+const ntsuLower = ntsuLowerFamilies.map((s,i)=>({...s,rowMin:1,rowMax:12,depthX:22,depthZ:17,rise:8,rowCurve:1.04,structuralOnly:true,eventFlexible:true,nonTicketZone:true,rowRangeConfidence:'activity-seat-envelope',label:`${s.sideLabel}下層活動席結構 ${i%3+1}（依活動配置）`}));
 const ntsuFloor = [
   structuralBlock('1F平面A','FLOOR',-50,8,31,70,'floor'), structuralBlock('1F平面B','FLOOR',-17,8,31,70,'floor'),
   structuralBlock('1F平面C','FLOOR',17,8,31,70,'floor'), structuralBlock('1F平面D','FLOOR',50,8,31,70,'floor')
@@ -250,11 +286,13 @@ const kaohsiungTiers = [
 // Taipei Music Center: official fixed seating is on 2F / 3F; 1F is configurable.
 const tmcFloor = [
   block('1F 左','1F',-46,24,42,76,'floor'), block('1F 中','1F',0,24,42,76,'floor'), block('1F 右','1F',46,24,42,76,'floor')
-].map(s=>({...s,rowMin:1,rowMax:20}));
+].map(s=>({...s,rowMin:1,rowMax:20,structuralOnly:true,eventFlexible:true,nonTicketZone:true,label:`${s.id}活動配置範圍（非固定席）`,rowRangeConfidence:'event-configurable'}));
+const tmc2Capacity={'2A':156,'2B':204,'2C':225,'2D':293,'2E':225,'2F':204,'2G':156};
+const tmc3Capacity={'3A':181,'3B':236,'3C':234,'3D':369,'3E':234,'3F':236,'3G':181};
 const tmc2 = arcGroup(['2A','2B','2C','2D','2E','2F','2G'],'2F',146,106,18,2.82,.32)
-  .map(s=>({...s,rowMin:1,rowMax:15,depthX:17,depthZ:13,rise:8}));
+  .map(s=>({...s,rowMin:1,rowMax:15,depthX:17,depthZ:13,rise:8,officialSeatCapacity:tmc2Capacity[s.id],rowRangeConfidence:'official-fixed-seat-plan'}));
 const tmc3 = arcGroup(['3A','3B','3C','3D','3E','3F','3G'],'3F',184,136,52,2.82,.32)
-  .map(s=>({...s,rowMin:1,rowMax:18,depthX:15,depthZ:12,rise:7}));
+  .map(s=>({...s,rowMin:1,rowMax:18,depthX:15,depthZ:12,rise:7,officialSeatCapacity:tmc3Capacity[s.id],rowRangeConfidence:'official-fixed-seat-plan'}));
 const tmcSections=[...tmcFloor,...tmc2,...tmc3];
 const tmcTiers=[
   {id:'1F',label:'1F 活動可變平面區',short:'1F',sections:tmcFloor.map(x=>x.id)},
@@ -413,8 +451,8 @@ const nangangHall1Tiers=[{id:'FLOOR',label:'四樓平面活動席（依場次配
 export const venueModels = {
   'taipei-dome': {
     id:'taipei-dome', name:'臺北大巨蛋', en:'TAIPEI DOME', city:'Taipei', sections:taipeiDomeSections, tiers:taipeiDomeTiers,
-    baseLayoutId:'taipei-dome-base', defaultTier:'LOWER', defaultSection:'106', defaultRow:18, field:{x:198,z:146}, stage:genericStage(-145,120,38),
-    sourceName:'臺北大巨蛋官方座位區平面圖', sourceUrl:'https://www.farglorydome.com.tw/park-detail/map/', confidence:'官方分區校正／區域幾何重建'
+    baseLayoutId:'taipei-dome-base', defaultTier:'LOWER', defaultSection:'106', defaultRow:18, field:{x:206,z:190}, stage:genericStage(-158,120,38),
+    sourceName:'臺北大巨蛋官方座位區平面圖', sourceUrl:'https://www.farglorydome.com.tw/park-detail/map/', confidence:'官方固定分區＋棒球場非對稱碗體校正／區域幾何重建'
   },
   'taipei-arena': {
     id:'taipei-arena', name:'臺北小巨蛋', en:'TAIPEI ARENA', city:'Taipei', sections:taipeiArenaSections, tiers:taipeiArenaTiers,
@@ -423,7 +461,7 @@ export const venueModels = {
   },
   'ntsu-arena': {
     id:'ntsu-arena', name:'國立體育大學綜合體育館', en:'NTSU ARENA / LINKOU ARENA', city:'Taoyuan', sections:ntsuSections, tiers:ntsuTiers,
-    baseLayoutId:'ntsu-base', defaultTier:'MIDDLE', defaultSection:'綠3中', defaultRow:10, field:{x:126,z:92}, stage:genericStage(-108,92,28),
+    baseLayoutId:'ntsu-base', defaultTier:'MIDDLE', defaultSection:'綠3中', defaultRow:10, field:{x:132,z:98}, stage:genericStage(-111,94,28),
     sourceName:'國立體育大學綜合體育館官方平面圖', sourceUrl:'https://phk.ntsu.edu.tw/var/file/8/1008/img/1439/147422320.pdf', confidence:'官方色區／席位圖校正／區域幾何重建'
   },
   'kaohsiung-arena': {
@@ -434,7 +472,8 @@ export const venueModels = {
   'taipei-music-center': {
     id:'taipei-music-center', name:'臺北流行音樂中心', en:'TAIPEI MUSIC CENTER', city:'Taipei', sections:tmcSections, tiers:tmcTiers,
     baseLayoutId:'tmc-base', defaultTier:'2F', defaultSection:'2D', defaultRow:6, field:{x:105,z:84}, stage:genericStage(-92,82,24),
-    sourceName:'北流官方觀眾席配置圖', sourceUrl:'https://www.tmc.taipei/tw/hire/Unit-f8KLs', confidence:'官方固定席＋技術尺寸＋公開實拍交叉校正'
+    officialTierSeatCount:{'2F':1463,'3F':1675}, mappedTierSeatCount:{'2F':1463,'3F':1671}, officialCountDelta:{'2F':0,'3F':4},
+    sourceName:'北流官方表演廳座席配置圖', sourceUrl:'https://www.tmc.taipei/files/20260120172250954.pdf', confidence:'官方 2F／3F 固定席席數＋1F 可變配置＋技術尺寸校正'
   },
   'ticc': {
     id:'ticc', name:'TICC 台北國際會議中心', en:'TAIPEI INTERNATIONAL CONVENTION CENTER', city:'Taipei', sections:ticcSections, tiers:ticcTiers,
@@ -660,7 +699,7 @@ export const venueLayouts = {
   [strayKidsRunItLayout.id]: {...strayKidsRunItLayout, venueId:'taipei-dome'},
   'taipei-arena-far': {id:'taipei-arena-far',venueId:'taipei-arena',label:'遠端舞台基準',stage:venueModels['taipei-arena'].stage,sourceName:'臺北小巨蛋官方遠端座位視線導覽',sourceUrl:'https://www.arena.taipei/cp.aspx?n=95731497B5FCEDDB&s=1BE4A9B16EE8F2E8',notices:['官方提供遠端與中央舞台視線導覽；本場舞台尚未公布時僅作場館方向參考。']},
   'taipei-arena-center': {id:'taipei-arena-center',venueId:'taipei-arena',label:'中央舞台基準',stage:{main:{x:0,y:-16,z:0,width:70,depth:56},runway:null,bStage:null},sourceName:'臺北小巨蛋官方中央舞台座位視線導覽',sourceUrl:'https://www.arena.taipei/cp.aspx?n=95731497B5FCEDDB',notices:['中央舞台為場館官方視線導覽類型之一；各活動舞台仍可能不同。']},
-  'ntsu-base': {id:'ntsu-base',venueId:'ntsu-arena',label:'林口場館基準',stage:venueModels['ntsu-arena'].stage,sourceName:'國立體育大學綜合體育館平面圖',sourceUrl:'https://phk.ntsu.edu.tw/var/file/8/1008/img/1439/147422320.pdf',notices:['官方圖可確認黃、綠、橙、藍色區與中／上層席位；演唱會舞台方向仍以該場售票圖為準。']},
+  'ntsu-base': {id:'ntsu-base',venueId:'ntsu-arena',label:'林口場館基準',stage:venueModels['ntsu-arena'].stage,sourceName:'國立體育大學綜合體育館平面圖',sourceUrl:'https://phk.ntsu.edu.tw/var/file/8/1008/img/1439/147422320.pdf',notices:['官方圖確認黃、綠、橙、藍四側固定看台與上／中／下層結構；基準模型保留官方子區 metadata，不再把下層活動席偽裝成固定票區。','演唱會平面席、活動席與舞台方向仍以該場官方售票圖覆蓋。']},
   'plave-keep-it-manic-2026': {
     id:'plave-keep-it-manic-2026', venueId:'ntsu-arena', eventId:'plave-keep-it-manic-taipei-2026', label:'PLAVE · KEEP IT MANIC',
     stage:{main:{x:0,y:-16,z:-112,width:92,depth:28},runway:null,bStage:null}, foh:{x:0,y:-19,z:55,width:72,depth:18}, sections:plaveSections, tiers:plaveTiers,

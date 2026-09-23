@@ -69,6 +69,36 @@ export function retainRecentArchive(events=[], now=Date.now(), limit=ARCHIVE_LIM
   ended.sort((a,b)=>eventEffectiveEndTs(b)-eventEffectiveEndTs(a)||new Date(b.start||0)-new Date(a.start||0));
   return [...current,...ended.slice(0,limit)].sort((a,b)=>new Date(a.start||0)-new Date(b.start||0));
 }
+
+const DISCOVERY_SNAPSHOT_PATH = "cache/neul-upcoming-discovery.json";
+const DISCOVERY_CACHE_MAX = 420;
+async function streamText(stream){ let out=""; const dec=new TextDecoder(); for await(const chunk of stream) out+=dec.decode(chunk,{stream:true}); return out+dec.decode(); }
+function upcomingOnly(events=[], now=Date.now()) {
+  return (events||[]).filter(event => {
+    const end=eventEffectiveEndTs(event);
+    const start=new Date(event?.start||0).getTime();
+    return Number.isFinite(end) ? end>=now : (Number.isFinite(start) && start>=now);
+  }).sort((a,b)=>new Date(a.start||0)-new Date(b.start||0)).slice(0,DISCOVERY_CACHE_MAX);
+}
+async function readDiscoverySnapshot(){
+  try{
+    const { get } = await import("@vercel/blob");
+    const r=await get(DISCOVERY_SNAPSHOT_PATH,{access:"private",useCache:false});
+    if(!r?.stream) return null;
+    const data=JSON.parse(await streamText(r.stream));
+    if(!Array.isArray(data?.events)) return null;
+    return {...data,events:upcomingOnly(data.events)};
+  }catch{return null;}
+}
+async function writeDiscoverySnapshot(events=[],meta={}){
+  try{
+    const upcoming=upcomingOnly(events);
+    if(upcoming.length<40) return false;
+    const { put } = await import("@vercel/blob");
+    await put(DISCOVERY_SNAPSHOT_PATH,JSON.stringify({version:1,updatedAt:new Date().toISOString(),events:upcoming,meta}),{access:"private",contentType:"application/json",overwrite:true});
+    return true;
+  }catch{return false;}
+}
 const TAIWAN_CITIES = new Set(["Taipei","New Taipei","Taoyuan","Taichung","Tainan","Kaohsiung","Hsinchu","Keelung","Chiayi","Changhua","Miaoli","Nantou","Yunlin","Pingtung","Yilan","Hualien","Taitung","Penghu","Kinmen","Matsu"]);
 function isTaiwanEvent(event = {}) {
   if (event.region !== "TW") return false;
@@ -414,6 +444,25 @@ export default async function handler(req, res) {
   if (errors.length) autoUpdateError = errors.join(" · ");
   discovery.source = sources.join(" + ") || "curated fallback";
 
+  // Persist only still-upcoming discovery results. If one Vercel crawl is unusually thin,
+  // merge the last healthy snapshot so the UI does not collapse back to the small seed set.
+  const liveUpcoming = upcomingOnly(discovery.events || []);
+  const liveReference = Number(discovery.coverageReferenceCount || 0);
+  const liveRatio = liveReference > 0 ? liveUpcoming.length / liveReference : 0;
+  let discoverySnapshotUsed = false;
+  if (liveUpcoming.length < 120 || (liveReference >= 200 && liveRatio < 0.55)) {
+    const snapshot = await readDiscoverySnapshot();
+    if (snapshot?.events?.length) {
+      discovery.events = mergeAndDedupe(snapshot.events, discovery.events || []);
+      discoverySnapshotUsed = true;
+      discovery.source += " + last healthy upcoming snapshot";
+    }
+  }
+  const snapshotSaved = await writeDiscoverySnapshot(discovery.events || [], {
+    coverageReferenceCount: discovery.coverageReferenceCount || 0,
+    coverageReferenceParsedCount: discovery.coverageReferenceParsedCount || 0
+  });
+
   const mergedEvents = mergeAndDedupe(seedEvents, discovery.events || []);
   const allEvents = mergedEvents.map(event => {
     const seatMapFound = Boolean(event.seatLayoutSourceUrl);
@@ -480,6 +529,9 @@ export default async function handler(req, res) {
       coverageReferenceMonthsScanned: discovery.coverageReferenceMonthsScanned || 0,
       coverageReferenceSuccessfulPages: discovery.coverageReferenceSuccessfulPages || 0,
       coverageReferenceUnmatched: coverageAudit.coverageReferenceUnmatchedEvents || [],
+      discoverySnapshotUsed,
+      discoverySnapshotSaved: snapshotSaved,
+      discoverySnapshotPolicy: "upcoming-only; no archived events; max 420 records",
       coverageGaps: coverageAudit.gaps || [],
       needsTicketBackfill: coverageAudit.needsTicketBackfill || []
     },

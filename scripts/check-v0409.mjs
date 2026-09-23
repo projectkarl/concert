@@ -10,7 +10,7 @@ const app=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
 const api=fs.readFileSync(new URL('../api/events.js',import.meta.url),'utf8');
 const twcv=fs.readFileSync(new URL('../lib/twconcertview-discovery.js',import.meta.url),'utf8');
 
-if(!['0.40.9','0.40.10','0.40.11','0.40.12','0.40.13'].includes(pkg.version)) fail('package must preserve v0.40.9+ coverage behavior',pkg.version);
+if(!['0.40.9','0.40.10','0.40.11','0.40.13','0.40.14'].includes(pkg.version)) fail('package must preserve v0.40.9+ coverage behavior',pkg.version);
 const urls=buildTwConcertViewCalendarUrls(new Date('2026-09-21T12:00:00+08:00'),1,18);
 if(urls.length<20) fail('twconcertview month scan too shallow',urls.length);
 if(!urls.some(x=>/m=8&y=2026/.test(x))||!urls.some(x=>/m=9&y=2026/.test(x))) fail('month scan does not include Sep/Oct 2026',urls);

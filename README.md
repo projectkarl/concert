@@ -1,4 +1,12 @@
-# NEUL v0.40.13 — Verified 316 Discovery + Recent Data
+# NEUL v0.40.14 — Verified316 + Venue Calibration Merge
+
+本版維持既有 NEUL 介面，合併 v0.40.13 的 Verified316／近期資料分支與較新的臺北大巨蛋重校正。大巨蛋保留非對稱棒球場碗體與專用屋頂；林口體育館將固定席與活動席分離，避免把臨時配置誤當永久票區；北流 1F 也改為活動配置層，2F／3F 保存官方席數與分區席數差異供 QA。內部實拍視角只作校正參考，不再公開顯示於來源 UI。
+
+資料面延續 Verified316：公開行事曆的 316 場僅作 coverage 候選目標，官方售票／主辦／場館資料仍優先；新聞維持近 7 天、最新到最舊、最多 24 則，Archive 維持最近 20 場。固定場館結構不允許 OCR/Vision 任意覆寫，只有活動可變區才可依官方座位圖客製。
+
+> 校正原則：不為了看起來「更完整」而猜座位。北流目前官方圖可驗證 2F 至 15 排，因此本版不硬加第 16 排；小巨蛋 2F 各分區最大排數仍留待逐區官方資料校正，不採單一全館猜值。
+
+# NEUL v0.40.10 — 3D Precision + Non-Regression
 
 本版不改 NEUL 既有 3D 互動方式，核心仍是可旋轉／縮放／平移的原生 WebGL2 場館。新增排／座號級左右位移、舞台最近邊緣距離、側向觀看角、俯仰角與視線遮擋交會判定；同時以實際 Chromium WebGL2 驗收避免「優化後退化成平面圖」。
 
@@ -41,15 +49,6 @@ This release keeps the v0.40.2 UX3 interface and changes the 3D correctness pipe
 - Unknown indoor venues no longer silently fall back to a generic theatre or Taipei Dome. Uncalibrated venues keep the event listing but withhold 3D until an official geometry source exists.
 - `VENUE_3D_TOPOLOGY_AUDIT_2026-09-21.md` contains the 101-event audit; `TEST_REPORT_v0.40.3-VenueTopology.md` records regression checks.
 
-
-
-## v0.40.13 Recent Data Policy
-
-- Upcoming：只顯示尚未結束的台灣演出，未來活動不因資料精簡而被裁掉。
-- Archive：只保留最近 20 場已結束活動。
-- Coverage：twconcertview 公開頁於 2026-09-22 宣告 316 場 upcoming，NEUL 將其作為候選對帳總量，去重並由官方售票／主辦／場館來源優先核對，不硬湊 316。
-- News：只保留最近 7 天，依發布時間由新到舊；初始 8 則，可逐批看更多。
-- Sightline：第三方實拍只做內部 3D 校正，不在前台標示。
 
 ## v0.40.2 Full Audit (2026-09-20)
 - Fixed premature “ended” state with session-aware lifecycle rules.
