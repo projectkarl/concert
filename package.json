@@ -1,11 +1,11 @@
 {
   "name": "neul-mvp",
-  "version": "0.40.14",
+  "version": "0.40.16",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vercel dev",
-    "check": "node scripts/check.mjs && node scripts/check-coverage.mjs && node scripts/check-complete.mjs && node scripts/check-ux.mjs && node scripts/check-news.mjs && node scripts/check-venue-policy.mjs && node scripts/check-topology-integrity.mjs && node scripts/check-v0404.mjs && node scripts/check-v0408.mjs && node scripts/check-v0409.mjs && node scripts/check-v0410.mjs && node scripts/check-v0411.mjs && node scripts/check-v0412.mjs && node scripts/check-v0413.mjs && node scripts/check-v0411-dome.mjs && node scripts/check-v0414.mjs && node scripts/verify-baseline.mjs && node scripts/check-mobile-news-layout.mjs",
+    "check": "node scripts/check.mjs && node scripts/check-coverage.mjs && node scripts/check-complete.mjs && node scripts/check-ux.mjs && node scripts/check-news.mjs && node scripts/check-venue-policy.mjs && node scripts/check-topology-integrity.mjs && node scripts/check-v0404.mjs && node scripts/check-v0408.mjs && node scripts/check-v0409.mjs && node scripts/check-v0410.mjs && node scripts/check-v0411.mjs && node scripts/check-v0412.mjs && node scripts/check-v0413.mjs && node scripts/check-v0411-dome.mjs && node scripts/check-v0414.mjs && node scripts/verify-baseline.mjs && node scripts/check-mobile-news-layout.mjs && node scripts/check-v0415.mjs && node scripts/check-v0416.mjs",
     "verify:baseline": "node scripts/verify-baseline.mjs"
   },
   "engines": {

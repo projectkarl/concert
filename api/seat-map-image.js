@@ -99,8 +99,15 @@ export default async function handler(req,res){
   const venueId=String(req.query?.venueId||'');
   const event=String(req.query?.event||'');
   const strictHint=String(req.query?.shared||'')==='1';
+  let fallback=[];
+  try{const parsed=JSON.parse(String(req.query?.fallback||'[]'));if(Array.isArray(parsed))fallback=parsed.filter(Boolean).slice(0,6);}catch{}
   try{
-    const found=await resolveOfficialSeatMap(raw,{hints:[venue,venueId,event],strictHint});
+    let found=null,lastError=null;
+    for(const candidate of [...new Set([raw,...fallback].filter(Boolean))]){
+      try{found=await resolveOfficialSeatMap(candidate,{hints:[venue,venueId,event],strictHint});if(found)break;}
+      catch(err){lastError=err;}
+    }
+    if(!found) throw lastError||Object.assign(new Error('official seat map not found'),{status:404});
     if(found.buf.byteLength>10_000_000)return res.status(413).json({error:'image too large'});
     const hash=crypto.createHash('sha256').update(found.buf).digest('hex');
     res.setHeader('Content-Type',found.type);res.setHeader('Cache-Control','s-maxage=21600, stale-while-revalidate=86400');

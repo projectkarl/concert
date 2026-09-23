@@ -7,7 +7,7 @@ const api=fs.readFileSync(new URL('../api/events.js',import.meta.url),'utf8');
 const auditor=fs.readFileSync(new URL('../lib/coverage-auditor.js',import.meta.url),'utf8');
 const geometry=fs.readFileSync(new URL('../data/multi-venue-geometry.js',import.meta.url),'utf8');
 const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8'));
-if(!/^0\.40\.(4|5|6|7|8|9|10|11|13|14)$/.test(pkg.version)) fail('package version',pkg.version);
+if(!/^0\.40\.(4|5|6|7|8|9|10|11|13|14|15|16)$/.test(pkg.version)) fail('package version',pkg.version);
 if(!api.includes('discoverTwConcertViewCalendar()')) fail('twconcertview coverage discovery not integrated into /api/events');
 if(!api.includes('twconcertview-crosscheck')) fail('upstream crosscheck marker missing');
 if(!api.includes('CALIBRATED_3D_VENUES.has(event.venueModelId)')) fail('3D eligibility is not restricted to calibrated venue models');

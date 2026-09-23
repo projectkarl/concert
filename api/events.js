@@ -9,6 +9,7 @@ import { discoverVenueCalendars } from "../lib/venue-calendar-discovery.js";
 import { discoverTwConcertViewCalendar } from "../lib/twconcertview-discovery.js";
 import { venues as calibratedVenues, MAINSTREAM_3D_VENUE_IDS } from "../data/venues.js";
 import { auditCoverage } from "../lib/coverage-auditor.js";
+import { monitorOfficialSource } from "../lib/official-monitor.js";
 
 const dateKey = iso => {
   if (!iso) return "";
@@ -238,6 +239,10 @@ function mergeRecords(existing, incoming) {
     out.secondarySourceUrl ||= incoming.sourceUrl;
   }
   out.verified = Boolean(existing.verified || incoming.verified);
+  const hasNonReferenceSource = existingPriority > 10 || incomingPriority > 10;
+  out.referenceOnly = hasNonReferenceSource ? false : Boolean(existing.referenceOnly || incoming.referenceOnly);
+  out.verificationLevel = out.referenceOnly ? 'reference' : (out.verified ? 'official-verified' : (out.verificationLevel || 'official-source-pending'));
+  out.referenceOccurrenceCount = Math.max(Number(existing.referenceOccurrenceCount || 0), Number(incoming.referenceOccurrenceCount || 0));
   out.autoUpdated = Boolean(existing.autoUpdated || incoming.autoUpdated || incoming.id?.startsWith("auto-"));
   if (incoming.sourceName) out.autoSourceName = incoming.sourceName;
   if (incoming.sourceUrl) out.autoSourceUrl = incoming.sourceUrl;
@@ -352,12 +357,17 @@ function coverageSnapshot(discovery = {}, events = [], auditor = null) {
       coverageReferenceUnmatched: auditor.coverageReferenceUnmatched || 0,
       coverageReferenceCount: discovery.coverageReferenceCount || 0,
       coverageReferenceParsedCount: discovery.coverageReferenceParsedCount || 0,
+      coverageReferenceShowingParsedCount: discovery.coverageReferenceShowingParsedCount || 0,
       coverageReferenceRatio: discovery.coverageReferenceRatio ?? null,
       coverageReferenceComplete: Boolean(discovery.coverageReferenceComplete),
       coverageReferenceMonthsScanned: discovery.coverageReferenceMonthsScanned || 0,
-      coverageReferenceSuccessfulPages: discovery.coverageReferenceSuccessfulPages || 0
+      coverageReferenceUnit: discovery.coverageReferenceUnit || 'showings',
+      coverageReferenceZhMonthPages: discovery.coverageReferenceZhMonthPages || 0,
+      coverageReferenceEnFallbackPages: discovery.coverageReferenceEnFallbackPages || 0,
+      coverageReferenceSuccessfulPages: discovery.coverageReferenceSuccessfulPages || 0,
+      coverageReferenceQueueCount: discovery.coverageReferenceQueueCount || 0
     } : null,
-    note: 'No public source can guarantee every Taiwan performance. NEUL reconciles official ticket/promoter/artist/venue sources and uses twconcertview only as a discovery cross-check; cross-check-only items stay flagged until an official source is found.'
+    note: 'No public source can guarantee every Taiwan performance. NEUL uses twconcertview as a reference queue for gap discovery only; reference-only rows are visible but clearly flagged until a ticket/promoter/artist/venue official source is matched.'
   };
 }
 
@@ -435,11 +445,16 @@ export default async function handler(req, res) {
     discovery.coverageReferenceHealth = d.sourceHealth || [];
     discovery.coverageReferenceCount = d.referenceCount || 0;
     discovery.coverageReferenceParsedCount = d.parsedCount || 0;
+    discovery.coverageReferenceShowingParsedCount = d.showingParsedCount || d.rawOccurrenceCount || 0;
     discovery.coverageReferenceRatio = d.coverageRatio ?? null;
     discovery.coverageReferenceComplete = Boolean(d.completeAgainstReference);
+    discovery.coverageReferenceUnit = d.referenceUnit || 'showings';
+    discovery.coverageReferenceZhMonthPages = d.zhMonthPages || 0;
+    discovery.coverageReferenceEnFallbackPages = d.enFallbackPages || 0;
     discovery.coverageReferenceMonthsScanned = d.monthsScanned || 0;
     discovery.coverageReferenceSuccessfulPages = d.successfulPages || 0;
-    sources.push(d.source || "twconcertview coverage cross-check");
+    discovery.coverageReferenceQueueCount = d.referenceQueueCount || (d.events || []).filter(event=>event.referenceOnly).length;
+    sources.push(d.source || "twconcertview reference queue");
   } else errors.push(twConcertViewResult.reason?.message || "twconcertview coverage cross-check unavailable");
   if (errors.length) autoUpdateError = errors.join(" · ");
   discovery.source = sources.join(" + ") || "curated fallback";
@@ -448,7 +463,8 @@ export default async function handler(req, res) {
   // merge the last healthy snapshot so the UI does not collapse back to the small seed set.
   const liveUpcoming = upcomingOnly(discovery.events || []);
   const liveReference = Number(discovery.coverageReferenceCount || 0);
-  const liveRatio = liveReference > 0 ? liveUpcoming.length / liveReference : 0;
+  const liveShowingParsed = Number(discovery.coverageReferenceShowingParsedCount || 0);
+  const liveRatio = liveReference > 0 ? liveShowingParsed / liveReference : 0;
   let discoverySnapshotUsed = false;
   if (liveUpcoming.length < 120 || (liveReference >= 200 && liveRatio < 0.55)) {
     const snapshot = await readDiscoverySnapshot();
@@ -460,11 +476,41 @@ export default async function handler(req, res) {
   }
   const snapshotSaved = await writeDiscoverySnapshot(discovery.events || [], {
     coverageReferenceCount: discovery.coverageReferenceCount || 0,
-    coverageReferenceParsedCount: discovery.coverageReferenceParsedCount || 0
+    coverageReferenceParsedCount: discovery.coverageReferenceParsedCount || 0,
+    coverageReferenceShowingParsedCount: discovery.coverageReferenceShowingParsedCount || 0,
+    coverageReferenceQueueCount: discovery.coverageReferenceQueueCount || 0
   });
 
   const mergedEvents = mergeAndDedupe(seedEvents, discovery.events || []);
-  const allEvents = mergedEvents.map(event => {
+  const referenceQueuePending = mergedEvents.filter(event=>event.referenceOnly).length;
+  const referenceQueuePromoted = mergedEvents.filter(event=>!event.referenceOnly && (event.sourceRefs||[]).some(ref=>/twconcertview/i.test(`${ref?.name||''} ${ref?.url||''}`))).length;
+  discovery.coverageReferenceQueuePending = referenceQueuePending;
+  discovery.coverageReferenceQueuePromoted = referenceQueuePromoted;
+
+  // Newly discovered concerts should not have to wait until somebody manually promotes them into
+  // seedEvents before official seat maps / ticket details can be resolved. Each hourly sync rotates
+  // through a small bounded set of upcoming official-ticket events that still lack a map.
+  const officialBackfillPool = mergedEvents.filter(event => {
+    const start=new Date(event.start||0).getTime();
+    return Number.isFinite(start) && start>=Date.now()-86400000 && ticketSeatMapEligible(event) && !event.seatLayoutSourceUrl;
+  });
+  const officialBackfillBucket=Math.floor(Date.now()/3600000);
+  const officialBackfillRotated=officialBackfillPool.length?[...officialBackfillPool.slice(officialBackfillBucket%officialBackfillPool.length),...officialBackfillPool.slice(0,officialBackfillBucket%officialBackfillPool.length)]:[];
+  const officialBackfillSample=officialBackfillRotated.slice(0,8);
+  const officialBackfillResults=await Promise.allSettled(officialBackfillSample.map(event=>monitorOfficialSource(event,{timeoutMs:4200})));
+  const officialBackfillPatches=new Map();
+  let officialBackfillResolved=0;
+  for(const result of officialBackfillResults){
+    if(result.status!=="fulfilled") continue;
+    const checked=result.value;
+    if(checked?.check?.status!=="live" || !checked?.patch || !Object.keys(checked.patch).length) continue;
+    officialBackfillPatches.set(checked.eventId,checked.patch);
+    if(checked.patch.seatLayoutSourceUrl) officialBackfillResolved++;
+  }
+  const enrichedMergedEvents=mergedEvents.map(event=>officialBackfillPatches.has(event.id)?{...event,...officialBackfillPatches.get(event.id)}:event);
+  discovery.opportunisticOfficialBackfill={pool:officialBackfillPool.length,checked:officialBackfillSample.length,resolvedSeatMaps:officialBackfillResolved};
+
+  const allEvents = enrichedMergedEvents.map(event => {
     const seatMapFound = Boolean(event.seatLayoutSourceUrl);
     const sectionPricesFound = Boolean(event.sectionPriceRules?.length);
     const explicitEventLayout = Boolean(event.venueLayoutId);
@@ -500,6 +546,7 @@ export default async function handler(req, res) {
     };
   });
   const events = retainRecentArchive(allEvents);
+  const upcomingUniqueEventCount = events.filter(e => !(Boolean(e.historical) || eventEffectiveEndTs(e) < Date.now())).length;
   const archiveCount = events.filter(e => Boolean(e.historical) || eventEffectiveEndTs(e) < Date.now()).length;
   const combinedSourceHealth = [...(discovery.sourceHealth || []), ...(discovery.venueSourceHealth || []), ...(discovery.coverageReferenceHealth || [])];
   discovery.sourceHealth = combinedSourceHealth;
@@ -524,20 +571,31 @@ export default async function handler(req, res) {
       coverageReferenceHealth: discovery.coverageReferenceHealth || [],
       coverageReferenceCount: discovery.coverageReferenceCount || 0,
       coverageReferenceParsedCount: discovery.coverageReferenceParsedCount || 0,
+      coverageReferenceShowingParsedCount: discovery.coverageReferenceShowingParsedCount || 0,
       coverageReferenceRatio: discovery.coverageReferenceRatio ?? null,
       coverageReferenceComplete: Boolean(discovery.coverageReferenceComplete),
       coverageReferenceMonthsScanned: discovery.coverageReferenceMonthsScanned || 0,
+      coverageReferenceUnit: discovery.coverageReferenceUnit || 'showings',
+      coverageReferenceZhMonthPages: discovery.coverageReferenceZhMonthPages || 0,
+      coverageReferenceEnFallbackPages: discovery.coverageReferenceEnFallbackPages || 0,
       coverageReferenceSuccessfulPages: discovery.coverageReferenceSuccessfulPages || 0,
+      coverageReferenceQueueCount: discovery.coverageReferenceQueueCount || 0,
+      coverageReferenceQueuePending: discovery.coverageReferenceQueuePending || 0,
+      coverageReferenceQueuePromoted: discovery.coverageReferenceQueuePromoted || 0,
       coverageReferenceUnmatched: coverageAudit.coverageReferenceUnmatchedEvents || [],
       discoverySnapshotUsed,
       discoverySnapshotSaved: snapshotSaved,
       discoverySnapshotPolicy: "upcoming-only; no archived events; max 420 records",
+      opportunisticOfficialBackfill: discovery.opportunisticOfficialBackfill || {pool:0,checked:0,resolvedSeatMaps:0},
       coverageGaps: coverageAudit.gaps || [],
       needsTicketBackfill: coverageAudit.needsTicketBackfill || []
     },
     coverage: {...coverageSnapshot(discovery, allEvents, coverageAudit), archiveLimit: ARCHIVE_LIMIT, archiveCount},
     coverageAudit,
     count: events.length,
+    upcomingUniqueEventCount,
+    upcomingShowReferenceCount: discovery.coverageReferenceCount || 0,
+    countSemantics: { uniqueEvents: '去重後活動筆數', showReference: '外部公開行事曆場次參考值', referenceQueue: 'twconcertview 補漏參考筆數；待官方來源覆核' },
     archiveLimit: ARCHIVE_LIMIT,
     archiveCount,
     artistCount: artists.length,

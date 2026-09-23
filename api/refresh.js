@@ -20,6 +20,13 @@ export default async function handler(req, res) {
       upstream: eventsBody.upstream,
       autoUpdateEnabled: eventsBody.autoUpdateEnabled,
       discoveredEvents: eventsBody.discovery?.discoveredCount || 0,
+      upcomingUniqueEvents: eventsBody.upcomingUniqueEventCount || 0,
+      upcomingShowReference: eventsBody.upcomingShowReferenceCount || 0,
+      referenceQueue: {
+        parsed: eventsBody.discovery?.coverageReferenceQueueCount || 0,
+        pendingOfficialVerification: eventsBody.discovery?.coverageReferenceQueuePending || 0,
+        promotedByOfficialMatch: eventsBody.discovery?.coverageReferenceQueuePromoted || 0
+      },
       coverage: eventsBody.coverage ? {
         futureEvents: eventsBody.coverage.auditor?.futureEvents || 0,
         crossVerified: eventsBody.coverage.auditor?.crossVerified || 0,

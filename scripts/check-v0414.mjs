@@ -5,7 +5,7 @@ import { MAINSTREAM_3D_VENUE_IDS } from '../data/venues.js';
 let ok=true;
 const fail=(msg,detail='')=>{ console.error('FAIL',msg,detail); ok=false; };
 const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8'));
-if(pkg.version!=='0.40.14') fail('package version is not v0.40.14',pkg.version);
+if(!['0.40.14','0.40.15','0.40.16'].includes(pkg.version)) fail('package must retain v0.40.14 venue calibration',pkg.version);
 
 // Taipei Dome v0.40.11.1 recalibration must survive the v0.40.13 data merge.
 const dome=venueModels['taipei-dome'];

@@ -143,6 +143,7 @@ function relativeTime(iso) {
 }
 
 function eventBadge(event) {
+  if (event?.referenceOnly) return "參考待核對";
   const life=eventLifecycle(event);
   if (event?.historical || life.ended) return "已結束";
   if (life.active) return "演出進行中";
@@ -290,7 +291,8 @@ function openSourceInfo(id){
   const refs=sourceRows(e), checked=e.checkedAt?new Intl.DateTimeFormat(uiLocale(),{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Taipei'}).format(new Date(e.checkedAt)):'未標記';
   const layoutId=eventVenueLayoutId(e), layout=layoutId?getVenueLayout(layoutId):null, demo=kstarExampleForVenue(eventVenueModelId(e));
   const threeD=layout?.kstarExample?'本場即為場館韓星校正範例':layout?.eventId?'本場有活動專屬 3D':demo?'此場館另有韓星實際場次校正範例':'目前無可信活動專屬 3D';
-  root.innerHTML=`<div class="source-info-event"><strong>${escapeHtml(e.artist)}</strong><span>${escapeHtml(e.title)}</span><small>${escapeHtml(fmtDate(e.start,e.end))} · ${escapeHtml(e.venue)}</small></div><div class="source-info-refs">${refs.length?refs.map(r=>`<a href="${escapeHtml(r.url)}" target="_blank" rel="noopener noreferrer"><span>${escapeHtml(r.kind)}</span><strong>${escapeHtml(r.name)}</strong><b>↗</b></a>`).join(''):'<p>目前只保留活動索引，尚未取得可直接開啟的官方頁。</p>'}</div><div class="source-info-3d"><span>3D 驗證</span><b>${escapeHtml(threeD)}</b>${demo?.distanceCalibration?.basis?`<small>${escapeHtml(demo.distanceCalibration.basis)}</small>`:''}</div><p class="source-info-foot">最後核對：${escapeHtml(checked)}。官方售票／主辦／場館資料優先；3D 校正資料不覆寫官方座位幾何。</p>`;
+  const referenceNote=e.referenceOnly?'此筆由跨站行事曆作為補漏參考，尚待官方售票／主辦／藝人／場館來源覆核。':'官方售票／主辦／場館資料優先；3D 校正資料不覆寫官方座位幾何。';
+  root.innerHTML=`<div class="source-info-event"><strong>${escapeHtml(e.artist)}</strong><span>${escapeHtml(e.title)}</span><small>${escapeHtml(fmtDate(e.start,e.end))} · ${escapeHtml(e.venue)}</small></div><div class="source-info-refs">${refs.length?refs.map(r=>`<a href="${escapeHtml(r.url)}" target="_blank" rel="noopener noreferrer"><span>${escapeHtml(r.kind)}</span><strong>${escapeHtml(r.name)}</strong><b>↗</b></a>`).join(''):'<p>目前只保留活動索引，尚未取得可直接開啟的官方頁。</p>'}</div><div class="source-info-3d"><span>3D 驗證</span><b>${escapeHtml(threeD)}</b>${demo?.distanceCalibration?.basis?`<small>${escapeHtml(demo.distanceCalibration.basis)}</small>`:''}</div><p class="source-info-foot">最後核對：${escapeHtml(checked)}。${escapeHtml(referenceNote)}</p>`;
   modal.hidden=false;modal.setAttribute('aria-hidden','false');document.body.classList.add('source-info-open');
 }
 function closeSourceInfo(){const modal=$("#sourceInfoModal");if(!modal)return;modal.hidden=true;modal.setAttribute('aria-hidden','true');document.body.classList.remove('source-info-open');}
@@ -307,9 +309,10 @@ function renderEvents() {
     if (!list.length) meta.textContent = "沒有符合條件的活動";
     else {
       const ref=Number(state.discovery?.coverageReferenceCount||0), parsed=Number(state.discovery?.coverageReferenceParsedCount||0);
+      const pending=Number(state.discovery?.coverageReferenceQueuePending||list.filter(event=>event.referenceOnly).length||0);
       const ratio=state.discovery?.coverageReferenceRatio;
-      const coverage=ref?` · 補漏對帳 ${parsed}/${ref}${Number.isFinite(ratio)?` (${Math.round(ratio*100)}%)`:''}`:'';
-      meta.textContent = `台灣活動 ${list.length} 場 · 已去重同步${coverage}`;
+      const coverage=ref?` · 場次參考 ${ref} 場 · 參考補漏 ${pending} 筆${Number.isFinite(ratio)?` · ${Math.round(ratio*100)}% 對帳`:''}`:'';
+      meta.textContent = `台灣活動 ${list.length} 筆 · 已去重同步${coverage}`;
     }
   }
   if (!list.length) {
@@ -1197,7 +1200,8 @@ function officialSeatMapSourceForCurrentLayout() {
   const refs=(event.sourceRefs||[]).map(x=>x?.url).filter(Boolean);
   const officialPages=[event.ticketUrl,event.ticketSourceUrl,event.secondarySourceUrl,event.sourceUrl,...refs,layout.sourceUrl].filter(u=>u&&isOfficialMapUrl(u));
   const sourcePage=event.seatLayoutResolvedFrom||cachedSourcePage||officialPages[0]||layout.sourceUrl||"";
-  const machineRaw=event.seatLayoutSourceUrl||event.seatMapResolvedUrl||cachedResolved||layout.seatMapResolvedUrl||layout.latestSeatLayoutSourceUrl||sourcePage||null;
+  const machineCandidates=[event.seatLayoutSourceUrl,event.seatMapResolvedUrl,cachedResolved,layout.seatMapResolvedUrl,layout.latestSeatLayoutSourceUrl,...officialPages,sourcePage].filter(Boolean);
+  const machineRaw=machineCandidates[0]||null;
   const displayCandidate=event.seatLayoutDisplayUrl||layout.seatMapDisplayUrl||'';
   const trustedArchive=Boolean(layout.seatMapDisplayTrustedArchive && /^https:\/\//i.test(displayCandidate));
   const officialDisplay=(isOfficialMapUrl(displayCandidate)||trustedArchive) ? displayCandidate : null;
@@ -1211,6 +1215,8 @@ function officialSeatMapSourceForCurrentLayout() {
   });
   if(event.sharedSourceUrl) params.set('shared','1');
   const displayProbe=displayRaw||machineRaw; if(displayProbe) params.set('url',displayProbe);
+  const fallbackCandidates=[...new Set(machineCandidates.filter(u=>u&&u!==displayProbe))].slice(0,6);
+  if(fallbackCandidates.length) params.set('fallback',JSON.stringify(fallbackCandidates));
   const proxied=`/api/seat-map-image?${params.toString()}`;
   const directImage=Boolean(displayRaw&&/\.(?:png|jpe?g|webp|avif)(?:\?|$)/i.test(displayRaw));
   return {event,layout,missing:false,raw:displayRaw||"",machineRaw,sourcePage:layout.seatMapOriginalSourceUrl||sourcePage||machineRaw,proxied,directImage,trustedArchive};
