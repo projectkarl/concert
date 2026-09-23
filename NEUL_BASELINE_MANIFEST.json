@@ -1,5 +1,5 @@
 {
-  "baseline": "NEUL v0.40.14 · Verified 316 + Venue Calibration + Taipei Dome Recalibration + Recent Data + Archive20",
+  "baseline": "NEUL v0.40.14.1 · Verified 316 + Venue Calibration + Mobile News Layout Fix",
   "createdAt": "2026-09-23",
   "fallbackEventCount": 101,
   "requiredFeatures": [
@@ -56,12 +56,13 @@
     "Taipei Dome asymmetric baseball-bowl section centers + dedicated broad arched-roof renderer",
     "NTSU official sub-section metadata + structural-only activity-seat envelope with no fabricated lower ticket-zone labels",
     "Taipei Music Center 1F configurable-only + official 2F/3F seat-count metadata with published-count delta tracking",
-    "internal sightline calibration sources are not exposed in public UI"
+    "internal sightline calibration sources are not exposed in public UI",
+    "Mobile Entertainment News containment: iOS 16px form zoom guard + 320px card/search overflow protection"
   ],
   "runtimeStateWarning": "Browser localStorage/IndexedDB seat-map analysis caches are not a substitute for the source repository. Preserve a release ZIP/Git tag before deleting a working repo.",
   "coreFileSha256": {
     "index.html": "5c51e0acac83b08988473d0698b07f1449e2f5f0aab3ea5e8930a648cd75e746",
-    "styles.css": "c960c445602fc547eb2218e149304a150e562ec0d399b26943768966fc0aeb91",
+    "styles.css": "f91fa3513e97f98c86cb8e6d13a8bcb947a9992585bffd769efc532be00d08c8",
     "app.js": "2a1e767cba8c3347cf324452ef069b37bba62acbe983b2b29eb573843ba8787f",
     "webgl-venue.js": "3a15086f6ca702f241f62f9d629bf4f28bd294a213cc1145fae24283464380ce",
     "seat-map-intelligence.js": "60e745438145e58096bf1c2185abe59b7bac1e896b5b6f6b4fe1f3accaf4819c",
@@ -71,8 +72,8 @@
     "lib/taiwan-ticket-platform-discovery.js": "5768b5c20474819316c89730663e5cfdf44b9bde00547f09f4978a1983825bed",
     "api/events.js": "ee2f6afbaf42f07bc5648bc075edb046921b18446df30ea6af924480bcba7ecf",
     "api/seat-map-image.js": "d0cc854f5184fb135627d0f47bf6a924e09fef2b30bb5b3e62c270f96c5b6d77",
-    "sw.js": "418822f7cd43a9bb341b2bcd127fed734d40e96a1035409258434bec3aa81d71",
-    "package.json": "b94e44e68c460b98dfc4fc034f5d90f5a1364966e504aed47fffedc5b8e52f2e",
+    "sw.js": "e2968a43eb5042a33b92a9762f0d30bdefa11415c538e577b76e6a79aa4300e4",
+    "package.json": "8d9ab56f2fac7962ac30593297b9e24dced57ba0dc61fbdfc0c09694aa0e503e",
     "news.js": "0a73229e830c2dd876f200f0910c4492f629d08e79e9507fb2ee61a97ae3839d",
     "api/entertainment-news.js": "f6e118f88406924937baa15471e11b3bf0f196e4be3c29774a54f610aba555b9",
     "lib/official-monitor.js": "fd387749e8318cd34e5fcf16c1d16446d6900799381f85223ce64af82cd3fd99",
@@ -90,6 +91,7 @@
     "data/taipei-dome-geometry.js": "802ed1739ceb5b28508acf9a38c4f8f5c7857520e98041da591b12cf7655144f",
     "scripts/check-v0411-dome.mjs": "0e3302543a76e37aa83d5ac6c3fe6d522ed2c7b14bbbbdc2f8fcf9bf805227dc",
     "scripts/check-v0414.mjs": "44e294c89ce241d704f82e60f4a4f8389f3507b4098399f0eba8d76784423f37",
-    "scripts/check.mjs": "ad21499443f4b21053989918ec39e1efbb95426633a813c2cbc578e6634bd42c"
+    "scripts/check.mjs": "ad21499443f4b21053989918ec39e1efbb95426633a813c2cbc578e6634bd42c",
+    "scripts/check-mobile-news-layout.mjs": "b2821420a76c4076e1f1b15247925678afe5a34d744e887d022e40f1e18a7e26"
   }
 }

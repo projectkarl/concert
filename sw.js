@@ -1,4 +1,4 @@
-const VERSION = "neul-v0.40.14-venue-calibration-verified316";
+const VERSION = "neul-v0.40.14-venue-calibration-verified316-news-mobile-fix1";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const APP_SHELL = [

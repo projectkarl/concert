@@ -1029,3 +1029,43 @@ body.light-mode .viewer-metrics{background:rgba(250,248,246,.90);border-color:rg
 
 /* v0.40.13 · recent-first news retention */
 .news-more-wrap{display:flex;justify-content:center;margin-top:16px}.news-more{min-width:148px;height:40px;border:1px solid #3c444d;border-radius:999px;background:#151a1f;color:#f2e8f0;font:700 11px var(--font-ui);cursor:pointer;padding:0 20px}.news-more:hover{border-color:#b58aa9;background:#1b2026}.news-more[hidden]{display:none}@media(max-width:560px){.news-more{width:100%;height:44px}}
+
+/* v0.40.14.1 · iOS mobile form zoom guard also covers landscape phones */
+@media(max-width:920px){
+  .news-category-select select,.news-search input{font-size:16px}
+  .news-toolbar,.news-category-select,.news-search{max-width:100%;min-width:0}
+}
+
+/* v0.40.14.1 · mobile entertainment-news containment + iOS form zoom fix */
+@media(max-width:720px){
+  .entertainment-news{width:100%;max-width:100%;min-width:0;overflow:hidden;padding:20px max(14px,env(safe-area-inset-right)) 22px max(14px,env(safe-area-inset-left))}
+  .entertainment-news-head{display:grid;grid-template-columns:minmax(0,1fr) 42px;align-items:start;gap:10px;width:100%;min-width:0;margin-bottom:14px}
+  .entertainment-news-head>div{width:100%;max-width:100%;min-width:0}
+  .entertainment-news-head .eyebrow,.entertainment-news-head h2,.entertainment-news-head p{max-width:100%;overflow-wrap:anywhere}
+  .news-refresh{width:40px;height:40px;justify-self:end}
+  .news-toolbar{display:grid;grid-template-columns:minmax(0,1fr);align-items:stretch;gap:10px;width:100%;max-width:100%;min-width:0;margin-bottom:10px}
+  .news-category-select{display:grid;width:100%;max-width:100%;min-width:0}
+  .news-category-select select{display:block;width:100%;max-width:100%;min-width:0;font-size:16px}
+  .news-search{display:grid;grid-template-columns:minmax(0,1fr) 72px;gap:8px;width:100%;max-width:100%;min-width:0}
+  .news-search input{display:block;width:100%;max-width:100%;min-width:0;font-size:16px}
+  .news-search button{width:72px;max-width:72px;min-width:0;padding-inline:8px;white-space:nowrap}
+  .news-status,.news-note{width:100%;max-width:100%;min-width:0;overflow-wrap:anywhere}
+  .news-grid{display:grid;width:100%;max-width:100%;min-width:0;grid-template-columns:minmax(0,1fr);gap:8px;overflow:hidden}
+  .news-card{box-sizing:border-box;width:100%;max-width:100%;min-width:0;overflow:hidden;grid-template-columns:minmax(0,1fr) minmax(62px,92px);grid-template-areas:"source time" "title title" "meta arrow";gap:6px 8px;padding:12px}
+  .news-source,.news-title,.news-meta{display:block;min-width:0;max-width:100%;overflow:hidden}
+  .news-source,.news-meta{white-space:nowrap;text-overflow:ellipsis}
+  .news-time{min-width:0;max-width:92px;overflow:hidden;text-overflow:ellipsis;text-align:right;white-space:nowrap}
+  .news-title{overflow:visible;overflow-wrap:anywhere;word-break:break-word;hyphens:auto}
+  .news-arrow{justify-self:end;align-self:end}
+  .news-empty,.news-skeleton,.news-more-wrap,.news-more{width:100%;max-width:100%;min-width:0}
+}
+@media(max-width:380px){
+  .entertainment-news{padding-left:max(11px,env(safe-area-inset-left));padding-right:max(11px,env(safe-area-inset-right))}
+  .entertainment-news-head{grid-template-columns:minmax(0,1fr) 40px;gap:8px}
+  .entertainment-news-head h2{font-size:26px}
+  .news-search{grid-template-columns:minmax(0,1fr) 66px;gap:6px}
+  .news-search button{width:66px;max-width:66px;padding-inline:6px}
+  .news-card{grid-template-columns:minmax(0,1fr) minmax(56px,84px);padding:11px;gap:5px 7px}
+  .news-time{max-width:84px}
+}
+
