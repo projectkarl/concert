@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {mergeEvents,lifecycle,coverage} from '../src/worker.js';
+import {seedEvents} from '../src/seed.js';
+const merged=mergeEvents(seedEvents,[{...seedEvents[0],price:'TEST'}]);
+assert.equal(merged.filter(x=>x.id===seedEvents[0].id).length,1,'dedupe failed');
+assert.equal(merged.find(x=>x.id===seedEvents[0].id).price,'TEST','merge update failed');
+const life=lifecycle(seedEvents);assert.ok(life.every(x=>['upcoming','archived'].includes(x.lifecycle)),'lifecycle missing');
+const cov=coverage(life,[{ok:true},{ok:false}]);assert.equal(cov.event3d,seedEvents.length);assert.equal(cov.totalSources,10);assert.equal(cov.healthySources,1);
+const html=await (await import('node:fs/promises')).readFile(new URL('../public/index.html',import.meta.url),'utf8');
+for(const id of ['featured','upcoming','venues','calendarList','modal'])assert.ok(html.includes(`id="${id}"`),`missing ${id}`);
+console.log('NEUL smoke test: PASS', {events:seedEvents.length, coverage:cov});

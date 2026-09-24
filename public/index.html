@@ -1,0 +1,13 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="theme-color" content="#0b0d12"><meta name="description" content="NEUL — 台灣演唱會座位視角與活動資訊"><title>NEUL — Concert View</title><link rel="stylesheet" href="/styles.css"></head><body>
+<header class="top"><a class="brand" href="#home"><span class="mark">N</span><span>NEUL</span></a><nav><button data-tab="home" class="active">首頁</button><button data-tab="calendar">行事曆</button><button data-tab="news">演藝新聞</button><button data-tab="about">ABOUT</button></nav><button id="themeBtn" class="iconBtn" aria-label="主題">◐</button></header>
+<main>
+<section id="home" class="page active"><section class="hero"><div class="eyebrow">CONCERT VIEW · TAIWAN</div><h1>先看見座位，再決定期待。</h1><p>活動、官方座位圖、票價與客製 3D 視角集中在同一頁。資料自動更新，來源可核對。</p><div class="searchbar"><input id="search" placeholder="搜尋藝人、活動或場館"><button id="searchBtn">搜尋</button></div><div id="statusPill" class="status">資料載入中…</div></section>
+<section class="wrap"><div class="sectionHead"><div><div class="eyebrow">FEATURED</div><h2>近期焦點</h2></div><div class="arrows"><button id="prevFeat">←</button><button id="nextFeat">→</button></div></div><div id="featured" class="featured"></div></section>
+<section class="wrap"><div class="sectionHead"><div><div class="eyebrow">UPCOMING</div><h2>即將登場</h2></div><button id="moreBtn" class="ghost">看更多活動</button></div><div id="upcoming" class="cards"></div></section>
+<section class="wrap"><div class="sectionHead"><div><div class="eyebrow">VENUES</div><h2>常見演唱會場館</h2></div></div><div id="venues" class="venueGrid"></div></section></section>
+<section id="calendar" class="page"><div class="wrap pageTop"><div class="eyebrow">CALENDAR</div><h1>演唱會行事曆</h1><div id="calendarList" class="calendarList"></div></div></section>
+<section id="news" class="page"><div class="wrap pageTop"><div class="eyebrow">ENTERTAINMENT NEWS</div><h1>演藝新聞</h1><div class="seg"><button class="active">韓國</button><button>台灣</button><button>歐美</button><button>日本</button></div><div id="newsList" class="newsList"><div class="newsEmpty">新聞資料載入中…</div></div></div></section>
+<section id="about" class="page"><div class="wrap pageTop about"><div class="eyebrow">ABOUT NEUL</div><h1>喜歡追星的人做的獨立專案。</h1><p>NEUL 用公開售票與官方活動資料整理演唱會資訊，並以 3D 示意協助理解座位相對位置。實際舞台、設備、遮擋與視野仍以主辦單位與現場配置為準。</p><div class="diamond">💎</div><div id="healthBox" class="healthBox">載入系統狀態…</div></div></section>
+</main>
+<div id="modal" class="modal" aria-hidden="true"><div class="modalPanel"><button id="closeModal" class="close">×</button><div id="modalBody"></div></div></div>
+<script type="module" src="/app.js"></script></body></html>
