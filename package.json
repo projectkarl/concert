@@ -1,15 +1,10 @@
 {
-  "name": "neul-cloudflare",
-  "version": "1.0.0",
+  "name": "neul-cloudflare-exact-ui-adapter",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
-    "check": "node --check src/worker.js && node --check public/app.js && node test/smoke.mjs",
-    "test": "node test/smoke.mjs"
-  },
-  "devDependencies": {
-    "wrangler": "^4.40.0"
+    "apply": "node scripts/apply-cloudflare.mjs",
+    "verify": "node scripts/verify-ui-lock.mjs"
   }
 }
