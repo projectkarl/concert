@@ -149,8 +149,8 @@ function sectionTop(section){
   if(section.tier==='FLOOR'||section.shape==='block'||Number.isFinite(section.x)){
     const w=section.width||38,d=section.depth||32,y=section.y??-20;return[[section.x-w/2,y,section.z-d/2],[section.x+w/2,y,section.z-d/2],[section.x+w/2,y,section.z+d/2],[section.x-w/2,y,section.z+d/2]];
   }
-  const half=section.span||.11,dx=Number(section.depthX??24),dz=Number(section.depthZ??18),rise=Number(section.rise??12),ix=section.radiusX-2,iz=section.radiusZ-2,ox=section.radiusX+dx,oz=section.radiusZ+dz,y0=section.y,y1=section.y+rise,cx=Number(section.centerX||0),cz=Number(section.centerZ||0);
-  return[[cx+Math.cos(section.angle-half)*ix,y0,cz+Math.sin(section.angle-half)*iz],[cx+Math.cos(section.angle+half)*ix,y0,cz+Math.sin(section.angle+half)*iz],[cx+Math.cos(section.angle+half)*ox,y1,cz+Math.sin(section.angle+half)*oz],[cx+Math.cos(section.angle-half)*ox,y1,cz+Math.sin(section.angle-half)*oz]];
+  const half=section.span||.11,dx=Number(section.depthX??24),dz=Number(section.depthZ??18),rise=Number(section.rise??12),ix=section.radiusX-2,iz=section.radiusZ-2,ox=section.radiusX+dx,oz=section.radiusZ+dz,y0=section.y,y1=section.y+rise;
+  return[[Math.cos(section.angle-half)*ix,y0,Math.sin(section.angle-half)*iz],[Math.cos(section.angle+half)*ix,y0,Math.sin(section.angle+half)*iz],[Math.cos(section.angle+half)*ox,y1,Math.sin(section.angle+half)*oz],[Math.cos(section.angle-half)*ox,y1,Math.sin(section.angle-half)*oz]];
 }
 function prism(top,thickness=7){
   const b=top.map(([x,y,z])=>[x,y-thickness,z]);
@@ -178,8 +178,8 @@ function seatSamples(section,selected,quality,layout){
   if(section.shape==='block'||section.tier==='FLOOR'||Number.isFinite(section.x)){
     const w=section.width||38,d=section.depth||32;for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const u=(c+.5)/cols,v=(r+.5)/rows;{const seat={x:section.x-w/2+u*w,y:(section.y??-20)+2.4+v*Number(section.rise||2),z:section.z-d/2+v*d,rot:Math.atan2(-section.x,-section.z)};if(!pointInProduction(seat.x,seat.z,layout))out.push(seat);}}return out;
   }
-  const span=section.span||.11,dx=Number(section.depthX??24),dz=Number(section.depthZ??18),rise=Number(section.rise??12),curve=Number(section.rowCurve||1),cx=Number(section.centerX||0),cz=Number(section.centerZ||0);
-  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){let v=(r+.5)/rows;v=Math.pow(v,curve);const u=(c+.5)/cols,a=section.angle-span*.78+u*span*1.56,rx=section.radiusX+v*dx,rz=section.radiusZ+v*dz;{const sx=cx+Math.cos(a)*rx,sz=cz+Math.sin(a)*rz;const seat={x:sx,y:section.y+2.2+v*rise,z:sz,rot:Math.atan2(-sx,-sz)};if(!pointInProduction(seat.x,seat.z,layout))out.push(seat);}}return out;
+  const span=section.span||.11,dx=Number(section.depthX??24),dz=Number(section.depthZ??18),rise=Number(section.rise??12),curve=Number(section.rowCurve||1);
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){let v=(r+.5)/rows;v=Math.pow(v,curve);const u=(c+.5)/cols,a=section.angle-span*.78+u*span*1.56,rx=section.radiusX+v*dx,rz=section.radiusZ+v*dz;{const seat={x:Math.cos(a)*rx,y:section.y+2.2+v*rise,z:Math.sin(a)*rz,rot:Math.atan2(-Math.cos(a),-Math.sin(a))};if(!pointInProduction(seat.x,seat.z,layout))out.push(seat);}}return out;
 }
 function sectionArchitecture(section,selected,quality,theme){
   const lines=[],solids=[],light=theme==='light',walkway=light?'#c9ced2':'#545d65',walkwayEdge=light?[.46,.51,.55,.86]:[.78,.82,.86,.58];
@@ -195,22 +195,22 @@ function sectionArchitecture(section,selected,quality,theme){
     }
     return{lines,solids};
   }
-  const half=section.span||.11,dx=Number(section.depthX??24),dz=Number(section.depthZ??18),rise=Number(section.rise??12),rows=Math.max(1,Number(section.rowMax??30)-Number(section.rowMin??1)+1),cx=Number(section.centerX||0),cz=Number(section.centerZ||0);
+  const half=section.span||.11,dx=Number(section.depthX??24),dz=Number(section.depthZ??18),rise=Number(section.rise??12),rows=Math.max(1,Number(section.rowMax??30)-Number(section.rowMin??1)+1);
   const railColor=light?[.47,.53,.58,.92]:[.58,.64,.70,.82];
   const strip=(angle,v0,v1,angleHalf)=>{
-    const point=(a,v)=>[cx+Math.cos(a)*(section.radiusX+v*dx),section.y+1.18+v*rise,cz+Math.sin(a)*(section.radiusZ+v*dz)];
+    const point=(a,v)=>[Math.cos(a)*(section.radiusX+v*dx),section.y+1.18+v*rise,Math.sin(a)*(section.radiusZ+v*dz)];
     const top=[point(angle-angleHalf,v0),point(angle+angleHalf,v0),point(angle+angleHalf,v1),point(angle-angleHalf,v1)];
     solids.push({mesh:prism(top,.34),model:mat4Identity(),color:walkway,emissive:'#101216'});
   };
   // Side stair / aisle edges follow the actual rake of each bowl section.
-  for(const side of [-1,1]){const pts=[];const n=selected?(quality==='high'?Math.min(rows,32):12):6;for(let i=0;i<=n;i++){const v=i/n,a=section.angle+side*half*.91;pts.push(cx+Math.cos(a)*(section.radiusX+v*dx),section.y+1.1+v*rise,cz+Math.sin(a)*(section.radiusZ+v*dz));}lines.push({vertices:new Float32Array(pts),color:railColor});if(selected)strip(section.angle+side*half*.86,.02,.98,Math.max(.006,half*.055));}
+  for(const side of [-1,1]){const pts=[];const n=selected?(quality==='high'?Math.min(rows,32):12):6;for(let i=0;i<=n;i++){const v=i/n,a=section.angle+side*half*.91;pts.push(Math.cos(a)*(section.radiusX+v*dx),section.y+1.1+v*rise,Math.sin(a)*(section.radiusZ+v*dz));}lines.push({vertices:new Float32Array(pts),color:railColor});if(selected)strip(section.angle+side*half*.86,.02,.98,Math.max(.006,half*.055));}
   // Individual riser edges are shown for the selected zone; nearby zones keep sparse steps.
   const nSteps=selected?(quality==='high'?Math.min(rows,40):Math.min(rows,18)):Math.min(3,rows);
-  for(let i=0;i<=nSteps;i++){const v=nSteps?i/nSteps:0,a0=section.angle-half*.88,a1=section.angle+half*.88,rx=section.radiusX+v*dx,rz=section.radiusZ+v*dz,y=section.y+.55+v*rise;lines.push({vertices:new Float32Array([cx+Math.cos(a0)*rx,y,cz+Math.sin(a0)*rz,cx+Math.cos(a1)*rx,y,cz+Math.sin(a1)*rz]),color:light?[.36,.41,.46,.40]:[.72,.76,.80,.30]});}
+  for(let i=0;i<=nSteps;i++){const v=nSteps?i/nSteps:0,a0=section.angle-half*.88,a1=section.angle+half*.88,rx=section.radiusX+v*dx,rz=section.radiusZ+v*dz,y=section.y+.55+v*rise;lines.push({vertices:new Float32Array([Math.cos(a0)*rx,y,Math.sin(a0)*rz,Math.cos(a1)*rx,y,Math.sin(a1)*rz]),color:light?[.36,.41,.46,.40]:[.72,.76,.80,.30]});}
   // Cross aisle surface makes the circulation path legible in deep bowls.
-  if(rows>=18){const v=.63,a0=section.angle-half*.95,a1=section.angle+half*.95,rx=section.radiusX+v*dx,rz=section.radiusZ+v*dz,y=section.y+1.0+v*rise;lines.push({vertices:new Float32Array([cx+Math.cos(a0)*rx,y,cz+Math.sin(a0)*rz,cx+Math.cos(a1)*rx,y,cz+Math.sin(a1)*rz]),color:walkwayEdge});if(selected){const dv=.026,point=(a,vv)=>[cx+Math.cos(a)*(section.radiusX+vv*dx),section.y+1.16+vv*rise,cz+Math.sin(a)*(section.radiusZ+vv*dz)],top=[point(a0,v-dv),point(a1,v-dv),point(a1,v+dv),point(a0,v+dv)];solids.push({mesh:prism(top,.30),model:mat4Identity(),color:walkway,emissive:'#101216'});}}
+  if(rows>=18){const v=.63,a0=section.angle-half*.95,a1=section.angle+half*.95,rx=section.radiusX+v*dx,rz=section.radiusZ+v*dz,y=section.y+1.0+v*rise;lines.push({vertices:new Float32Array([Math.cos(a0)*rx,y,Math.sin(a0)*rz,Math.cos(a1)*rx,y,Math.sin(a1)*rz]),color:walkwayEdge});if(selected){const dv=.026,point=(a,vv)=>[Math.cos(a)*(section.radiusX+vv*dx),section.y+1.16+vv*rise,Math.sin(a)*(section.radiusZ+vv*dz)],top=[point(a0,v-dv),point(a1,v-dv),point(a1,v+dv),point(a0,v+dv)];solids.push({mesh:prism(top,.30),model:mat4Identity(),color:walkway,emissive:'#101216'});}}
   // Handrail posts make the aisle/stair edges easier to recognize at seat-view scale.
-  if(selected){for(const side of [-1,1])for(const v of [.08,.32,.56,.80]){const a=section.angle+side*half*.93,rx=section.radiusX+v*dx,rz=section.radiusZ+v*dz;solids.push(boxItem({x:cx+Math.cos(a)*rx,y:section.y+v*rise,z:cz+Math.sin(a)*rz,width:.48,depth:.48,height:3.3},light?'#8c979f':'#65717b','#111820',3.3));}}
+  if(selected){for(const side of [-1,1])for(const v of [.08,.32,.56,.80]){const a=section.angle+side*half*.93,rx=section.radiusX+v*dx,rz=section.radiusZ+v*dz;solids.push(boxItem({x:Math.cos(a)*rx,y:section.y+v*rise,z:Math.sin(a)*rz,width:.48,depth:.48,height:3.3},light?'#8c979f':'#65717b','#111820',3.3));}}
   return{lines,solids};
 }
 function boxItem(cfg,color,emissive='#090a0d',height=5){const h=cfg.height||height;return{mesh:CUBE,model:mat4TRS(cfg.x||0,(cfg.y??-16)+h/2,cfg.z||0,cfg.ry||0,cfg.width||40,h,cfg.depth||20),color,emissive};}
@@ -302,28 +302,8 @@ function buildCPUScene(config,quality){
   const beamOrigins=[m.x-m.width*.35,m.x-m.width*.12,m.x+m.width*.12,m.x+m.width*.35];
   beamOrigins.forEach((bx,i)=>{const tx=(i-1.5)*model.field.x*.32,tz=model.field.z*(.35+(i%2)*.25);lines.push({vertices:new Float32Array([bx,trussY,m.z+2,tx,6,tz]),color:i%2?[.58,.48,1,.20]:[1,.48,.88,.18]});});
   const maxY=Math.max(...sections.map(s=>(s.y||0)+18),85),rx=model.field.x*2.05,rz=model.field.z*2.05;
-  if(model.id==='taipei-dome'){
-    // Taipei Dome is a baseball stadium under a broad arched lattice roof, not a circular arena.
-    // Draw the shell as lightweight line geometry so the real roof scale is visible in seat view
-    // without blocking the stage or turning the mobile renderer into a heavy solid-mesh scene.
-    const roofBase=Math.max(132,maxY+20),roofPeak=roofBase+58,halfX=model.field.x*1.72,halfZ=model.field.z*1.66;
-    for(let zi=0;zi<=12;zi++){
-      const nz=-1+zi/6,z=nz*halfZ,depthFactor=Math.sqrt(Math.max(.18,1-nz*nz*.58)),hw=halfX*depthFactor,pts=[];
-      for(let j=0;j<=18;j++){const nx=-1+j/9,x=nx*hw,y=roofBase+(roofPeak-roofBase)*(1-nx*nx)*(.82+.18*depthFactor);pts.push(x,y,z);}
-      lines.push({vertices:new Float32Array(pts),color:lightTheme?[.48,.54,.60,.34]:[.55,.62,.70,.38]});
-    }
-    for(let xi=0;xi<=14;xi++){
-      const nx=-1+xi/7,x=nx*halfX,sideFactor=Math.sqrt(Math.max(.18,1-nx*nx*.72)),hz=halfZ*sideFactor,pts=[];
-      for(let j=0;j<=18;j++){const nz=-1+j/9,z=nz*hz,y=roofBase+(roofPeak-roofBase)*(1-nx*nx*.82)*(1-nz*nz*.30);pts.push(x,y,z);}
-      lines.push({vertices:new Float32Array(pts),color:lightTheme?[.46,.52,.58,.26]:[.49,.57,.65,.30]});
-    }
-    // Sparse perimeter supports follow the elongated baseball-stadium footprint instead of a ring.
-    for(const side of [-1,1]) for(const z of [-halfZ*.72,-halfZ*.28,halfZ*.18,halfZ*.62]) solids.push(boxItem({x:side*halfX*.94,y:-18,z,width:2.4,depth:2.4},'#26303a','#05070a',roofBase+18));
-    for(const x of [-halfX*.62,-halfX*.22,halfX*.22,halfX*.62]) solids.push(boxItem({x,y:-18,z:halfZ*.92,width:2.4,depth:2.4},'#26303a','#05070a',roofBase+14));
-  }else{
-    for(let i=0;i<3;i++)lines.push({vertices:ringLine(rx+i*14,rz+i*11,maxY+20+i*12),color:[.45,.52,.6,.38]});
-    for(let i=0;i<16;i++){const a=i/16*Math.PI*2;solids.push(boxItem({x:Math.cos(a)*rx*.99,y:-18,z:Math.sin(a)*rz*.99,width:2.5,depth:2.5},'#26303a','#05070a',maxY+65));}
-  }
+  for(let i=0;i<3;i++)lines.push({vertices:ringLine(rx+i*14,rz+i*11,maxY+20+i*12),color:[.45,.52,.6,.38]});
+  for(let i=0;i<16;i++){const a=i/16*Math.PI*2;solids.push(boxItem({x:Math.cos(a)*rx*.99,y:-18,z:Math.sin(a)*rz*.99,width:2.5,depth:2.5},'#26303a','#05070a',maxY+65));}
   for(const o of config.occluders||[]){solids.push(boxItem(o,o.color||'#343b42',o.kind==='overhang'?'#080a0c':'#101318',o.height||4));}
   const sp=config.seatPosition;solids.push(boxItem({x:sp[0],y:sp[1]-3,z:sp[2],width:4,depth:4,height:6},'#ffe2ff','#c45de4',6));
   const maxSeats=quality==='high'?6200:1900,seatCount=Math.min(maxSeats,seatMats.length);

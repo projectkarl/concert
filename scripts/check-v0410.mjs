@@ -13,7 +13,7 @@ if(!/archiveLimit: ARCHIVE_LIMIT/.test(api)||!/archiveCount/.test(api)) fail('ar
 if(!/!eventLifecycle\(e,now\)\.ended/.test(app)) fail('ended events are not excluded from seat-map 3D hydration');
 if(!/return !eventLifecycle\(event,now\)\.ended/.test(app)) fail('ended events are not excluded from 3D layout options');
 if(/layout\.id===state\.layoutId\) return true/.test(app)) fail('selected ended layout bypass still present');
-if(!/setInterval\(\(\)=>\{ if\(!document\.hidden\) loadEvents/.test(app)) fail('hourly auto update missing');
+if(!/setInterval\(\(\)=>\{ if\(!document\.hidden\) loadEvents/.test(app)||!/SERVER_REFRESH_MS/.test(app)) fail('six-hour auto update missing');
 const now=Date.parse('2026-09-21T18:00:00+08:00');
 const ended=Array.from({length:25},(_,i)=>({id:`past-${i+1}`,start:new Date(now-(i+1)*86400000).toISOString(),region:'TW'}));
 const future=[{id:'future-a',start:new Date(now+86400000).toISOString(),region:'TW'},{id:'future-b',start:new Date(now+2*86400000).toISOString(),region:'TW'}];

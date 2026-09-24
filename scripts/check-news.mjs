@@ -36,7 +36,7 @@ global.fetch=realFetch;
 if(status!==200) fail('news API mock status',status);
 if(body?.category!=='jp'||body?.results?.length!==2) fail('Japan news API parse',body);
 if(body?.results?.[0]?.title!=='IVE 回歸新消息'||body?.results?.[0]?.source!=='Test Media') fail('news API title/source normalization',body?.results?.[0]);
-if(!headers['Cache-Control']?.includes('s-maxage=900')) fail('news API cache header missing',headers);
+if(!headers['Cache-Control']?.includes('s-maxage=3600')) fail('news API cache header missing',headers);
 
 if(!ok) process.exit(1);
 console.log('NEUL news/mobile checks passed · News replaces Plan · 5 categories incl. Japan · bottom news · safe mobile list/calendar · RSS parser/cache');

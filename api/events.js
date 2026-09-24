@@ -7,10 +7,8 @@ import { discoverArtistOfficialTours } from "../lib/artist-official-discovery.js
 import { discoverTaiwanTicketPlatforms } from "../lib/taiwan-ticket-platform-discovery.js";
 import { discoverVenueCalendars } from "../lib/venue-calendar-discovery.js";
 import { discoverTwConcertViewCalendar } from "../lib/twconcertview-discovery.js";
-import { discoverArtistsTwGigs } from "../lib/artists-tw-discovery.js";
 import { venues as calibratedVenues, MAINSTREAM_3D_VENUE_IDS } from "../data/venues.js";
 import { auditCoverage } from "../lib/coverage-auditor.js";
-import { monitorOfficialSource } from "../lib/official-monitor.js";
 
 const dateKey = iso => {
   if (!iso) return "";
@@ -175,7 +173,7 @@ function sourcePriority(event = {}) {
   const s = `${event.sourceName || ""} ${event.sourceUrl || ""} ${event.ticketing || ""}`.toLowerCase();
   // Community calendars are discovery-only. They may add a missing event, but never overwrite
   // richer official ticket/promoter/venue details when the same event is already known.
-  if (/twconcertview|artists\.tw|coverage cross-check|覆蓋補漏|現場音樂索引|reference bootstrap|補漏快照/.test(s)) return 10;
+  if (/twconcertview|coverage cross-check|覆蓋補漏/.test(s)) return 10;
   if (/tixcraft|拓元|kktix|ticketplus|遠大|kham|寬宏|ibon|famiticket|全網|udn|聯合|ticket\.mna|mna|牛耳|ticket\.com\.tw|年代|indievox|fansi|opentix|tixfun|tickets\.books/.test(s)) return 60;
   if (/livenation|live nation/.test(s)) return 55;
   if (/weverse|ygfamily|jype|smtown|hybe|official.*tour|藝人官方/.test(s)) return 50;
@@ -240,10 +238,6 @@ function mergeRecords(existing, incoming) {
     out.secondarySourceUrl ||= incoming.sourceUrl;
   }
   out.verified = Boolean(existing.verified || incoming.verified);
-  const hasNonReferenceSource = existingPriority > 10 || incomingPriority > 10;
-  out.referenceOnly = hasNonReferenceSource ? false : Boolean(existing.referenceOnly || incoming.referenceOnly);
-  out.verificationLevel = out.referenceOnly ? 'reference' : (out.verified ? 'official-verified' : (out.verificationLevel || 'official-source-pending'));
-  out.referenceOccurrenceCount = Math.max(Number(existing.referenceOccurrenceCount || 0), Number(incoming.referenceOccurrenceCount || 0));
   out.autoUpdated = Boolean(existing.autoUpdated || incoming.autoUpdated || incoming.id?.startsWith("auto-"));
   if (incoming.sourceName) out.autoSourceName = incoming.sourceName;
   if (incoming.sourceUrl) out.autoSourceUrl = incoming.sourceUrl;
@@ -341,7 +335,7 @@ function coverageSnapshot(discovery = {}, events = [], auditor = null) {
   const priceMappedCount = events.filter(e => Array.isArray(e.sectionPriceRules) && e.sectionPriceRules.length).length;
   return {
     completenessGuaranteed: false,
-    scope: 'Taiwan public music/concert events discovered from configured official ticket, promoter, artist and venue sources, plus twconcertview and Artists.tw reference indexes',
+    scope: 'Taiwan public music/concert events discovered from configured official ticket, promoter, artist and venue sources, plus twconcertview coverage cross-check',
     sourceCount: health.length + 4,
     sourceWarnings,
     emptySources,
@@ -358,35 +352,30 @@ function coverageSnapshot(discovery = {}, events = [], auditor = null) {
       coverageReferenceUnmatched: auditor.coverageReferenceUnmatched || 0,
       coverageReferenceCount: discovery.coverageReferenceCount || 0,
       coverageReferenceParsedCount: discovery.coverageReferenceParsedCount || 0,
-      coverageReferenceShowingParsedCount: discovery.coverageReferenceShowingParsedCount || 0,
       coverageReferenceRatio: discovery.coverageReferenceRatio ?? null,
       coverageReferenceComplete: Boolean(discovery.coverageReferenceComplete),
       coverageReferenceMonthsScanned: discovery.coverageReferenceMonthsScanned || 0,
-      coverageReferenceUnit: discovery.coverageReferenceUnit || 'showings',
-      coverageReferenceZhMonthPages: discovery.coverageReferenceZhMonthPages || 0,
-      coverageReferenceEnFallbackPages: discovery.coverageReferenceEnFallbackPages || 0,
-      coverageReferenceSuccessfulPages: discovery.coverageReferenceSuccessfulPages || 0,
-      coverageReferenceQueueCount: discovery.coverageReferenceQueueCount || 0
+      coverageReferenceSuccessfulPages: discovery.coverageReferenceSuccessfulPages || 0
     } : null,
-    note: 'No public source can guarantee every Taiwan performance. NEUL uses twconcertview and Artists.tw as reference queues for gap discovery only; reference-only rows are visible but clearly flagged until a ticket/promoter/artist/venue official source is matched.'
+    note: 'No public source can guarantee every Taiwan performance. NEUL reconciles official ticket/promoter/artist/venue sources and uses twconcertview only as a discovery cross-check; cross-check-only items stay flagged until an official source is found.'
   };
 }
 
 export default async function handler(req, res) {
-  // One-hour CDN cache lets ticket-sale dates/new events update automatically without per-user crawling.
-  res.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate=21600");
+  // CPU Saver: one shared six-hour CDN window prevents each visitor/session from repeating the full
+  // multi-source discovery crawl. Stale data can remain visible while Vercel refreshes in the background.
+  res.setHeader("Cache-Control", "public, s-maxage=21600, stale-while-revalidate=86400");
 
   let discovery = { events: [], checkedUrls: 0, indexErrors: [], pageErrors: [], source: "Taiwan official public pages" };
   let autoUpdateError = null;
-  const [liveNationResult, kaohsiungResult, taipeiArenaResult, artistOfficialResult, ticketPlatformResult, venueCalendarResult, twConcertViewResult, artistsTwResult] = await Promise.allSettled([
+  const [liveNationResult, kaohsiungResult, taipeiArenaResult, artistOfficialResult, ticketPlatformResult, venueCalendarResult, twConcertViewResult] = await Promise.allSettled([
     discoverLiveNationTaiwan(),
     discoverKaohsiungArena(),
     discoverTaipeiArena(),
     discoverArtistOfficialTours(),
     discoverTaiwanTicketPlatforms(),
     discoverVenueCalendars(),
-    discoverTwConcertViewCalendar(),
-    discoverArtistsTwGigs()
+    discoverTwConcertViewCalendar()
   ]);
   const sources = [];
   const errors = [];
@@ -447,28 +436,12 @@ export default async function handler(req, res) {
     discovery.coverageReferenceHealth = d.sourceHealth || [];
     discovery.coverageReferenceCount = d.referenceCount || 0;
     discovery.coverageReferenceParsedCount = d.parsedCount || 0;
-    discovery.coverageReferenceShowingParsedCount = d.showingParsedCount || d.rawOccurrenceCount || 0;
     discovery.coverageReferenceRatio = d.coverageRatio ?? null;
     discovery.coverageReferenceComplete = Boolean(d.completeAgainstReference);
-    discovery.coverageReferenceUnit = d.referenceUnit || 'showings';
-    discovery.coverageReferenceZhMonthPages = d.zhMonthPages || 0;
-    discovery.coverageReferenceEnFallbackPages = d.enFallbackPages || 0;
     discovery.coverageReferenceMonthsScanned = d.monthsScanned || 0;
     discovery.coverageReferenceSuccessfulPages = d.successfulPages || 0;
-    discovery.coverageReferenceQueueCount = d.referenceQueueCount || (d.events || []).filter(event=>event.referenceOnly).length;
-    sources.push(d.source || "twconcertview reference queue");
+    sources.push(d.source || "twconcertview coverage cross-check");
   } else errors.push(twConcertViewResult.reason?.message || "twconcertview coverage cross-check unavailable");
-  if (artistsTwResult.status === "fulfilled") {
-    const d = artistsTwResult.value;
-    discovery.events.push(...(d.events || []));
-    discovery.checkedUrls += d.checkedUrls || 0;
-    discovery.indexErrors.push(...(d.indexErrors || []));
-    discovery.pageErrors.push(...(d.pageErrors || []));
-    discovery.supplementaryReferenceHealth = d.sourceHealth || [];
-    discovery.supplementaryReferenceCount = d.referenceCount || 0;
-    discovery.supplementaryReferenceParsedCount = d.parsedCount || 0;
-    sources.push(d.source || "Artists.tw live reference");
-  } else errors.push(artistsTwResult.reason?.message || "Artists.tw supplemental reference unavailable");
   if (errors.length) autoUpdateError = errors.join(" · ");
   discovery.source = sources.join(" + ") || "curated fallback";
 
@@ -476,8 +449,7 @@ export default async function handler(req, res) {
   // merge the last healthy snapshot so the UI does not collapse back to the small seed set.
   const liveUpcoming = upcomingOnly(discovery.events || []);
   const liveReference = Number(discovery.coverageReferenceCount || 0);
-  const liveShowingParsed = Number(discovery.coverageReferenceShowingParsedCount || 0);
-  const liveRatio = liveReference > 0 ? liveShowingParsed / liveReference : 0;
+  const liveRatio = liveReference > 0 ? liveUpcoming.length / liveReference : 0;
   let discoverySnapshotUsed = false;
   if (liveUpcoming.length < 120 || (liveReference >= 200 && liveRatio < 0.55)) {
     const snapshot = await readDiscoverySnapshot();
@@ -489,41 +461,11 @@ export default async function handler(req, res) {
   }
   const snapshotSaved = await writeDiscoverySnapshot(discovery.events || [], {
     coverageReferenceCount: discovery.coverageReferenceCount || 0,
-    coverageReferenceParsedCount: discovery.coverageReferenceParsedCount || 0,
-    coverageReferenceShowingParsedCount: discovery.coverageReferenceShowingParsedCount || 0,
-    coverageReferenceQueueCount: discovery.coverageReferenceQueueCount || 0
+    coverageReferenceParsedCount: discovery.coverageReferenceParsedCount || 0
   });
 
   const mergedEvents = mergeAndDedupe(seedEvents, discovery.events || []);
-  const referenceQueuePending = mergedEvents.filter(event=>event.referenceOnly).length;
-  const referenceQueuePromoted = mergedEvents.filter(event=>!event.referenceOnly && (event.sourceRefs||[]).some(ref=>/twconcertview|artists\.tw|補漏快照/i.test(`${ref?.name||''} ${ref?.url||''}`))).length;
-  discovery.coverageReferenceQueuePending = referenceQueuePending;
-  discovery.coverageReferenceQueuePromoted = referenceQueuePromoted;
-
-  // Newly discovered concerts should not have to wait until somebody manually promotes them into
-  // seedEvents before official seat maps / ticket details can be resolved. Each hourly sync rotates
-  // through a small bounded set of upcoming official-ticket events that still lack a map.
-  const officialBackfillPool = mergedEvents.filter(event => {
-    const start=new Date(event.start||0).getTime();
-    return Number.isFinite(start) && start>=Date.now()-86400000 && ticketSeatMapEligible(event) && !event.seatLayoutSourceUrl;
-  });
-  const officialBackfillBucket=Math.floor(Date.now()/3600000);
-  const officialBackfillRotated=officialBackfillPool.length?[...officialBackfillPool.slice(officialBackfillBucket%officialBackfillPool.length),...officialBackfillPool.slice(0,officialBackfillBucket%officialBackfillPool.length)]:[];
-  const officialBackfillSample=officialBackfillRotated.slice(0,8);
-  const officialBackfillResults=await Promise.allSettled(officialBackfillSample.map(event=>monitorOfficialSource(event,{timeoutMs:4200})));
-  const officialBackfillPatches=new Map();
-  let officialBackfillResolved=0;
-  for(const result of officialBackfillResults){
-    if(result.status!=="fulfilled") continue;
-    const checked=result.value;
-    if(checked?.check?.status!=="live" || !checked?.patch || !Object.keys(checked.patch).length) continue;
-    officialBackfillPatches.set(checked.eventId,checked.patch);
-    if(checked.patch.seatLayoutSourceUrl) officialBackfillResolved++;
-  }
-  const enrichedMergedEvents=mergedEvents.map(event=>officialBackfillPatches.has(event.id)?{...event,...officialBackfillPatches.get(event.id)}:event);
-  discovery.opportunisticOfficialBackfill={pool:officialBackfillPool.length,checked:officialBackfillSample.length,resolvedSeatMaps:officialBackfillResolved};
-
-  const allEvents = enrichedMergedEvents.map(event => {
+  const allEvents = mergedEvents.map(event => {
     const seatMapFound = Boolean(event.seatLayoutSourceUrl);
     const sectionPricesFound = Boolean(event.sectionPriceRules?.length);
     const explicitEventLayout = Boolean(event.venueLayoutId);
@@ -559,18 +501,17 @@ export default async function handler(req, res) {
     };
   });
   const events = retainRecentArchive(allEvents);
-  const upcomingUniqueEventCount = events.filter(e => !(Boolean(e.historical) || eventEffectiveEndTs(e) < Date.now())).length;
   const archiveCount = events.filter(e => Boolean(e.historical) || eventEffectiveEndTs(e) < Date.now()).length;
-  const combinedSourceHealth = [...(discovery.sourceHealth || []), ...(discovery.venueSourceHealth || []), ...(discovery.coverageReferenceHealth || []), ...(discovery.supplementaryReferenceHealth || [])];
+  const combinedSourceHealth = [...(discovery.sourceHealth || []), ...(discovery.venueSourceHealth || []), ...(discovery.coverageReferenceHealth || [])];
   discovery.sourceHealth = combinedSourceHealth;
   const coverageAudit = auditCoverage({events: allEvents, rawDiscovered: discovery.events || [], sourceHealth: combinedSourceHealth});
   const artists = buildArtists(events);
   const updatedAt = new Date();
-  const nextUpdateAt = new Date(updatedAt.getTime() + 3600000);
+  const nextUpdateAt = new Date(updatedAt.getTime() + 21600000);
   return res.status(200).json({
     updatedAt: updatedAt.toISOString(),
     nextUpdateAt: nextUpdateAt.toISOString(),
-    upstream: discovery.events?.length ? "taiwan-official+twconcertview+artists-tw-reference+curated" : "curated-reference-fallback",
+    upstream: discovery.events?.length ? "taiwan-official+twconcertview-crosscheck+curated" : "curated-fallback",
     autoUpdateEnabled: true,
     liveEnabled: true,
     autoUpdateError,
@@ -582,36 +523,22 @@ export default async function handler(req, res) {
       sourceHealth: discovery.sourceHealth || [],
       venueSourceHealth: discovery.venueSourceHealth || [],
       coverageReferenceHealth: discovery.coverageReferenceHealth || [],
-      supplementaryReferenceHealth: discovery.supplementaryReferenceHealth || [],
-      supplementaryReferenceCount: discovery.supplementaryReferenceCount || 0,
-      supplementaryReferenceParsedCount: discovery.supplementaryReferenceParsedCount || 0,
       coverageReferenceCount: discovery.coverageReferenceCount || 0,
       coverageReferenceParsedCount: discovery.coverageReferenceParsedCount || 0,
-      coverageReferenceShowingParsedCount: discovery.coverageReferenceShowingParsedCount || 0,
       coverageReferenceRatio: discovery.coverageReferenceRatio ?? null,
       coverageReferenceComplete: Boolean(discovery.coverageReferenceComplete),
       coverageReferenceMonthsScanned: discovery.coverageReferenceMonthsScanned || 0,
-      coverageReferenceUnit: discovery.coverageReferenceUnit || 'showings',
-      coverageReferenceZhMonthPages: discovery.coverageReferenceZhMonthPages || 0,
-      coverageReferenceEnFallbackPages: discovery.coverageReferenceEnFallbackPages || 0,
       coverageReferenceSuccessfulPages: discovery.coverageReferenceSuccessfulPages || 0,
-      coverageReferenceQueueCount: discovery.coverageReferenceQueueCount || 0,
-      coverageReferenceQueuePending: discovery.coverageReferenceQueuePending || 0,
-      coverageReferenceQueuePromoted: discovery.coverageReferenceQueuePromoted || 0,
       coverageReferenceUnmatched: coverageAudit.coverageReferenceUnmatchedEvents || [],
       discoverySnapshotUsed,
       discoverySnapshotSaved: snapshotSaved,
       discoverySnapshotPolicy: "upcoming-only; no archived events; max 420 records",
-      opportunisticOfficialBackfill: discovery.opportunisticOfficialBackfill || {pool:0,checked:0,resolvedSeatMaps:0},
       coverageGaps: coverageAudit.gaps || [],
       needsTicketBackfill: coverageAudit.needsTicketBackfill || []
     },
     coverage: {...coverageSnapshot(discovery, allEvents, coverageAudit), archiveLimit: ARCHIVE_LIMIT, archiveCount},
     coverageAudit,
     count: events.length,
-    upcomingUniqueEventCount,
-    upcomingShowReferenceCount: discovery.coverageReferenceCount || 0,
-    countSemantics: { uniqueEvents: '去重後活動筆數', showReference: 'twconcertview 外部場次參考值', supplementaryReference: 'Artists.tw 現場音樂索引參考值', referenceQueue: '第三方補漏參考筆數；待官方來源覆核' },
     archiveLimit: ARCHIVE_LIMIT,
     archiveCount,
     artistCount: artists.length,

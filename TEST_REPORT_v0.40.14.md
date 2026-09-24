@@ -1,39 +1,45 @@
-# NEUL v0.40.14 Test Report
+# NEUL v0.40.14 — CPU Saver Test Report
 
-Date: 2026-09-23
-
-## Scope
-
-Regression and venue-calibration validation for the merge of v0.40.13 Verified316 data logic and the v0.40.11.1 Taipei Dome recalibration.
-
-## Automated checks
-
-- Core NEUL v0.40 regression suite
-- Coverage Auditor / Auto Backfill checks
-- Event lifecycle + Archive20 checks
-- News / mobile navigation checks
-- Venue policy / topology integrity checks
-- 3D precision / non-regression checks
-- Official-seat-map checks
-- v0.40.13 Verified316 checks
-- Taipei Dome recalibration checks
-- New v0.40.14 venue calibration checks
-- Baseline SHA-256 manifest verification
-
-## v0.40.14 venue assertions
-
-- Taipei Dome uses an asymmetric footprint and dedicated Dome renderer branch.
-- NTSU lower activity seats are structural/event-flexible and are not exposed as fabricated permanent ticket-section names.
-- NTSU fixed-tier metadata contains verified official sub-section / seat-capacity metadata.
-- Taipei Music Center 1F is event-flexible and non-ticket in the permanent venue base.
-- Taipei Music Center 2F mapped official section capacity: 1,463.
-- Taipei Music Center 3F visible mapped section capacity: 1,671; official published total retained: 1,675; delta: 4.
-- Internal sightline calibration references are not emitted into the public UI.
-
-## Known calibration boundary
-
-Taipei Arena 2F per-section row maxima are not globally overridden in this release. A blanket guessed row depth would be less accurate than leaving the current model conservative; future calibration should be per official section / row.
+Date: 2026-09-24 (Asia/Taipei)
+Base: NEUL v0.40.13 Verified316 RecentData
 
 ## Result
 
-PASS — the complete `npm run check` chain passed, including baseline verification (31 core files / 54 required features). All JavaScript / MJS files also pass `node --check`, the public app bundle contains no internal sightline-source marker, and a local static-server smoke check successfully serves the NEUL entry page and venue geometry module.
+PASS — full `npm run check` suite completed successfully.
+
+## CPU Saver verification
+
+- `/api/events` shared CDN cache: 6 hours (`s-maxage=21600`), stale window 24 hours.
+- `/api/official` shared CDN cache: 6 hours; official-monitor rotation bucket: 6 hours.
+- Browser event refresh: 6 hours; tab-return refresh only when stale.
+- `/api/refresh`: no timestamp query cache busting.
+- `/api/coverage`: no timestamp query cache busting.
+- `/api/seat-map-image`: successful resolutions cached 6 hours.
+- `/api/seat-map-image`: 404/not-found results cached 6 hours instead of 5 minutes.
+- Seat-map background hydration: maximum 1 stale event per page load.
+- Seat-map background source fan-out: maximum 1 source.
+- Selected event detail: lazy priority hydration, maximum 3 candidate sources, with 6-hour per-device freshness guard.
+- Background seat-map freshness guard: 24 hours unless source signature changes.
+- Entertainment-news RSS shared cache: 1 hour.
+- Service worker cache version bumped to v0.40.14.
+
+## Non-regression suite passed
+
+- Taiwan-only event coverage and dedupe
+- 101 fallback events
+- 14 ticket/official discovery sources
+- Archive 20 lifecycle
+- WebGL2 + Canvas fallback
+- row/seat parallax and LOS obstruction
+- official seat-map resolver and CDN handling
+- calibrated venue topology integrity
+- mobile list/calendar containment and safe-area close
+- entertainment news categories and progressive More
+- v0.40.13 Verified316 discovery/recent-data behavior
+- baseline SHA-256 verification for 32 core files
+
+## Expected CPU effect
+
+The heaviest server-side discovery/official-monitor refresh cadence is reduced from up to 24 refresh windows/day to 4 refresh windows/day per shared cache key. Repeated seat-map misses no longer trigger five-minute recursive retries, and ordinary homepage loads no longer attempt to hydrate every eligible event seat map.
+
+Actual Vercel Active CPU reduction depends on traffic mix, cache hit rate, cold starts, and upstream source behavior, so production Usage should still be observed after deployment.

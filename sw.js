@@ -1,4 +1,4 @@
-const VERSION = "neul-v0.40.17-expanded-auto-coverage";
+const VERSION = "neul-v0.40.14-cpu-saver";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const APP_SHELL = [
@@ -15,7 +15,6 @@ const APP_SHELL = [
   "/storage.js",
   "/manifest.webmanifest",
   "/data/events.js",
-  "/data/reference-bootstrap.js",
   "/data/artists.js",
   "/data/venues.js",
   "/data/discovery.js",

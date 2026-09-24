@@ -99,24 +99,17 @@ export default async function handler(req,res){
   const venueId=String(req.query?.venueId||'');
   const event=String(req.query?.event||'');
   const strictHint=String(req.query?.shared||'')==='1';
-  let fallback=[];
-  try{const parsed=JSON.parse(String(req.query?.fallback||'[]'));if(Array.isArray(parsed))fallback=parsed.filter(Boolean).slice(0,6);}catch{}
   try{
-    let found=null,lastError=null;
-    for(const candidate of [...new Set([raw,...fallback].filter(Boolean))]){
-      try{found=await resolveOfficialSeatMap(candidate,{hints:[venue,venueId,event],strictHint});if(found)break;}
-      catch(err){lastError=err;}
-    }
-    if(!found) throw lastError||Object.assign(new Error('official seat map not found'),{status:404});
+    const found=await resolveOfficialSeatMap(raw,{hints:[venue,venueId,event],strictHint});
     if(found.buf.byteLength>10_000_000)return res.status(413).json({error:'image too large'});
     const hash=crypto.createHash('sha256').update(found.buf).digest('hex');
-    res.setHeader('Content-Type',found.type);res.setHeader('Cache-Control','s-maxage=21600, stale-while-revalidate=86400');
+    res.setHeader('Content-Type',found.type);res.setHeader('Cache-Control','public, s-maxage=21600, stale-while-revalidate=86400');
     res.setHeader('X-NEUL-SeatMap-Hash',hash);res.setHeader('X-NEUL-SeatMap-Resolved',found.resolved);
     res.setHeader('X-NEUL-SeatMap-Resolver','recursive-v3-venue-hint');res.setHeader('X-NEUL-SeatMap-Pages',String(found.pagesScanned||1));res.setHeader('X-NEUL-SeatMap-Candidates',String(found.candidateCount||0));res.setHeader('X-NEUL-SeatMap-HintScore',String(found.hintScore||0));
     res.setHeader('Access-Control-Expose-Headers','X-NEUL-SeatMap-Hash, X-NEUL-SeatMap-Resolved, X-NEUL-SeatMap-Resolver, X-NEUL-SeatMap-Pages, X-NEUL-SeatMap-Candidates, X-NEUL-SeatMap-HintScore');
     return res.status(200).send(found.buf);
   }catch(err){
-    const status=err.status||502;if(status===404)res.setHeader('Cache-Control','s-maxage=300, stale-while-revalidate=900');
+    const status=err.status||502;if(status===404)res.setHeader('Cache-Control','public, s-maxage=21600, stale-while-revalidate=86400');
     return res.status(status).json({error:status===404?'official seat map not found yet':'seat map unavailable',message:err.message,...(err.meta||{})});
   }
 }

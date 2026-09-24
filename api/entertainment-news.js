@@ -102,7 +102,7 @@ export default async function handler(req, res) {
       })
       .sort((a, b) => Date.parse(b.publishedAt || 0) - Date.parse(a.publishedAt || 0))
       .slice(0, 24);
-    res.setHeader("Cache-Control", "public, s-maxage=900, stale-while-revalidate=3600");
+    res.setHeader("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=21600");
     return res.status(200).json({ category, label: base.label, query: extra, fetchedAt: new Date().toISOString(), maxAgeDays, results });
   } catch (error) {
     res.setHeader("Cache-Control", "no-store");

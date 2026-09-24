@@ -2,17 +2,17 @@ import { seedEvents } from "../data/events.js";
 import { monitorOfficialSource } from "../lib/official-monitor.js";
 
 export default async function handler(req, res) {
-  // Official sale/event verification is cached for one hour; CDN coalescing keeps upstream traffic bounded.
-  res.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate=21600");
+  // CPU Saver: official-source monitoring shares a six-hour CDN result across visitors.
+  res.setHeader("Cache-Control", "public, s-maxage=21600, stale-while-revalidate=86400");
   const now = Date.now();
   const future = seedEvents
     .filter(event => (event.sourceUrl || event.secondarySourceUrl) && (!event.end || new Date(event.end).getTime() >= now - 86400000) && new Date(event.start || 0).getTime() >= now - 86400000);
   // Missing-seat-map events are the most important false-negative risk. Monitor them first, but
-  // rotate the window every hour so a growing catalog never starves events beyond a fixed cap.
+  // rotate the window every six hours so a growing catalog is still covered without hourly re-fetching.
   const ticketHost=/tixcraft|kktix|ticketplus|kham|ibon|famiticket|udnfunlife|ticket\.mna|ticket\.com\.tw|opentix|tixfun|fansi|indievox|tickets\.books/i;
   const hasTicketSource=event=>[event.sourceUrl,event.secondarySourceUrl,event.ticketUrl,event.ticketSourceUrl,event.autoSourceUrl,...(event.sourceRefs||[]).map(x=>x?.url)].filter(Boolean).some(url=>ticketHost.test(String(url)));
   const rotate=(list,offset)=>list.length?[...list.slice(offset%list.length),...list.slice(0,offset%list.length)]:[];
-  const bucket=Math.floor(Date.now()/3600000);
+  const bucket=Math.floor(Date.now()/21600000);
   const missing=future.filter(event=>!event.seatLayoutSourceUrl&&hasTicketSource(event));
   const established=future.filter(event=>event.seatLayoutSourceUrl||event.secondarySourceUrl||hasTicketSource(event));
   const missingWindow=rotate(missing,bucket*48).slice(0,48);

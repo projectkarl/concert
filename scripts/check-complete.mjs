@@ -44,7 +44,7 @@ if(seedEvents.length<101) fail('fallback event refresh unexpectedly shrank',seed
 if(!/CATEGORY=205&TYPE=1/.test(discovery)||!/CATEGORY=100/.test(discovery)||!/maxDetails:96/.test(discovery)) fail('KHAM concert-category full scan missing');
 if(!/rotatingKktixIndexes/.test(discovery)||!/page=\$\{i\+1\}/.test(discovery)||!/promoterDiscovery:true/.test(discovery)) fail('rotating KKTIX/promoter discovery missing');
 if(!/extractOfficialTicketLinks/.test(resolver)||!/pageQueue/.test(resolver)||!/sourceRefs/.test(officialApi)) fail('multi-source recursive official seat-map resolver missing');
-if(!/Date\.now\(\) - last < 3600000/.test(app)||!/setInterval\(\(\)=>\{ if\(!document\.hidden\) loadEvents/.test(app)) fail('hourly foreground official/event refresh missing');
+if(!/Date\.now\(\) - last < SERVER_REFRESH_MS/.test(app)||!/SERVER_REFRESH_MS/.test(app)) fail('six-hour foreground official/event refresh missing');
 
 // Only calibrated recurring concert venues receive unique event-specific 3D. Temporary outdoor grounds and unknown indoor venues stay in the event list without fabricated seat models.
 const layoutIds=new Set(); let dynamicVenues=0,excluded3D=0; const layoutFailures=[];

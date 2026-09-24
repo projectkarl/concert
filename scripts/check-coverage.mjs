@@ -15,10 +15,10 @@ for (const [name, hit] of Object.entries({
   venueCalendars: /discoverVenueCalendars/.test(api),
   coverageAudit: /auditCoverage/.test(api) && /coverageSnapshot/.test(api),
   coverageEndpoint: /coverageAudit/.test(coverageApi),
-  hourlyCache: /s-maxage=3600/.test(api),
+  sixHourCache: /s-maxage=21600/.test(api),
   rotatingKktix: /rotatingKktixIndexes/.test(ticket) && /offtimemusic\.kktix\.cc/.test(ticket),
   recursiveSeatMap: /extractOfficialSeatLayoutCandidates/.test(resolver) && /extractOfficialTicketLinks/.test(resolver),
-  autoRefresh: /startAutomaticEventVerification/.test(app) && /3600000/.test(app)
+  autoRefresh: /startAutomaticEventVerification/.test(app) && /SERVER_REFRESH_MS/.test(app)
 })) if (!hit) fail(`coverage capability missing: ${name}`);
 
 const parsed = [
@@ -41,4 +41,4 @@ if (audit.venueOnlyNeedsTicketBackfill !== 1) fail('ticket backfill queue not ge
 if (audit.sourceHealthWarnings !== 1) fail('source health warning not propagated', audit);
 
 if (!ok) process.exit(1);
-console.log('NEUL v0.40.2 Coverage Auditor checks passed · venue-gap detection · auto backfill queue · rotating KKTIX · recursive official-map resolver · hourly refresh');
+console.log('NEUL v0.40.2 Coverage Auditor checks passed · venue-gap detection · auto backfill queue · rotating KKTIX · recursive official-map resolver · six-hour refresh');

@@ -44,7 +44,9 @@ export function mapSectionTokenForQA(text,x,y,venueModel,referenceSections=null)
 export function priceForLabelForQA(event,label){return priceForLabel(event,label);}
 export function inferStageProfileForQA({central=true,xArms=false,circleConfidence=.8}={}){return central?(xArms?{profile:'central-x',mainShape:circleConfidence>.55?'circle':'rect',armCount:4}:{profile:'central-stage',mainShape:circleConfidence>.72?'circle':'rect',armCount:0}):{profile:'end-stage',mainShape:'rect',armCount:0};}
 export async function analyzeSeatMap(event,venueModel,cache={},options={}){
-  const sources=ticketSourceCandidates(event);if(!sources.length||!venueModel?.field||typeof createImageBitmap!=='function')return null;
+  const allSources=ticketSourceCandidates(event);
+  const maxSources=Number.isFinite(Number(options.maxSources))?Math.max(1,Number(options.maxSources)):allSources.length;
+  const sources=allSources.slice(0,maxSources);if(!sources.length||!venueModel?.field||typeof createImageBitmap!=='function')return null;
   let r=null,source=null;
   for(const candidate of sources){
     try{

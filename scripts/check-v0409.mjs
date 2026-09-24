@@ -10,7 +10,7 @@ const app=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
 const api=fs.readFileSync(new URL('../api/events.js',import.meta.url),'utf8');
 const twcv=fs.readFileSync(new URL('../lib/twconcertview-discovery.js',import.meta.url),'utf8');
 
-if(!['0.40.9','0.40.10','0.40.11','0.40.13','0.40.14','0.40.15','0.40.16','0.40.17'].includes(pkg.version)) fail('package must preserve v0.40.9+ coverage behavior',pkg.version);
+if(!['0.40.9','0.40.10','0.40.11','0.40.13','0.40.14'].includes(pkg.version)) fail('package must preserve v0.40.9+ coverage behavior',pkg.version);
 const urls=buildTwConcertViewCalendarUrls(new Date('2026-09-21T12:00:00+08:00'),1,18);
 if(urls.length<20) fail('twconcertview month scan too shallow',urls.length);
 if(!urls.some(x=>/m=8&y=2026/.test(x))||!urls.some(x=>/m=9&y=2026/.test(x))) fail('month scan does not include Sep/Oct 2026',urls);
@@ -29,7 +29,7 @@ const merged=mergeAndDedupe([], [
 ]);
 if(merged.length!==1||merged[0].id!=='show') fail('non-performance ticket product filter failed',merged);
 
-if(!/coverageReferenceCount/.test(app)||!/coverageReferenceParsedCount/.test(app)||!/(?:補漏對帳|場次參考|參考補漏)/.test(app)) fail('event list coverage status missing');
+if(!/coverageReferenceCount/.test(app)||!/coverageReferenceParsedCount/.test(app)||!/補漏對帳/.test(app)) fail('event list coverage status missing');
 if(!/coverageReferenceMonthsScanned/.test(api)||!/coverageReferenceSuccessfulPages/.test(api)) fail('API month-scan health fields missing');
 if(!/buildTwConcertViewCalendarUrls/.test(twcv)||!/completeAgainstReference/.test(twcv)) fail('twconcertview full coverage scan logic missing');
 
