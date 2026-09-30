@@ -1342,6 +1342,48 @@ const coreSeedEvents = [
     sharedSourceUrl:true,sourceName:"KHAM 寬宏官方",sourceUrl:"https://kham.com.tw/application/UTK01/UTK0101_06.aspx?CATEGORY=205&TYPE=1",verified:true,checkedAt:"2026-09-20T22:50:00+08:00",tags:["KR","K-POP","TICC","OFFICIAL"],venueModelId:"ticc",summary:"寬宏官方演唱會清單已上架；正式開賣後 detail page、座位圖與價位區會由 Auto Backfill 自動回填。"
   },
 
+  // 2026-09-30 official-source refresh — newly confirmed future Taiwan shows.
+  {
+    id:"f-forever-stellar-city-taipei-dome-2026",artist:"F✦FOREVER",shortArtist:"F✦FOREVER",market:"TW",title:"F✦FOREVER 恆星之城・光年赴約・臺北限定場演唱會",type:"CONCERT",region:"TW",start:"2026-11-28T19:00:00+08:00",end:"2026-11-29T21:30:00+08:00",timeConfirmed:true,
+    venue:"臺北大巨蛋 Taipei Dome",city:"Taipei",statusLabel:"演唱會",ticketStatus:"UPCOMING SALE",ticketing:"tixCraft 拓元",price:"NT$5,880 / 5,280 / 4,880 / 4,280 / 3,680 / 3,280 / 2,680 / 1,680；身障席 NT$2,440 / 1,840",generalSale:"2026-10-04T14:00:00+08:00",
+    sourceName:"tixCraft 拓元官方",sourceUrl:"https://tixcraft.com/activity/detail/26_forever",verified:true,checkedAt:"2026-09-30T21:05:00+08:00",tags:["TW","TAIPEI DOME","OFFICIAL","2 DAYS"],venueModelId:"taipei-dome",sessions:[{date:"2026/11/28",time:"19:00"},{date:"2026/11/29",time:"19:00"}],summary:"官方拓元已公告兩日臺北大巨蛋限定場、票價與 10/4 全面開賣；舞台／活動層配置須以本場官方圖解析，不沿用其他大巨蛋演唱會。"
+  },
+  {
+    id:"hwang-min-hyun-peach-blossom-taipei-2026",artist:"HWANG MIN HYUN",shortArtist:"MINHYUN",market:"KR",title:"2026 HWANG MIN HYUN FANMEETING [PEACH-BLOSSOM] - TAIPEI",type:"FAN MEETING",region:"TW",start:"2026-11-27T19:00:00+08:00",timeConfirmed:true,
+    venue:"Legacy TERA",city:"Taipei",statusLabel:"見面會",ticketStatus:"UPCOMING SALE",ticketing:"tixCraft 拓元",price:"NT$5,880 / 4,680 / 身障票 NT$2,340",generalSale:"2026-10-04T11:00:00+08:00",
+    sourceName:"tixCraft 拓元官方",sourceUrl:"https://tixcraft.com/activity/detail/26_minhyun",verified:true,checkedAt:"2026-09-30T21:05:00+08:00",tags:["KR","FAN MEETING","LEGACY TERA","OFFICIAL"],venueModelId:null,venueLayoutId:null,summary:"官方公告全場座席；Legacy TERA 尚未有足夠官方場館幾何時不生成 generic 3D。"
+  },
+  {
+    id:"diana-krall-taipei-2026",artist:"Diana Krall",shortArtist:"DIANA KRALL",market:"US",title:"Diana Krall 2026 Taipei",type:"CONCERT",region:"TW",start:"2026-11-28T19:30:00+08:00",end:"2026-11-29T18:00:00+08:00",timeConfirmed:true,
+    venue:"臺北流行音樂中心表演廳",city:"Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"MNA 牛耳藝術",price:"NT$5,980 / 4,980 / 4,280 / 3,980 / 3,680 / 3,280 / 2,980 / 2,580",generalSale:"2026-09-17T12:00:00+08:00",
+    sourceName:"MNA 牛耳藝術官方",sourceUrl:"https://ticket.mna.com.tw/UTK0201_?PRODUCT_ID=P1ESVMPP",verified:true,checkedAt:"2026-09-30T21:05:00+08:00",tags:["US","JAZZ","TAIPEI MUSIC CENTER","OFFICIAL","2 DAYS"],venueModelId:"taipei-music-center",sessions:[{date:"2026/11/28",time:"19:30"},{date:"2026/11/29",time:"16:00"}],summary:"MNA 官方頁已公布兩場、票價與北流票價座位圖下載入口；2F 無障礙席有主舞台上方部分視線遮蔽提醒。"
+  },
+  {
+    id:"k21-kao-inc-21st-taipei-2026",artist:"顏社 KAO!INC.",shortArtist:"K21",market:"TW",title:"《K21》顏社二十一週年演唱會",type:"CONCERT",region:"TW",start:"2026-12-12T19:00:00+08:00",end:"2026-12-13T20:00:00+08:00",timeConfirmed:true,
+    venue:"臺北流行音樂中心表演廳",city:"Taipei",statusLabel:"演唱會",ticketStatus:"ON SALE",ticketing:"KKTIX / FamiPort",price:"NT$4,280 / 3,880 / 3,380 / 2,580 / 1,880 / 1,380",generalSale:"2026-08-05T12:00:00+08:00",
+    sourceName:"KKTIX 顏社官方",sourceUrl:"https://kaoinc.kktix.cc/events/kiorfd?locale=zh-TW",verified:true,checkedAt:"2026-09-30T21:05:00+08:00",tags:["TW","HIP-HOP","TAIPEI MUSIC CENTER","OFFICIAL","2 DAYS"],venueModelId:"taipei-music-center",sessions:[{date:"2026/12/12",time:"19:00"},{date:"2026/12/13",time:"17:00"}],summary:"官方公告 1F 為站席、2F/3F 為劃位座席；2F 後方與無障礙席可能受建築結構影響，event-specific 3D 應保留此遮擋提示。"
+  },
+  {
+    id:"maggie-chiang-zepp-2-taipei-2026",artist:"江美琪",shortArtist:"江美琪",market:"TW",title:"江美琪《傷心唱出來就沒事了》演唱會2.0 台北站／加場",type:"CONCERT",region:"TW",start:"2026-10-02T19:30:00+08:00",end:"2026-10-03T21:00:00+08:00",timeConfirmed:true,
+    venue:"Zepp New Taipei",city:"New Taipei",statusLabel:"演唱會",ticketStatus:"CHECK OFFICIAL",ticketing:"官方公告",price:"依主辦／售票頁最新公告",
+    sharedSourceUrl:true,sourceName:"Zepp New Taipei 官方 Schedule",sourceUrl:"https://www.zepp.co.jp/hall/newtaipei/",verified:true,checkedAt:"2026-09-30T21:05:00+08:00",tags:["TW","ZEPP NEW TAIPEI","OFFICIAL","2 DAYS"],venueModelId:"zepp-new-taipei",sessions:[{date:"2026/10/02",time:"19:30"},{date:"2026/10/03",time:"18:30"}],summary:"Zepp 官方排程確認 10/2 台北加場與 10/3 台北站；場內配置仍須以各場官方 ticket/seat map 為準。"
+  },
+  {
+    id:"misogi-zepp-new-taipei-2026",artist:"-真天地開闢集團-慈愚挫愚",shortArtist:"MISOGI",market:"JP",title:"行腳巡禮MISOGI ～番外篇～ in 台灣",type:"CONCERT",region:"TW",start:"2026-10-04T18:30:00+08:00",timeConfirmed:true,
+    venue:"Zepp New Taipei",city:"New Taipei",statusLabel:"演唱會",ticketStatus:"CHECK OFFICIAL",ticketing:"BIGART／官方公告",price:"依官方售票頁最新公告",
+    sharedSourceUrl:true,sourceName:"Zepp New Taipei 官方 Schedule",sourceUrl:"https://www.zepp.co.jp/hall/newtaipei/",verified:true,checkedAt:"2026-09-30T21:05:00+08:00",tags:["JP","ZEPP NEW TAIPEI","OFFICIAL"],venueModelId:"zepp-new-taipei",summary:"Zepp 官方排程確認 10/4 18:30 開演；1F/2F 使用狀態由本場官方票區資料決定。"
+  },
+  {
+    id:"persona-live-tour-resonance-taipei-2026",artist:"PERSONA LIVE TOUR",shortArtist:"PERSONA",market:"JP",title:"PERSONA LIVE TOUR 2026 - Resonance -",type:"CONCERT",region:"TW",start:"2026-10-10T18:00:00+08:00",timeConfirmed:false,
+    venue:"Zepp New Taipei",city:"New Taipei",statusLabel:"演唱會",ticketStatus:"CHECK OFFICIAL",ticketing:"FancyFrontier／官方公告",price:"依官方售票頁最新公告",
+    sharedSourceUrl:true,sourceName:"Zepp New Taipei 官方 Schedule",sourceUrl:"https://www.zepp.co.jp/hall/newtaipei/",verified:true,checkedAt:"2026-09-30T21:05:00+08:00",tags:["JP","GAME MUSIC","ZEPP NEW TAIPEI","OFFICIAL"],venueModelId:"zepp-new-taipei",summary:"Zepp 官方 10/10 排程列出 PERSONA LIVE TOUR 2026 - Resonance -；開演時間與票區仍由主辦資料自動回填。"
+  },
+  {
+    id:"open-dream-world-music-festival-kaohsiung-2026",artist:"OPEN! DREAM WORLD",shortArtist:"OPEN!",market:"KR",title:"OPEN!夢想音樂節",type:"FESTIVAL",region:"TW",start:"2026-12-04T00:00:00+08:00",end:"2026-12-05T23:59:00+08:00",timeConfirmed:false,
+    venue:"高雄夢時代 時代大道",city:"Kaohsiung",statusLabel:"音樂節",ticketStatus:"UPCOMING SALE",ticketing:"主辦官方公告",price:"超級搖滾座位區／搖滾座位區／一般站位；價格依售票頁",generalSale:"2026-10-01T12:00:00+08:00",
+    sourceName:"高雄旅遊網官方活動公告",sourceUrl:"https://khh.travel/zh-tw/event/calendardetail/8041/",verified:true,checkedAt:"2026-09-30T21:05:00+08:00",tags:["KR","TW","FESTIVAL","KAOHSIUNG","OFFICIAL"],venueModelId:null,venueLayoutId:null,summary:"高雄市官方活動頁確認 12/4–5 於夢時代時代大道舉辦。戶外臨時場地不建立固定場館 3D；若主辦發布活動配置圖，只建立 event-only 平面／區域視圖。"
+  },
+
 ];
 
 export const seedEvents = [...coreSeedEvents, ...referenceBootstrapEvents];

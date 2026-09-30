@@ -1,3 +1,7 @@
+# NEUL Cloudflare v1.4.2 — Exact UI / Official Map Last-Good
+
+此 Cloudflare release 保留 NEUL v0.40.17 介面，強化官方座位圖 last-good、6 小時 revalidation、座位圖 hash → 3D invalidation 與場館拓樸校正。KV 由 Wrangler 自動 provision。
+
 # NEUL v0.40.17 — Expanded Auto Coverage
 
 本版針對「實際活動仍只有八十幾筆」重新做資料源與 fallback 稽核。v0.40.16 的 twconcertview 繁中 URL 在伺服器抓取時可能被導向較少的英文行事曆，而且六個月份的輪替資料若 Vercel Blob 未配置就無法跨請求累積，因此冷啟動時仍可能退回舊的 83 筆。

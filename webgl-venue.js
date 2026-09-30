@@ -215,6 +215,8 @@ function sectionArchitecture(section,selected,quality,theme){
 }
 function boxItem(cfg,color,emissive='#090a0d',height=5){const h=cfg.height||height;return{mesh:CUBE,model:mat4TRS(cfg.x||0,(cfg.y??-16)+h/2,cfg.z||0,cfg.ry||0,cfg.width||40,h,cfg.depth||20),color,emissive};}
 function ringLine(rx,rz,y,n=96){const a=[];for(let i=0;i<=n;i++){const t=i/n*Math.PI*2;a.push(Math.cos(t)*rx,y,Math.sin(t)*rz);}return new Float32Array(a);}
+function arcLine(rx,rz,y,start,end,n=72){const a=[];for(let i=0;i<=n;i++){const t=start+(end-start)*i/n;a.push(Math.cos(t)*rx,y,Math.sin(t)*rz);}return new Float32Array(a);}
+function roomRectLine(hx,hz,y){return new Float32Array([-hx,y,-hz,hx,y,-hz,hx,y,hz,-hx,y,hz,-hx,y,-hz]);}
 function rectLine(top,yOffset=.6){const a=[];for(let i=0;i<=top.length;i++){const p=top[i%top.length];a.push(p[0],p[1]+yOffset,p[2]);}return new Float32Array(a);}
 
 function buildCPUScene(config,quality){
@@ -320,6 +322,34 @@ function buildCPUScene(config,quality){
     // Sparse perimeter supports follow the elongated baseball-stadium footprint instead of a ring.
     for(const side of [-1,1]) for(const z of [-halfZ*.72,-halfZ*.28,halfZ*.18,halfZ*.62]) solids.push(boxItem({x:side*halfX*.94,y:-18,z,width:2.4,depth:2.4},'#26303a','#05070a',roofBase+18));
     for(const x of [-halfX*.62,-halfX*.22,halfX*.22,halfX*.62]) solids.push(boxItem({x,y:-18,z:halfZ*.92,width:2.4,depth:2.4},'#26303a','#05070a',roofBase+14));
+  }else if(model.id==='kaohsiung-stadium'){
+    // Official stadium form is open-ended and spiral rather than a closed arena bowl.
+    // Match the same East→North→West occupied arc used by the calibrated seat regions.
+    const roofY=maxY+34;
+    for(let i=0;i<3;i++)lines.push({vertices:arcLine(rx+i*15,rz+i*11,roofY+i*11,-.16,4.10,92),color:[.45,.52,.6,.34]});
+    for(let i=0;i<13;i++){const a=-.10+i/12*4.14;solids.push(boxItem({x:Math.cos(a)*rx*.99,y:-18,z:Math.sin(a)*rz*.99,width:2.4,depth:2.4},'#26303a','#05070a',maxY+62));}
+    // The two open-end tips are kept lower so the opening reads clearly from overview.
+    for(const a of[-.10,4.04])solids.push(boxItem({x:Math.cos(a)*rx*.97,y:-18,z:Math.sin(a)*rz*.97,width:3.2,depth:3.2},'#2a333c','#06080b',maxY+34));
+  }else if(model.id==='ntsu-arena'){
+    // NTSU describes the spectator bowl as an "ingot" (元寶) form. Keep a broad,
+    // slightly open stage-side arc instead of the generic perfect oval shell.
+    const shellY=maxY+24;
+    for(let i=0;i<3;i++)lines.push({vertices:arcLine(rx+i*12,rz+i*8,shellY+i*11,-2.55,2.56,84),color:[.45,.52,.6,.36]});
+    for(let i=0;i<12;i++){const a=-2.48+i/11*4.96;solids.push(boxItem({x:Math.cos(a)*rx*.99,y:-18,z:Math.sin(a)*rz*.99,width:2.2,depth:2.2},'#26303a','#05070a',maxY+58));}
+  }else if(['concert-hall','continuous-raked-auditorium','live-house'].includes(model.geometryPolicy?.topology)){
+    // Theatre / concert-hall / live-house interiors are rectangular rooms, not arena rings.
+    const hx=model.field.x*1.72,hz=model.field.z*1.72,base=maxY+22,roof=base+28;
+    lines.push({vertices:roomRectLine(hx,hz,base),color:[.45,.52,.6,.34]});
+    lines.push({vertices:roomRectLine(hx*.97,hz*.97,roof),color:[.45,.52,.6,.28]});
+    for(const x of[-hx,hx])for(const z of[-hz,hz])solids.push(boxItem({x,y:-18,z,width:2.2,depth:2.2},'#26303a','#05070a',roof+18));
+    for(let i=-2;i<=2;i++){const x=i*hx*.38;lines.push({vertices:new Float32Array([x,roof,-hz,x,roof,hz]),color:[.40,.46,.54,.22]});}
+  }else if(model.geometryPolicy?.topology==='flat-exhibition-hall'){
+    // TAINEX Hall 1 4F is a column-free rectangular exhibition floor; all audience
+    // blocks are event-specific. Render a wide hall/truss envelope instead of a bowl.
+    const hx=model.field.x*1.54,hz=model.field.z*1.46,roof=maxY+45;
+    lines.push({vertices:roomRectLine(hx,hz,roof),color:[.45,.52,.6,.35]});
+    for(let i=-4;i<=4;i++){const x=i*hx/4;lines.push({vertices:new Float32Array([x,roof,-hz,x,roof,hz]),color:[.42,.48,.56,.20]});}
+    for(const z of[-hz,hz])for(const x of[-hx,-hx*.5,0,hx*.5,hx])solids.push(boxItem({x,y:-18,z,width:2.0,depth:2.0},'#26303a','#05070a',roof+14));
   }else{
     for(let i=0;i<3;i++)lines.push({vertices:ringLine(rx+i*14,rz+i*11,maxY+20+i*12),color:[.45,.52,.6,.38]});
     for(let i=0;i<16;i++){const a=i/16*Math.PI*2;solids.push(boxItem({x:Math.cos(a)*rx*.99,y:-18,z:Math.sin(a)*rz*.99,width:2.5,depth:2.5},'#26303a','#05070a',maxY+65));}

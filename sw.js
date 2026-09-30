@@ -1,4 +1,4 @@
-const VERSION = "neul-v0.40.17-expanded-auto-coverage";
+const VERSION = "neul-v0.40.17-expanded-auto-coverage-cf-v1.4.2-seatmap-lastgood";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const APP_SHELL = [

@@ -1,10 +1,18 @@
 {
-  "version": "1.3.1-assets-fix",
+  "version": "1.4.2-seatmap-lastgood-autogen",
   "source": "NEUL-v0.40.17-Expanded-AutoCoverage.zip",
   "sourceArchiveSha256": "54be4231f04ed075cb2ae937a831f88df41c2b3fcc165729f52c2d587ce26f9d",
-  "verifiedAt": "2026-09-30T11:56:50.076Z",
-  "publicAssetCount": 48,
-  "hashes": {
+  "verifiedAt": "2026-09-30T13:50:37.161Z",
+  "originalVisualLockedAssets": 43,
+  "intentionalFunctionalOverrides": 5,
+  "overrideFiles": [
+    "seat-map-intelligence.js",
+    "webgl-venue.js",
+    "data/multi-venue-geometry.js",
+    "sw.js",
+    "data/events.js"
+  ],
+  "originalHashes": {
     "app.js": "1192b4229c223ff3281033dc462f0e684935b664b3bd3c4fca8856ed03547088",
     "assets/feature-stage.webp": "707aa8d2f27d898aece6259002fbed165f1eec869047e822d394af40972b51f9",
     "assets/featured-1-crisp.webp": "2c1c93e1bdf2cc85d50fbceb37aafd6eddfc6647f5f588b9ced80e9e299ef9a9",
@@ -53,5 +61,12 @@
     "styles.css": "f91fa3513e97f98c86cb8e6d13a8bcb947a9992585bffd769efc532be00d08c8",
     "sw.js": "cede2593c617a4b27730908bed506d3d121e7f7dc3d09ec2bc9154b416793d77",
     "webgl-venue.js": "3a15086f6ca702f241f62f9d629bf4f28bd294a213cc1145fae24283464380ce"
+  },
+  "functionalOverrideHashes": {
+    "seat-map-intelligence.js": "a1af1894c141b3777af9e73655dad21dd143dbf217a402459da340f4cb53b48e",
+    "webgl-venue.js": "b1cd84f999b2e5ef7f6153f387c81a54eb1bf0e26d3156a3cb5657865fd5d471",
+    "data/multi-venue-geometry.js": "ba944236ec27fe7db5169fb759e37a78175a803251b00262f7e59959efc1b8ac",
+    "sw.js": "c31d6f65ee103c6dfcb4e9ff12087a398a2fe3fe9be9968abd97814f38974c08",
+    "data/events.js": "a83abe6b31a8b85715d7e626b328772d287d777a34c1f6f08c8d4a5bf0a8b683"
   }
 }

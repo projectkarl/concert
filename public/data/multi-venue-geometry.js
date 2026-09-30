@@ -361,8 +361,11 @@ const kmc2=[
   kmcRadial('2D3','2F',1.10,166,122,33,12,17),
   kmcRadial('2E1','2F',.62,151,111,27,1,10,-.06), kmcRadial('2E2','2F',.62,151,111,27,1,10,.06)
 ];
-const kmc3=arcGroup(['3B','3C-1','3C-2','3D'],'3F',190,141,60,2.42,.72)
-  .map(s=>({...s,rowMin:1,rowMax:20,depthX:12,depthZ:10,rise:7}));
+// Official KMC "二樓觀眾席平面圖" labels the rear/upper sub-zones as 3B / 3C-1 / 3C-2 / 3D.
+// The leading "3" is a zone family label, not a physical third floor. Keep the official IDs for
+// ticket-map matching, but place them inside the physical 2F rear/upper band.
+const kmcRear2F=arcGroup(['3B','3C-1','3C-2','3D'],'2F',190,141,48,2.42,.72)
+  .map(s=>({...s,rowMin:1,rowMax:20,depthX:12,depthZ:10,rise:7,officialFloor:'2F',label:`${s.id} · 2F後上段`}));
 
 const sj83zVip=[
   {...block('VIP A1','VIP',-48,-42,28,42,'floor'),rowMin:1,rowMax:24,depthZ:34,rise:2,aliases:['VIP A1']},
@@ -370,11 +373,10 @@ const sj83zVip=[
   {...block('VIP A3','VIP',16,-42,28,42,'floor'),rowMin:1,rowMax:24,depthZ:34,rise:2,aliases:['VIP A3']},
   {...block('VIP A4','VIP',48,-42,28,42,'floor'),rowMin:1,rowMax:24,depthZ:34,rise:2,aliases:['VIP A4']}
 ];
-const kmcSections=[...kmc1,...kmc2,...kmc3];
+const kmcSections=[...kmc1,...kmc2,...kmcRear2F];
 const kmcTiers=[
   {id:'1F',label:'1F 伸縮座席／活動平面',short:'1F',sections:kmc1.map(x=>x.id)},
-  {id:'2F',label:'2F 固定席／實拍校正分區',short:'2F',sections:kmc2.map(x=>x.id)},
-  {id:'3F',label:'3F 固定席',short:'3F',sections:kmc3.map(x=>x.id)}
+  {id:'2F',label:'2F 固定席（含 3B／3C／3D 官方區名的後上段）',short:'2F',sections:[...kmc2,...kmcRear2F].map(x=>x.id)}
 ];
 
 // Kaohsiung National Stadium: region-level geometry only; exact ticket sections vary greatly.
@@ -513,7 +515,7 @@ export const venueModels = {
   'zepp-new-taipei': {
     id:'zepp-new-taipei', name:'Zepp New Taipei', en:'ZEPP NEW TAIPEI', city:'New Taipei', sections:zeppSections, tiers:zeppTiers,
     baseLayoutId:'zepp-new-taipei-base', defaultTier:'2F', defaultSection:'2F-C', defaultRow:5, field:{x:62,z:68}, stage:genericStage(-66,54,18),
-    sourceName:'Zepp New Taipei 公開場館資訊／官方售票票區圖交叉校正', sourceUrl:'https://tixcraft.com/activity/detail/26_izna', confidence:'場館比例＋活動票區圖動態校正'
+    sourceName:'Zepp New Taipei 官方 FLOOR GUIDE／活動票區圖交叉校正', sourceUrl:'https://www.zepp.co.jp/hall/newtaipei/', confidence:'官方 1F／2F 樓層結構＋活動票區圖動態校正'
   }
 };
 
@@ -631,7 +633,7 @@ const kstarDemoLayouts = {
     sections:[{...block('VIP A','1F',-27,-34,45,65,'vip'),rowMin:1,rowMax:28},{...block('VIP B','1F',27,-34,45,65,'vip'),rowMin:1,rowMax:28}],tiers:[{id:'1F',label:'1F VIP A/B',short:'1F',sections:['VIP A','VIP B']}],replaceStructuralTiers:['1F'],defaultTier:'1F',defaultSection:'VIP A',defaultRow:10,
     sourceName:'高雄流行音樂中心 · FTISLAND 2026 官方節目資料',sourceUrl:'https://kpmc.com.tw/program/2026%E5%B9%B4%E4%B9%9D%E6%9C%88%E4%BB%BD%E7%AF%80%E7%9B%AE%E7%B8%BD%E8%A1%A8/',sightlineSourceUrl:'https://twconcertview.com/en/venue/kaohsiung-music-center/',sightlineSourceName:'twconcertview 海音館實拍視角',
     distanceCalibration:{metersPerUnit:.26,uncertaintyM:3,basis:'海音館固定席＋FTISLAND 本場長延伸台／方形副舞台票區圖'},verifiedAt:'2026-09-21T16:10:00+08:00',
-    notices:['本場依 FTISLAND 高雄場圖重建 VIP A／B、長中央花道、方形副舞台與 FOH。','2F／3F 固定席沿用海音館結構與公開實拍校正。']
+    notices:['本場依 FTISLAND 高雄場圖重建 VIP A／B、長中央花道、方形副舞台與 FOH。','2F 固定席沿用海音館官方結構；3B／3C／3D 是官方二樓圖內的區名，不再誤畫成實體 3F。']
   },
   'kspark-kaohsiung-stadium-2026': {
     id:'kspark-kaohsiung-stadium-2026',venueId:'kaohsiung-stadium',label:'K-SPARK · K-POP FESTIVAL',historical:true,kstarExample:true,demoArtist:'K-SPARK',demoDate:'2026-05-30',customizationLevel:'hand-calibrated-kstar-demo',
@@ -757,7 +759,7 @@ export const venueLayouts = {
     tiers:[{id:'VIP',label:'VIP A1–A4',short:'VIP',sections:sj83zVip.map(x=>x.id)}],sections:sj83zVip,
     sourceName:'KKTIX 官方座位圖',sourceUrl:'https://assets.kktix.io/organization_resource_files/59413/79383/SJ83z_%E5%BA%A7%E4%BD%8D%E5%9C%96%E8%A6%96%E7%B7%9A%E9%81%AE%E6%93%8B_0729_%E9%AB%98%E9%9B%84.jpg',
     seatMapDetected:true,sectionPriceRules:[{label:'VIP A1',price:'NT$6,480'},{label:'VIP A2',price:'NT$6,480'},{label:'VIP A3',price:'NT$6,480'},{label:'VIP A4',price:'NT$6,480'}],
-    notices:['依 KKTIX 官方座位圖建立 VIP A1–A4、主舞台、延伸台與 FOH 相對位置。','2F／3F 固定席仍保留海音館完整場館結構，票價依官方區帶顯示；視線不良區以 KKTIX 最新公告為準。']
+    notices:['依 KKTIX 官方座位圖建立 VIP A1–A4、主舞台、延伸台與 FOH 相對位置。','2F 固定席仍保留海音館完整場館結構；3B／3C／3D 依官方二樓平面圖放在 2F 後上段，票價與視線不良區以 KKTIX 最新公告為準。']
   },
   'kmc-base': {id:'kmc-base',venueId:'kaohsiung-music-center',label:'海音館場館基準',stage:venueModels['kaohsiung-music-center'].stage,sourceName:'海音館官方全區觀眾席平面圖',sourceUrl:'https://www.kph.tw/venues-resources/1',notices:['官方技術圖可確認主要固定席與剖面；本版再依公開實拍把 2F 拆成 2B1–2B5、2C1–2C4 等視角差異較大的校正分段。','這些 2F 細分名稱用於視角校正，不保證每場售票系統皆採完全相同命名。']},
   'bts-arirang-kaohsiung-2026': {
@@ -786,7 +788,7 @@ export const venueLayouts = {
   'taoyuan-base': {id:'taoyuan-base',venueId:'taoyuan-arena',label:'桃園巨蛋場館基準',stage:venueModels['taoyuan-arena'].stage,sourceName:'桃園市政府體育局官方座位平面圖',sourceUrl:'https://www.dst.tycg.gov.tw/cp.aspx?n=11715',notices:['官方資料可確認主場地直徑約 82 公尺、固定座椅與活動座椅；演唱會平面票區依每場配置。']},
   'ntu-base': {id:'ntu-base',venueId:'ntu-sports-center',label:'臺大主球場基準',stage:venueModels['ntu-sports-center'].stage,sourceName:'臺大體育室場地地圖／主球場資料',sourceUrl:'https://rent.pe.ntu.edu.tw/map/',notices:['官方可確認 3–5F 固定席 3,221 張與活動伸縮座椅 1,022 張；平面票區依活動重排。']},
   'tianmu-base': {id:'tianmu-base',venueId:'tianmu-gymnasium',label:'天母體育館場館基準',stage:venueModels['tianmu-gymnasium'].stage,sourceName:'臺北市政府場館建置資料',sourceUrl:'https://english.udd.gov.taipei/News_Content.aspx?n=DD9CEC17A97FBC64&s=5C7961D8F91A70B4&sms=72544237BBE4C5F6',notices:['官方可確認約 4,620 固定席、可擴充至約 6,000 席；細分看台目前為區域級校正。']},
-  'zepp-new-taipei-base': {id:'zepp-new-taipei-base',venueId:'zepp-new-taipei',label:'Zepp New Taipei 場館基準',stage:venueModels['zepp-new-taipei'].stage,sourceName:'官方售票活動頁／公開場館配置交叉校正',sourceUrl:'https://tixcraft.com/activity/detail/26_izna',notices:['1F 為活動可變站區，2F 為看台／活動站席；精確票區邊界以每場官方座位圖 OCR/Vision 自動覆寫。','未取得該場官方座位圖前，不把基準分區宣稱為售票區號。']}
+  'zepp-new-taipei-base': {id:'zepp-new-taipei-base',venueId:'zepp-new-taipei',label:'Zepp New Taipei 場館基準',stage:venueModels['zepp-new-taipei'].stage,sourceName:'Zepp New Taipei 官方 FLOOR GUIDE',sourceUrl:'https://www.zepp.co.jp/hall/newtaipei/',notices:['官方 FLOOR GUIDE 確認 1F 為可變站席／椅席，2F 為 291 席固定座椅並可另設站席；精確票區邊界仍以每場官方座位圖 OCR/Vision 自動覆寫。','未取得該場官方座位圖前，不把基準分區宣稱為售票區號。']}
 };
 
 
@@ -870,7 +872,7 @@ function compactHallGeometry(kind='club') {
   return {sections:[...floor,...balcony],tiers:[{id:'FLOOR',label:standing?'1F 活動站區':'1F 活動座席',short:'1F',sections:floor.map(x=>x.id)},...(balcony.length?[{id:'2F',label:'2F 看台',short:'2F',sections:balcony.map(x=>x.id)}]:[])],field:{x:70,z:72},defaultTier:'FLOOR',defaultSection:'1F-C',defaultRow:standing?1:10,stage:genericStage(-62,58,18)};
 }
 
-const AUTO_EVENT_3D_PIPELINE_VERSION='0.40.10-mainstream12-3dprecision.1';
+const AUTO_EVENT_3D_PIPELINE_VERSION='0.40.10-mainstream12-3dprecision.1-cf-v1.4.2-seatmap-lastgood';
 function autoEvent3DSignature(event={},venueId=''){
   const compactRules=(event.sectionPriceRules||[]).map(r=>[r?.label||'',r?.price||'']);
   return JSON.stringify({
@@ -882,6 +884,8 @@ function autoEvent3DSignature(event={},venueId=''){
     start:event.start||'',
     end:event.end||'',
     seat:event.seatLayoutSourceUrl||'',
+    seatHash:event.seatMapHash||'',
+    seatResolved:event.seatMapResolvedUrl||'',
     ticket:event.ticketUrl||event.ticketSourceUrl||event.secondarySourceUrl||'',
     price:event.price||'',
     rules:compactRules
@@ -957,7 +961,11 @@ export function ensureAutoEventLayout(event={}) {
     if (event.price) current.priceSummary=event.price;
     if (event.seatLayoutSourceUrl) {
       current.latestSeatLayoutSourceUrl=event.seatLayoutSourceUrl;
+      const nextHash=event.seatMapHash||null;
+      const hashChanged=Boolean(current.latestSeatMapHash&&nextHash&&current.latestSeatMapHash!==nextHash);
+      current.latestSeatMapHash=nextHash||current.latestSeatMapHash||null;
       current.seatMapNeedsRefresh=true;
+      if(hashChanged) current.verifiedAgainstCurrentSource=false;
     }
     current.ticketSyncSignature=JSON.stringify({seat:event.seatLayoutSourceUrl||null,price:event.price||null,rules:event.sectionPriceRules||[]});
     current.lastEventSyncAt=event.checkedAt || new Date().toISOString();
@@ -1011,7 +1019,9 @@ export function ensureAutoEventLayout(event={}) {
     const previousSignature=layout.autoGenerationSignature||'';
     const sourceChanged=Boolean(previousSignature && previousSignature!==nextSignature);
     const nextSeatSource=event.seatLayoutSourceUrl||null;
+    const nextSeatHash=event.seatMapHash||null;
     const seatSourceChanged=Boolean(layout.latestSeatLayoutSourceUrl && nextSeatSource && layout.latestSeatLayoutSourceUrl!==nextSeatSource);
+    const seatHashChanged=Boolean(layout.latestSeatMapHash && nextSeatHash && layout.latestSeatMapHash!==nextSeatHash);
     layout.stage=autoStageForEvent(venueId,event);
     layout.eventSpecific3D=true;
     layout.autoPipelineVersion=AUTO_EVENT_3D_PIPELINE_VERSION;
@@ -1020,6 +1030,7 @@ export function ensureAutoEventLayout(event={}) {
     layout.sourceName=linked ? '官方座位配置連結＋場館基準自動生成' : '官方活動場館資訊＋場館基準自動生成';
     layout.sourceUrl=event.seatLayoutSourceUrl || event.sourceUrl || model.sourceUrl;
     layout.latestSeatLayoutSourceUrl=nextSeatSource || layout.latestSeatLayoutSourceUrl || null;
+    layout.latestSeatMapHash=nextSeatHash || layout.latestSeatMapHash || null;
     if(!linked) layout.seatMapDetected=false;
     else if(sourceChanged || seatSourceChanged) layout.seatMapDetected=false;
     else layout.seatMapDetected=Boolean(layout.seatMapDetected && layout.verifiedAgainstCurrentSource);
@@ -1033,8 +1044,9 @@ export function ensureAutoEventLayout(event={}) {
       layout.verifiedAgainstCurrentSource=false;
       layout.generationState=autoEvent3DState(event,linked);
       layout.qaGate={eventSpecific:true,stagePresent:Boolean(layout.stage?.main),officialMapLinked:linked,officialMapVerified:false,priceMappingVerified:false,requiresReview:true,sourceChanged:true};
-      if(seatSourceChanged){
+      if(seatSourceChanged||seatHashChanged){
         layout.previousSeatLayoutSourceUrl=layout.seatMapResolvedUrl||layout.previousSeatLayoutSourceUrl||null;
+        layout.previousSeatMapHash=layout.seatMapFingerprint||layout.previousSeatMapHash||null;
         layout.autoMapAnalyzedAt=null;
         layout.autoStageConfidence=0;
         layout.sectionMapping=null;
@@ -1364,11 +1376,12 @@ export function venueSectionWarning(venueId, sectionId, row, layoutId, viewer={}
     if (id.startsWith('5F') || id.startsWith('6F')) { messages.push('高樓層人物肉眼比例較小，較適合觀看整體舞台；6F 31 排已有公開實拍顯示臉部細節難辨識。'); level='notice'; }
   }
   if (venueId==='kaohsiung-arena') {
-    if(/^4/.test(id) && Number(row)<=1){ messages.push('高雄巨蛋 4F 前排公開實拍常見欄杆介入視線；本版以欄杆遮擋模型校正。'); level='notice'; }
+    if(/^[45]/.test(id) && Number(row)<=3){ messages.push('高雄巨蛋官方提醒高樓層固定安全欄杆可能影響前方前三排視線；本版將 4F／5F 前三排納入欄杆遮擋模型。'); level='notice'; }
     if((id==='208' && Number(row)<=2) || id==='220'){ messages.push('公開實拍顯示此區可能受平面觀眾／喇叭塔或側屏影響；舞台延伸位置會顯著改變體感。'); level='notice'; }
     if(id==='219' && Number(row)>=33){ messages.push('219 系列公開實拍可見到 41 排；本版已把後段排數深度延伸，不再把 33–41 排壓在同一距離。'); level='notice'; }
   }
   if (venueId==='kaohsiung-music-center') {
+    if (/^(3B|3C-1|3C-2|3D)$/.test(id)) { messages.push('海音館官方二樓觀眾席平面圖將此票區標示為 3B／3C／3D；這是區名而非實體 3F，本版放置於 2F 後上段。'); level='notice'; }
     if (id==='2A2') { messages.push('公開實拍回報此區曾被票務標示為視線不良；上方設備可能遮到部分大螢幕，但若有延伸舞台，肉眼看人物仍可能很近。'); level='caution'; }
     if (id==='2B1' && Number(row)<=1) { messages.push('2B1 第 1 排有多筆公開實拍提到固定欄杆／桿件；肉眼可透過空隙觀看，但手機錄影更容易被切到。'); level='caution'; }
     if (id==='2B4' && Number(row)<=18) { messages.push('2B4 18 排有公開實拍顯示它是此分段的前排，前方有寬走道；本版已把 18 排視為 2B4 的起始深度。'); level='notice'; }

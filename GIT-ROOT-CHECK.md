@@ -1,33 +1,47 @@
-# NEUL Cloudflare v1.3.2 — Git repository root check
+# NEUL Cloudflare Git Root Check
 
-This release is intended to be copied directly into the Git repository root used by Cloudflare Workers Builds.
+Cloudflare Workers Build 必須在本 release 的 repository root 執行。
 
-Before pushing, the repository root must contain all of the following at the same level:
+Git repository 最外層應直接存在：
 
-- `wrangler.jsonc`
-- `package.json`
-- `public/`
-- `public/index.html`
-- `cloudflare/`
+```text
+package.json
+wrangler.jsonc
+public/index.html
+cloudflare/worker.js
+```
 
-Verify locally:
+部署前可執行：
 
 ```bash
 grep -n '"directory"' wrangler.jsonc
 test -f public/index.html && echo "public/index.html OK"
-git grep -n '\.cf-public' || true
+test -f cloudflare/worker.js && echo "cloudflare/worker.js OK"
+npm run cf:doctor
 ```
 
-Expected:
+`wrangler.jsonc` 的有效設定必須是：
 
-- `wrangler.jsonc` contains `"directory": "./public"`
-- `public/index.html OK`
-- the `.cf-public` search returns no matches
+```text
+"directory": "./public"
+```
 
-For Cloudflare Workers Builds:
+歷史文件可能提到舊的 `.cf-public` 問題，這不代表有效 Wrangler 設定仍使用它。若要確認程式與設定沒有舊路徑，可用：
 
-- If these files are in the repository root, set **Root directory** to `/` (or leave it empty/default).
-- If you intentionally place this project in a subfolder, set **Root directory** to that exact subfolder.
-- Deploy command: `npx wrangler deploy`
+```bash
+grep -RIn --include='wrangler.*' --include='package.json' --include='*.js' --include='*.mjs' '\.cf-public' . || true
+```
 
-Do not retry an old commit that still contains `.cf-public`; push a new commit with this release first.
+上述指令在 v1.4.2 應沒有結果。
+
+Cloudflare Git Build 建議：
+
+```text
+Root directory: repository root
+Build command: blank
+Deploy command: npm run deploy（建議）
+
+若維持 Cloudflare 預設 `npx wrangler deploy` 也可部署；`public/` 已包含在 repository，KV 會由 Wrangler 自動 provision。
+```
+
+不要 Retry 一個仍指向舊 commit 的 deployment；先確認新 commit 真的包含 `public/` 與目前的 `wrangler.jsonc`。

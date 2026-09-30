@@ -1,0 +1,11 @@
+{
+  "version": "1.4.2-seatmap-lastgood-autogen",
+  "reason": "Persistent last-good official seat-map binary cache, event-level seat-map hash invalidation, official-map metadata refresh, venue topology fixes, verified event fallback refresh, and service-worker cache refresh. Visual HTML/CSS/assets remain original v0.40.17.",
+  "hashes": {
+    "seat-map-intelligence.js": "a1af1894c141b3777af9e73655dad21dd143dbf217a402459da340f4cb53b48e",
+    "webgl-venue.js": "b1cd84f999b2e5ef7f6153f387c81a54eb1bf0e26d3156a3cb5657865fd5d471",
+    "data/multi-venue-geometry.js": "ba944236ec27fe7db5169fb759e37a78175a803251b00262f7e59959efc1b8ac",
+    "sw.js": "c31d6f65ee103c6dfcb4e9ff12087a398a2fe3fe9be9968abd97814f38974c08",
+    "data/events.js": "a83abe6b31a8b85715d7e626b328772d287d777a34c1f6f08c8d4a5bf0a8b683"
+  }
+}
