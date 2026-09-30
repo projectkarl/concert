@@ -1,0 +1,36 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "neul-cloudflare-exact",
+  "main": "cloudflare/worker.js",
+  "compatibility_date": "2026-09-30",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": [
+      "/api/*"
+    ]
+  },
+  "kv_namespaces": [
+    {
+      "binding": "CACHE",
+      "id": "REPLACE_WITH_KV_NAMESPACE_ID"
+    }
+  ],
+  "triggers": {
+    "crons": [
+      "17 * * * *",
+      "30 0 * * *"
+    ]
+  },
+  "vars": {
+    "APP_VERSION": "1.3.1-assets-fix",
+    "ARCHIVE_LIMIT": "20",
+    "SOURCE_TIMEOUT_MS": "5500",
+    "COVERAGE_MONTHS_PER_CYCLE": "4",
+    "ENABLE_WEB_PUSH": "0"
+  }
+}
